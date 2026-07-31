@@ -1,0 +1,52 @@
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: #F8F9F9;
+    -fx-border-color: transparent transparent #E5E7E9 transparent;
+    -fx-border-width: 0 0 2px 0;
+    -fx-cursor: hand;
+    -fx-padding: 0.571em 1.286em;
+    -fx-font-size: 1em;
+    -fx-text-fill: #7F8C8D;
+}
+/* Tab icons — muted on light background */
+.tab-pane > .tab-header-area > .headers-region > .tab .ikonli-font-icon {
+    -fx-fill: #7F8C8D;
+    -fx-icon-color: #7F8C8D;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #3498DB transparent;
+    -fx-text-fill: #3498DB;
+}
+/* Selected tab icon — primary blue */
+.tab-pane > .tab-header-area > .headers-region > .tab:selected .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:hover {
+    -fx-background-color: #EBF5FB;
+}
+.tab-pane > .tab-header-area > .headers-region > .tab:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: #F8F9F9;
+    -fx-border-color: transparent transparent #E5E7E9 transparent;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab > .tab-container > .tab-label {
+    -fx-font-size: 1em;
+    -fx-font-weight: bold;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected > .tab-container > .tab-label {
+    -fx-text-fill: #3498DB;
+}
+
+.tab-pane .tab-content-area {
+    -fx-background-color: white;
+}

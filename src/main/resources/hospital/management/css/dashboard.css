@@ -1,0 +1,62 @@
+.dashboard-root { -fx-background-color: #F0F3F4; }
+
+.dashboard-content {
+    -fx-padding: 1.714em;
+    -fx-spacing: 1.429em;
+}
+
+.dashboard-section {
+    -fx-spacing: 1em;
+}
+
+.stats-row {
+    -fx-spacing: 1.143em;
+    -fx-alignment: CENTER_LEFT;
+}
+
+/* Chart panels — white card on light background */
+.chart-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.06), 8, 0, 0, 2);
+    -fx-padding: 1.143em;
+}
+
+.chart-title {
+    -fx-font-size: 1.071em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+    -fx-padding: 0 0 0.714em 0;
+}
+/* Chart title icons — dark on white */
+.chart-title-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+
+/* Quick actions */
+.quick-actions {
+    -fx-spacing: 0.714em;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 0 0 0.571em 0;
+}
+/* "Quick Actions:" label icon */
+.label-tag-icon {
+    -fx-fill: #7F8C8D;
+    -fx-icon-color: #7F8C8D;
+}
+
+/* Recent patients panel — white card */
+.recent-table-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.06), 8, 0, 0, 2);
+    -fx-padding: 1.143em;
+    -fx-spacing: 0.857em;
+}

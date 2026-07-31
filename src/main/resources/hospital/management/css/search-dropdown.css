@@ -1,0 +1,61 @@
+.searchable-dropdown {
+    -fx-spacing: 0.286em;
+}
+
+.combo-box {
+    -fx-background-color: white;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-font-size: 1em;
+    -fx-pref-height: 2.571em;
+}
+.combo-box:focused {
+    -fx-border-color: #3498DB;
+    -fx-effect: dropshadow(three-pass-box, rgba(52,152,219,0.2), 4, 0, 0, 0);
+}
+
+.combo-box .list-cell {
+    -fx-padding: 0.429em 0.714em;
+    -fx-font-size: 1em;
+    -fx-text-fill: #2C3E50;
+}
+/* Combo cell icons — dark on white */
+.combo-box .list-cell .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+
+.combo-box-popup .list-view {
+    -fx-background-color: white;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 6, 0, 0, 2);
+}
+
+.combo-box-popup .list-view .list-cell:hover {
+    -fx-background-color: #EBF5FB;
+}
+.combo-box-popup .list-view .list-cell:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.combo-box-popup .list-view .list-cell:selected {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+}
+.combo-box-popup .list-view .list-cell:selected .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+
+.dropdown-search-field {
+    -fx-background-color: #F8F9F9;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0.429em 0.714em;
+    -fx-font-size: 0.929em;
+}
+.dropdown-search-field:focused { -fx-border-color: #3498DB; }

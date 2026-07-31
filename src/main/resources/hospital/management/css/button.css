@@ -1,0 +1,112 @@
+.primary-button {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 1em;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-graphic-text-gap: 0.429em;
+}
+/* Primary button icon — white on blue */
+.primary-button .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.primary-button:hover   { -fx-background-color: #2980B9; }
+.primary-button:pressed { -fx-background-color: #1F618D; }
+.primary-button:disabled { -fx-opacity: 0.5; -fx-cursor: default; }
+
+.secondary-button {
+    -fx-background-color: #E5E7E9;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 1em;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-graphic-text-gap: 0.429em;
+}
+/* Secondary button icon — dark on light */
+.secondary-button .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+.secondary-button:hover   { -fx-background-color: #D5DBDB; }
+.secondary-button:pressed { -fx-background-color: #BDC3C7; }
+
+.danger-button {
+    -fx-background-color: #E74C3C;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 1em;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-graphic-text-gap: 0.429em;
+}
+/* Danger button icon — white on red */
+.danger-button .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.danger-button:hover   { -fx-background-color: #C0392B; }
+.danger-button:pressed { -fx-background-color: #96281B; }
+
+.success-button {
+    -fx-background-color: #27AE60;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 1em;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-graphic-text-gap: 0.429em;
+}
+/* Success button icon — white on green */
+.success-button .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.success-button:hover { -fx-background-color: #1E8449; }
+
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 1.143em;
+    -fx-padding: 0.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-min-width: 2.286em;
+    -fx-min-height: 2.286em;
+}
+/* Icon-only button — dark on white */
+.icon-button .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+.icon-button:hover { -fx-background-color: #E5E7E9; }
+.icon-button:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.loading-button {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+}
+.loading-button .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.loading-button:disabled { -fx-opacity: 0.7; -fx-cursor: default; }

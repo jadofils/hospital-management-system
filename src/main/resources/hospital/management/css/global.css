@@ -1,0 +1,143 @@
+/* ─── CSS custom property emulation via root font-size cascade ──────────────
+   Main.java sets -fx-font-size on the root Scene proportional to screen width.
+   Every em unit below scales automatically. ────────────────────────────────── */
+
+/* ─── Typography ─────────────────────────────────────────────────────────── */
+.heading {
+    -fx-font-size: 1.571em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+.subheading {
+    -fx-font-size: 1.143em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+.body-text {
+    -fx-font-size: 1em;
+    -fx-text-fill: #2C3E50;
+}
+.label-tag {
+    -fx-font-size: 0.857em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7F8C8D;
+}
+.section-title {
+    -fx-font-size: 1.286em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+    -fx-padding: 0 0 0.5em 0;
+}
+
+/* ─── Color utilities ────────────────────────────────────────────────────── */
+.bg-primary   { -fx-background-color: #3498DB; }
+.bg-secondary { -fx-background-color: #2C3E50; }
+.bg-accent    { -fx-background-color: #F1C40F; }
+.bg-success   { -fx-background-color: #27AE60; }
+.bg-warning   { -fx-background-color: #F39C12; }
+.bg-danger    { -fx-background-color: #E74C3C; }
+.bg-light     { -fx-background-color: #F8F9F9; }
+.bg-muted     { -fx-background-color: #E5E7E9; }
+.bg-white     { -fx-background-color: white; }
+
+.text-primary   { -fx-text-fill: #3498DB; }
+.text-secondary { -fx-text-fill: #2C3E50; }
+.text-success   { -fx-text-fill: #27AE60; }
+.text-warning   { -fx-text-fill: #F39C12; }
+.text-danger    { -fx-text-fill: #E74C3C; }
+.text-muted     { -fx-text-fill: #7F8C8D; }
+.text-white     { -fx-text-fill: white; }
+
+/* ─── Icon color utilities ───────────────────────────────────────────────── */
+/* Page/section headers — light background → dark blue icon */
+.page-title-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+/* Chart headers */
+.chart-title-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+/* Form field label icons — muted grey */
+.field-icon {
+    -fx-fill: #7F8C8D;
+    -fx-icon-color: #7F8C8D;
+}
+/* Search icons */
+.search-icon {
+    -fx-fill: #7F8C8D;
+    -fx-icon-color: #7F8C8D;
+}
+.filter-label {
+    -fx-text-fill: #7F8C8D;
+    -fx-font-size: 0.929em;
+}
+
+/* ─── Card shell ─────────────────────────────────────────────────────────── */
+.card {
+    -fx-background-color: white;
+    -fx-background-radius: 6px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.06), 8, 0, 0, 2);
+    -fx-padding: 1.143em;
+}
+
+/* ─── Divider ────────────────────────────────────────────────────────────── */
+.divider {
+    -fx-background-color: #E5E7E9;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────────── */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+.scroll-bar:vertical .thumb,
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: #BDC3C7;
+    -fx-background-radius: 4px;
+}
+.scroll-bar:vertical .thumb:hover,
+.scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: #95A5A6;
+}
+.scroll-bar .track { -fx-background-color: transparent; }
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+}
+
+/* ─── Page root ──────────────────────────────────────────────────────────── */
+.page-root { -fx-background-color: #F8F9F9; }
+
+.page-content {
+    -fx-padding: 1.714em;
+    -fx-spacing: 1.143em;
+}
+
+/* ─── Search input box wrapper ───────────────────────────────────────────── */
+.search-input-box {
+    -fx-background-color: white;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0 0.857em;
+}
+.search-input-box:focused {
+    -fx-border-color: #3498DB;
+}
+.search-input-box .search-field {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0.571em 0;
+}

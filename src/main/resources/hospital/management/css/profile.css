@@ -1,0 +1,89 @@
+.user-profile-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 2);
+    -fx-padding: 1.714em;
+    -fx-spacing: 1em;
+    -fx-alignment: TOP_CENTER;
+}
+
+.avatar-circle {
+    -fx-background-color: #3498DB;
+    -fx-background-radius: 50%;
+    -fx-min-width: 5.714em;
+    -fx-min-height: 5.714em;
+    -fx-max-width: 5.714em;
+    -fx-max-height: 5.714em;
+    -fx-alignment: center;
+}
+
+/* Avatar icon — white on blue circle */
+.avatar-circle .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+
+.avatar-text {
+    -fx-text-fill: white;
+    -fx-font-size: 1.857em;
+    -fx-font-weight: bold;
+}
+
+.profile-name {
+    -fx-font-size: 1.214em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.profile-role {
+    -fx-font-size: 0.929em;
+    -fx-text-fill: #7F8C8D;
+}
+
+.role-badge {
+    -fx-background-color: #EBF5FB;
+    -fx-text-fill: #3498DB;
+    -fx-font-size: 0.857em;
+    -fx-font-weight: bold;
+    -fx-padding: 0.286em 0.857em;
+    -fx-background-radius: 12px;
+}
+
+.profile-menu-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 1em;
+    -fx-padding: 0.643em 0.857em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-alignment: CENTER_LEFT;
+    -fx-border-color: transparent;
+    -fx-max-width: Infinity;
+}
+/* Menu item icons — dark on white */
+.profile-menu-item .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+
+.profile-menu-item:hover { -fx-background-color: #F8F9F9; }
+.profile-menu-item:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+/* Danger/logout menu item */
+.profile-menu-item.danger { -fx-text-fill: #E74C3C; }
+.profile-menu-item.danger .ikonli-font-icon {
+    -fx-fill: #E74C3C;
+    -fx-icon-color: #E74C3C;
+}
+
+.profile-separator {
+    -fx-background-color: #E5E7E9;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+}

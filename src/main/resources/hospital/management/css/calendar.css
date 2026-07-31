@@ -1,0 +1,76 @@
+.calendar-container {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.06), 8, 0, 0, 2);
+    -fx-padding: 1.143em;
+    -fx-spacing: 0.857em;
+}
+
+.calendar-header {
+    -fx-spacing: 0.857em;
+    -fx-alignment: CENTER;
+}
+
+/* Nav button icons — dark on light */
+.calendar-nav-btn .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+
+.calendar-nav-btn {
+    -fx-background-color: #F8F9F9;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0.429em 0.857em;
+    -fx-cursor: hand;
+    -fx-text-fill: #2C3E50;
+    -fx-font-weight: bold;
+}
+
+.calendar-nav-btn:hover {
+    -fx-background-color: #EBF5FB;
+    -fx-border-color: #3498DB;
+}
+.calendar-nav-btn:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.calendar-month-label {
+    -fx-font-size: 1.143em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+    -fx-min-width: 11.429em;
+    -fx-alignment: center;
+}
+
+.calendar-day-header {
+    -fx-font-size: 0.857em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #95A5A6;
+    -fx-alignment: center;
+    -fx-min-width: 2.571em;
+    -fx-min-height: 2em;
+}
+
+.calendar-day-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 0.929em;
+    -fx-alignment: center;
+    -fx-min-width: 2.571em;
+    -fx-min-height: 2.571em;
+    -fx-background-radius: 50%;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+
+.calendar-day-cell:hover    { -fx-background-color: #EBF5FB; }
+.calendar-day-cell.today    { -fx-background-color: #3498DB; -fx-text-fill: white; }
+.calendar-day-cell.selected { -fx-background-color: #2980B9; -fx-text-fill: white; }
+.calendar-day-cell.has-event { -fx-border-color: #F39C12; }
+.calendar-day-cell.other-month { -fx-text-fill: #D5DBDB; }

@@ -1,0 +1,80 @@
+.alert-box {
+    -fx-padding: 0.857em 1.143em;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
+    -fx-spacing: 0.571em;
+}
+
+.alert-info {
+    -fx-background-color: #D6EAF8;
+    -fx-border-color: #3498DB;
+    -fx-text-fill: #1A5276;
+}
+/* Info alert icon — dark blue on light blue */
+.alert-info .ikonli-font-icon {
+    -fx-fill: #1A5276;
+    -fx-icon-color: #1A5276;
+}
+
+.alert-success {
+    -fx-background-color: #D5F5E3;
+    -fx-border-color: #27AE60;
+    -fx-text-fill: #1E8449;
+}
+/* Success alert icon — dark green on light green */
+.alert-success .ikonli-font-icon {
+    -fx-fill: #1E8449;
+    -fx-icon-color: #1E8449;
+}
+
+.alert-warning {
+    -fx-background-color: #FDEBD0;
+    -fx-border-color: #F39C12;
+    -fx-text-fill: #784212;
+}
+/* Warning alert icon — dark orange on light orange */
+.alert-warning .ikonli-font-icon {
+    -fx-fill: #784212;
+    -fx-icon-color: #784212;
+}
+
+.alert-danger {
+    -fx-background-color: #FADBD8;
+    -fx-border-color: #E74C3C;
+    -fx-text-fill: #922B21;
+}
+/* Danger alert icon — dark red on light red */
+.alert-danger .ikonli-font-icon {
+    -fx-fill: #922B21;
+    -fx-icon-color: #922B21;
+}
+
+.alert-label {
+    -fx-font-size: 1em;
+    -fx-wrap-text: true;
+}
+
+.alert-title {
+    -fx-font-size: 1em;
+    -fx-font-weight: bold;
+}
+
+/* Toast-style floating notification — dark bg → white icon/text */
+.toast {
+    -fx-background-color: #2C3E50;
+    -fx-text-fill: white;
+    -fx-padding: 0.714em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-font-size: 0.929em;
+    -fx-opacity: 0.92;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 8, 0, 0, 2);
+}
+.toast .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+
+.toast-success { -fx-background-color: #27AE60; }
+.toast-error   { -fx-background-color: #E74C3C; }
+.toast-warning { -fx-background-color: #F39C12; }

@@ -1,0 +1,56 @@
+.modal-overlay {
+    -fx-background-color: rgba(0, 0, 0, 0.45);
+}
+
+.modal-box {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 20, 0, 0, 4);
+    -fx-padding: 2em;
+    -fx-spacing: 1.143em;
+    -fx-pref-width: 31.429em;
+    -fx-max-width: 35.714em;
+}
+
+.modal-title {
+    -fx-font-size: 1.286em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+/* Modal title icon — dark on white */
+.modal-title .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+
+.modal-body {
+    -fx-font-size: 1em;
+    -fx-text-fill: #555;
+    -fx-wrap-text: true;
+}
+
+.modal-footer {
+    -fx-spacing: 0.714em;
+    -fx-alignment: CENTER_RIGHT;
+    -fx-padding: 0.857em 0 0 0;
+}
+
+.modal-close-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #7F8C8D;
+    -fx-font-size: 1.286em;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-padding: 0.143em 0.429em;
+}
+/* Close button icon — muted, turns red on hover */
+.modal-close-btn .ikonli-font-icon {
+    -fx-fill: #7F8C8D;
+    -fx-icon-color: #7F8C8D;
+}
+.modal-close-btn:hover { -fx-text-fill: #E74C3C; }
+.modal-close-btn:hover .ikonli-font-icon {
+    -fx-fill: #E74C3C;
+    -fx-icon-color: #E74C3C;
+}

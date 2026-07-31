@@ -1,0 +1,223 @@
+/* ─── Landing / Home page ────────────────────────────────────────────────── */
+.home-root { -fx-background-color: #F0F3F4; }
+
+/* ─── Left hero panel — dark background ──────────────────────────────────── */
+.hero-panel {
+    -fx-background-color: #2C3E50;
+    -fx-padding: 4.286em 3.429em;
+    -fx-spacing: 2em;
+    -fx-alignment: TOP_LEFT;
+    -fx-pref-width: 38.571em;
+    -fx-min-width: 22.857em;
+    -fx-max-width: 50em;
+}
+
+/* Brand icon on dark panel — use primary blue accent */
+.hero-brand-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.hero-logo {
+    -fx-font-size: 2.286em;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+}
+.hero-logo-sub {
+    -fx-font-size: 0.929em;
+    -fx-text-fill: #BDC3C7;
+    -fx-padding: 0 0 1.429em 0;
+}
+.hero-title {
+    -fx-font-size: 1.857em;
+    -fx-font-weight: bold;
+    -fx-text-fill: white;
+    -fx-wrap-text: true;
+}
+.hero-subtitle {
+    -fx-font-size: 1.071em;
+    -fx-text-fill: #BDC3C7;
+    -fx-wrap-text: true;
+    -fx-line-spacing: 0.286em;
+}
+
+/* Feature bullets */
+.feature-row {
+    -fx-spacing: 0.857em;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 0.429em 0;
+}
+/* Check icons — primary blue on dark panel */
+.feature-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+.feature-text {
+    -fx-text-fill: #ECF0F1;
+    -fx-font-size: 1em;
+    -fx-wrap-text: true;
+}
+
+/* Stats strip inside hero */
+.hero-stat-panel {
+    -fx-background-color: rgba(52,152,219,0.15);
+    -fx-background-radius: 8px;
+    -fx-padding: 1.143em 1.429em;
+    -fx-spacing: 1.429em;
+    -fx-alignment: CENTER;
+}
+/* Stat icons — blue on semi-transparent dark panel */
+.hero-stat-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+.hero-stat-value {
+    -fx-font-size: 1.857em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3498DB;
+    -fx-alignment: CENTER;
+}
+.hero-stat-label {
+    -fx-font-size: 0.857em;
+    -fx-text-fill: #BDC3C7;
+    -fx-alignment: CENTER;
+}
+
+/* ─── Right auth panel — light background ───────────────────────────────── */
+.auth-panel {
+    -fx-background-color: #F8F9F9;
+    -fx-padding: 4.286em 3.429em;
+    -fx-spacing: 1.714em;
+    -fx-alignment: TOP_CENTER;
+}
+
+/* Lock icon on light bg — primary blue */
+.auth-lock-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.auth-welcome {
+    -fx-font-size: 1.714em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+.auth-welcome-sub {
+    -fx-font-size: 1em;
+    -fx-text-fill: #7F8C8D;
+    -fx-wrap-text: true;
+}
+
+/* Auth card */
+.home-auth-card {
+    -fx-background-color: white;
+    -fx-background-radius: 10px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 12, 0, 0, 3);
+    -fx-padding: 2.286em;
+    -fx-spacing: 1.143em;
+}
+
+/* Tab pane inside auth card */
+.home-tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #E5E7E9 transparent;
+    -fx-border-width: 0 0 2px 0;
+    -fx-padding: 0.571em 1.429em;
+    -fx-font-size: 1em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7F8C8D;
+    -fx-cursor: hand;
+}
+.home-tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-border-color: transparent transparent #3498DB transparent;
+    -fx-text-fill: #3498DB;
+}
+.home-tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: white;
+}
+
+/* Form inputs */
+.home-input {
+    -fx-background-color: #F8F9F9;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0.714em 1em;
+    -fx-font-size: 1em;
+    -fx-pref-height: 2.857em;
+    -fx-max-width: Infinity;
+}
+.home-input:focused {
+    -fx-background-color: white;
+    -fx-border-color: #3498DB;
+    -fx-effect: dropshadow(three-pass-box, rgba(52,152,219,0.15), 4, 0, 0, 0);
+}
+
+/* Field label icons — muted on white */
+.field-icon {
+    -fx-fill: #7F8C8D;
+    -fx-icon-color: #7F8C8D;
+}
+
+/* Primary action button — blue bg → white icon */
+.home-primary-btn {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 1.071em;
+    -fx-padding: 0.714em 0;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-max-width: Infinity;
+    -fx-pref-height: 3em;
+    -fx-graphic-text-gap: 0.571em;
+}
+.home-primary-btn .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.home-primary-btn:hover  { -fx-background-color: #2980B9; }
+.home-primary-btn:pressed { -fx-background-color: #1F618D; }
+
+/* Link button — transparent bg → blue icon/text */
+.home-link-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #3498DB;
+    -fx-font-size: 0.929em;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-graphic-text-gap: 0.357em;
+}
+.home-link-btn .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+/* Footer */
+.home-footer {
+    -fx-background-color: #2C3E50;
+    -fx-padding: 1em 2.286em;
+    -fx-alignment: CENTER;
+    -fx-spacing: 1.143em;
+}
+.home-footer-text {
+    -fx-text-fill: #7F8C8D;
+    -fx-font-size: 0.929em;
+}
+/* Footer hospital icon — light on dark footer */
+.home-footer-text.ikonli-font-icon {
+    -fx-fill: #BDC3C7;
+    -fx-icon-color: #BDC3C7;
+}
+.home-footer-link {
+    -fx-background-color: transparent;
+    -fx-text-fill: #BDC3C7;
+    -fx-font-size: 0.929em;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+.home-footer-link:hover { -fx-text-fill: #3498DB; }

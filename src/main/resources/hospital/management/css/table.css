@@ -1,0 +1,74 @@
+.table-view {
+    -fx-background-color: white;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 6, 0, 0, 1);
+}
+
+/* Header — dark background → white text */
+.table-view .column-header-background {
+    -fx-background-color: #2C3E50;
+}
+.table-view .column-header {
+    -fx-background-color: #2C3E50;
+    -fx-border-color: transparent;
+}
+.table-view .column-header .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 0.929em;
+    -fx-padding: 0.714em 0.571em;
+}
+.table-view .column-header-background .filler {
+    -fx-background-color: #2C3E50;
+}
+
+/* Rows */
+.table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #F2F3F4 transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-font-size: 0.929em;
+}
+.table-row-cell:odd { -fx-background-color: #F8F9F9; }
+.table-row-cell:hover { -fx-background-color: #EBF5FB; }
+.table-row-cell:selected { -fx-background-color: #3498DB; }
+.table-row-cell:selected .table-cell { -fx-text-fill: white; }
+
+.table-cell {
+    -fx-padding: 0.714em 0.571em;
+    -fx-text-fill: #2C3E50;
+}
+
+/* Status badges */
+.status-badge {
+    -fx-padding: 0.214em 0.714em;
+    -fx-background-radius: 12px;
+    -fx-font-size: 0.857em;
+    -fx-font-weight: bold;
+}
+.status-admitted   { -fx-background-color: #D6EAF8; -fx-text-fill: #1A5276; }
+.status-discharged { -fx-background-color: #D5F5E3; -fx-text-fill: #1E8449; }
+.status-pending    { -fx-background-color: #FDEBD0; -fx-text-fill: #784212; }
+.status-cancelled  { -fx-background-color: #FADBD8; -fx-text-fill: #922B21; }
+
+/* Pagination */
+.pagination { -fx-padding: 0.571em 0 0 0; }
+.pagination .button {
+    -fx-background-color: white;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-font-size: 0.929em;
+}
+.pagination .button:hover {
+    -fx-background-color: #EBF5FB;
+    -fx-border-color: #3498DB;
+}
+.pagination .button.selected {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+    -fx-border-color: #3498DB;
+}

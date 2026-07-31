@@ -1,0 +1,39 @@
+.progress-indicator {
+    -fx-progress-color: #3498DB;
+    -fx-background-color: transparent;
+}
+
+.spinner-overlay {
+    -fx-background-color: rgba(255, 255, 255, 0.8);
+    -fx-alignment: center;
+}
+
+.spinner-label {
+    -fx-text-fill: #7F8C8D;
+    -fx-font-size: 0.929em;
+    -fx-padding: 0.571em 0 0 0;
+}
+/* Spinner label icon — muted on white overlay */
+.spinner-label .ikonli-font-icon {
+    -fx-fill: #7F8C8D;
+    -fx-icon-color: #7F8C8D;
+}
+
+.progress-bar {
+    -fx-accent: #3498DB;
+    -fx-background-color: #E5E7E9;
+    -fx-background-radius: 4px;
+    -fx-pref-height: 0.571em;
+}
+
+.progress-bar > .bar {
+    -fx-background-color: #3498DB;
+    -fx-background-radius: 4px;
+    -fx-background-insets: 0;
+}
+
+.progress-bar > .track {
+    -fx-background-color: #E5E7E9;
+    -fx-background-radius: 4px;
+    -fx-background-insets: 0;
+}

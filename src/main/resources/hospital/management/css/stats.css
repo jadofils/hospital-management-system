@@ -1,0 +1,75 @@
+.stat-card {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.07), 8, 0, 0, 2);
+    -fx-padding: 1.429em;
+    -fx-pref-width: 14.286em;
+    -fx-min-width: 11.429em;
+    -fx-spacing: 0.571em;
+}
+
+/* Colored left-border variants + matching icon color */
+.stat-card-blue {
+    -fx-border-color: #3498DB;
+    -fx-border-width: 0 0 0 4px;
+}
+.stat-card-blue .stat-icon,
+.stat-card-blue .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.stat-card-green {
+    -fx-border-color: #27AE60;
+    -fx-border-width: 0 0 0 4px;
+}
+.stat-card-green .stat-icon,
+.stat-card-green .ikonli-font-icon {
+    -fx-fill: #27AE60;
+    -fx-icon-color: #27AE60;
+}
+
+.stat-card-yellow {
+    -fx-border-color: #F39C12;
+    -fx-border-width: 0 0 0 4px;
+}
+.stat-card-yellow .stat-icon,
+.stat-card-yellow .ikonli-font-icon {
+    -fx-fill: #F39C12;
+    -fx-icon-color: #F39C12;
+}
+
+.stat-card-red {
+    -fx-border-color: #E74C3C;
+    -fx-border-width: 0 0 0 4px;
+}
+.stat-card-red .stat-icon,
+.stat-card-red .ikonli-font-icon {
+    -fx-fill: #E74C3C;
+    -fx-icon-color: #E74C3C;
+}
+
+.stat-icon {
+    -fx-font-size: 2em;
+}
+
+.stat-value {
+    -fx-font-size: 2em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.stat-label {
+    -fx-font-size: 0.929em;
+    -fx-text-fill: #7F8C8D;
+}
+
+.stat-trend {
+    -fx-font-size: 0.857em;
+    -fx-font-weight: bold;
+}
+.trend-up   { -fx-text-fill: #27AE60; }
+.trend-down { -fx-text-fill: #E74C3C; }

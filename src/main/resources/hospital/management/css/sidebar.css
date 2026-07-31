@@ -1,0 +1,74 @@
+.sidebar {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: transparent #E5E7E9 transparent transparent;
+    -fx-border-width: 0 1px 0 0;
+    -fx-padding: 1.143em 0.571em;
+    -fx-pref-width: 15.714em;
+    -fx-min-width: 13.571em;
+    -fx-max-width: 18.571em;
+}
+
+.sidebar-section-label {
+    -fx-text-fill: #95A5A6;
+    -fx-font-size: 0.786em;
+    -fx-font-weight: bold;
+    -fx-padding: 0.857em 0.571em 0.286em 0.571em;
+}
+
+.sidebar-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 1em;
+    -fx-padding: 0.714em 0.857em;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-alignment: CENTER_LEFT;
+    -fx-graphic-text-gap: 0.643em;
+}
+/* Default sidebar icons: dark blue on white background */
+.sidebar-item .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+
+.sidebar-item:hover {
+    -fx-background-color: #EBF5FB;
+    -fx-text-fill: #3498DB;
+}
+/* Hover: primary blue icon on light blue tint */
+.sidebar-item:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.sidebar-item.active {
+    -fx-background-color: #EBF5FB;
+    -fx-text-fill: #3498DB;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent transparent #3498DB;
+    -fx-border-width: 0 0 0 3px;
+    -fx-padding: 0.714em 0.857em 0.714em 0.643em;
+}
+/* Active: primary blue icon */
+.sidebar-item.active .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+/* Danger item (Logout) */
+.danger-item {
+    -fx-text-fill: #E74C3C;
+}
+.danger-item .ikonli-font-icon {
+    -fx-fill: #E74C3C;
+    -fx-icon-color: #E74C3C;
+}
+.danger-item:hover {
+    -fx-background-color: #FADBD8;
+    -fx-text-fill: #C0392B;
+}
+.danger-item:hover .ikonli-font-icon {
+    -fx-fill: #C0392B;
+    -fx-icon-color: #C0392B;
+}

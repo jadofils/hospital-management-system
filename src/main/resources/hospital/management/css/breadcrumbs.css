@@ -1,0 +1,43 @@
+.breadcrumb-bar {
+    -fx-spacing: 0.286em;
+    -fx-alignment: CENTER_LEFT;
+    -fx-padding: 0 0 0.857em 0;
+}
+
+.breadcrumb-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #3498DB;
+    -fx-font-size: 0.929em;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-underline: false;
+    -fx-padding: 0.143em 0.286em;
+}
+/* Breadcrumb link icon — blue */
+.breadcrumb-item .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+.breadcrumb-item:hover { -fx-underline: true; }
+
+.breadcrumb-separator {
+    -fx-text-fill: #BDC3C7;
+    -fx-font-size: 0.929em;
+}
+/* Separator icon — muted */
+.breadcrumb-separator.ikonli-font-icon {
+    -fx-fill: #BDC3C7;
+    -fx-icon-color: #BDC3C7;
+}
+
+.breadcrumb-current {
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 0.929em;
+    -fx-font-weight: bold;
+    -fx-padding: 0.143em 0.286em;
+}
+/* Current page icon — dark */
+.breadcrumb-current .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}

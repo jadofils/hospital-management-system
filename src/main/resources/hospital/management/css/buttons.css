@@ -1,0 +1,144 @@
+/* ─── Primary button — blue bg → white icons ────────────────────────────── */
+.primary-button {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 1em;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-graphic-text-gap: 0.5em;
+}
+.primary-button .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.primary-button:hover  { -fx-background-color: #2980B9; }
+.primary-button:pressed { -fx-background-color: #1F618D; }
+.primary-button:disabled { -fx-opacity: 0.5; -fx-cursor: default; }
+
+/* ─── Secondary button — light bg → dark icons ──────────────────────────── */
+.secondary-button {
+    -fx-background-color: #E5E7E9;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 1em;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-graphic-text-gap: 0.5em;
+}
+.secondary-button .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+.secondary-button:hover {
+    -fx-background-color: #D5DBDB;
+    -fx-border-color: #95A5A6;
+}
+.secondary-button:hover .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+
+/* ─── Danger button — red bg → white icons ──────────────────────────────── */
+.danger-button {
+    -fx-background-color: #E74C3C;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 1em;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-graphic-text-gap: 0.5em;
+}
+.danger-button .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.danger-button:hover { -fx-background-color: #C0392B; }
+
+/* ─── Success button — green bg → white icons ───────────────────────────── */
+.success-button {
+    -fx-background-color: #27AE60;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-graphic-text-gap: 0.5em;
+}
+.success-button .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.success-button:hover { -fx-background-color: #1E8449; }
+
+/* ─── Icon-only button — light bg → dark icons ──────────────────────────── */
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-font-size: 1em;
+    -fx-padding: 0.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-min-width: 2.286em;
+    -fx-min-height: 2.286em;
+}
+.icon-button .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+.icon-button:hover {
+    -fx-background-color: #E5E7E9;
+}
+.icon-button:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+/* ─── Quick-action button — white bg → dark, blue on hover ──────────────── */
+.quick-action-btn {
+    -fx-background-color: white;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 0.929em;
+    -fx-padding: 0.571em 1.143em;
+    -fx-background-radius: 4px;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-cursor: hand;
+    -fx-graphic-text-gap: 0.429em;
+}
+.quick-action-btn .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+.quick-action-btn:hover {
+    -fx-background-color: #EBF5FB;
+    -fx-border-color: #3498DB;
+    -fx-text-fill: #3498DB;
+}
+.quick-action-btn:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+/* ─── Loading button ─────────────────────────────────────────────────────── */
+.loading-button {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 0.571em 1.429em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+}
+.loading-button .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.loading-button:disabled { -fx-opacity: 0.7; -fx-cursor: default; }

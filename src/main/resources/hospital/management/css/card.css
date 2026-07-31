@@ -1,0 +1,99 @@
+.profile-card {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.07), 8, 0, 0, 2);
+    -fx-padding: 1.429em;
+    -fx-pref-width: 20em;
+    -fx-spacing: 0.714em;
+    -fx-alignment: TOP_CENTER;
+}
+
+.avatar {
+    -fx-background-color: #3498DB;
+    -fx-background-radius: 50%;
+    -fx-min-width: 5.143em;
+    -fx-min-height: 5.143em;
+    -fx-alignment: center;
+}
+
+/* Avatar icon (if using FontIcon instead of initials) — white on blue */
+.avatar .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+
+.avatar-initials {
+    -fx-text-fill: white;
+    -fx-font-size: 1.714em;
+    -fx-font-weight: bold;
+}
+
+.card-name {
+    -fx-font-size: 1.143em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.card-sub {
+    -fx-font-size: 0.929em;
+    -fx-text-fill: #7F8C8D;
+}
+
+.card-detail-row {
+    -fx-spacing: 0.429em;
+    -fx-alignment: CENTER_LEFT;
+}
+
+/* Detail row icons — muted on white */
+.card-detail-row .ikonli-font-icon {
+    -fx-fill: #95A5A6;
+    -fx-icon-color: #95A5A6;
+}
+
+.card-detail-label {
+    -fx-font-size: 0.857em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #95A5A6;
+    -fx-min-width: 4.286em;
+}
+
+.card-detail-value {
+    -fx-font-size: 0.929em;
+    -fx-text-fill: #2C3E50;
+}
+
+.availability-badge {
+    -fx-padding: 0.286em 0.857em;
+    -fx-background-radius: 12px;
+    -fx-font-size: 0.857em;
+    -fx-font-weight: bold;
+}
+
+.available     { -fx-background-color: #D5F5E3; -fx-text-fill: #1E8449; }
+.not-available { -fx-background-color: #FADBD8; -fx-text-fill: #922B21; }
+
+.appointment-card {
+    -fx-background-color: white;
+    -fx-background-radius: 6px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 6, 0, 0, 1);
+    -fx-padding: 1em;
+    -fx-spacing: 0.429em;
+}
+
+.appointment-time {
+    -fx-font-size: 1.071em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #3498DB;
+}
+
+/* Appointment card icons — dark on white */
+.appointment-card .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}

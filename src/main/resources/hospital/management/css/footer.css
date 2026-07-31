@@ -1,0 +1,33 @@
+/* Dark footer — icons should be light */
+.footer {
+    -fx-background-color: #2C3E50;
+    -fx-padding: 1em 1.714em;
+    -fx-pref-height: 3.429em;
+    -fx-min-height: 3.429em;
+}
+
+/* Footer icons — light grey on dark */
+.footer .ikonli-font-icon {
+    -fx-fill: #BDC3C7;
+    -fx-icon-color: #BDC3C7;
+}
+
+.footer-label {
+    -fx-text-fill: #95A5A6;
+    -fx-font-size: 0.929em;
+}
+
+.footer-link {
+    -fx-text-fill: #BDC3C7;
+    -fx-font-size: 0.929em;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-underline: false;
+}
+.footer-link:hover {
+    -fx-text-fill: #3498DB;
+}
+.footer-link:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}

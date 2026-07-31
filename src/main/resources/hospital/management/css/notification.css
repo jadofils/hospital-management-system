@@ -1,0 +1,101 @@
+.notification-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 8px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.12), 12, 0, 0, 3);
+    -fx-pref-width: 22.857em;
+    -fx-max-height: 30em;
+}
+
+.notification-header {
+    -fx-background-color: #F8F9F9;
+    -fx-border-color: transparent transparent #E5E7E9 transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-padding: 1em 1.143em;
+    -fx-spacing: 0.571em;
+    -fx-alignment: CENTER_LEFT;
+}
+/* Header icon — dark on light panel */
+.notification-header .ikonli-font-icon {
+    -fx-fill: #2C3E50;
+    -fx-icon-color: #2C3E50;
+}
+
+.notification-header-title {
+    -fx-font-size: 1.071em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.notification-item {
+    -fx-padding: 0.857em 1.143em;
+    -fx-border-color: transparent transparent #F2F3F4 transparent;
+    -fx-border-width: 0 0 1px 0;
+    -fx-spacing: 0.286em;
+    -fx-cursor: hand;
+}
+.notification-item:hover { -fx-background-color: #F8F9F9; }
+.notification-item.unread { -fx-background-color: #EBF5FB; }
+
+/* Notification type icons — primary blue on white/light bg */
+.notification-item .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+.notification-item.unread .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.notification-title {
+    -fx-font-size: 0.929em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+    -fx-wrap-text: true;
+}
+
+.notification-body {
+    -fx-font-size: 0.857em;
+    -fx-text-fill: #7F8C8D;
+    -fx-wrap-text: true;
+}
+
+.notification-time {
+    -fx-font-size: 0.786em;
+    -fx-text-fill: #BDC3C7;
+}
+
+.notification-dot {
+    -fx-background-color: #3498DB;
+    -fx-background-radius: 50%;
+    -fx-min-width: 0.571em;
+    -fx-min-height: 0.571em;
+    -fx-max-width: 0.571em;
+    -fx-max-height: 0.571em;
+}
+
+.notification-critical { -fx-background-color: #FADBD8; }
+.notification-critical .notification-title { -fx-text-fill: #922B21; }
+/* Critical notification icon — dark red on light red */
+.notification-critical .ikonli-font-icon {
+    -fx-fill: #922B21;
+    -fx-icon-color: #922B21;
+}
+
+.notification-footer {
+    -fx-padding: 0.714em 1.143em;
+    -fx-alignment: CENTER;
+    -fx-border-color: #E5E7E9 transparent transparent transparent;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.view-all-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #3498DB;
+    -fx-font-size: 0.929em;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+.view-all-btn:hover { -fx-underline: true; }

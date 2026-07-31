@@ -1,0 +1,82 @@
+.navbar {
+    -fx-background-color: #2C3E50;
+    -fx-padding: 0 1.714em;
+    -fx-pref-height: 4.286em;
+    -fx-min-height: 3.571em;
+    -fx-max-height: 5.714em;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.25), 6, 0, 0, 2);
+}
+
+/* Brand */
+.navbar-brand-box {
+    -fx-spacing: 0.5em;
+    -fx-alignment: CENTER_LEFT;
+}
+.navbar-brand {
+    -fx-text-fill: white;
+    -fx-font-size: 1.286em;
+    -fx-font-weight: bold;
+}
+/* Brand icon — blue accent on dark background */
+.navbar-brand-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+/* Nav buttons */
+.navbar-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #BDC3C7;
+    -fx-font-size: 1em;
+    -fx-padding: 0.571em 1em;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-graphic-text-gap: 0.429em;
+}
+/* Icons inside nav buttons — light on dark navbar */
+.navbar-btn .ikonli-font-icon {
+    -fx-fill: #BDC3C7;
+    -fx-icon-color: #BDC3C7;
+}
+.navbar-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.08);
+    -fx-text-fill: white;
+}
+.navbar-btn:hover .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+.navbar-btn:pressed {
+    -fx-background-color: rgba(255,255,255,0.15);
+}
+.navbar-btn.active-nav {
+    -fx-text-fill: white;
+    -fx-background-color: #3498DB;
+}
+.navbar-btn.active-nav .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
+
+/* Icon-only button (bell) */
+.navbar-icon-btn {
+    -fx-background-color: transparent;
+    -fx-padding: 0.571em;
+    -fx-background-radius: 50%;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-min-width: 2.571em;
+    -fx-min-height: 2.571em;
+}
+.navbar-icon-btn .ikonli-font-icon {
+    -fx-fill: #BDC3C7;
+    -fx-icon-color: #BDC3C7;
+}
+.navbar-icon-btn:hover {
+    -fx-background-color: rgba(255,255,255,0.1);
+}
+.navbar-icon-btn:hover .ikonli-font-icon {
+    -fx-fill: white;
+    -fx-icon-color: white;
+}
