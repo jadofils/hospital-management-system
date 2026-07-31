@@ -1,5 +1,6 @@
 package hospital.management.pages.components;
 
+import hospital.management.enums.NotificationType;
 import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.fxml.FXML;
@@ -9,17 +10,22 @@ import javafx.util.Duration;
 
 public class ToastController {
 
-    @FXML private HBox toastContainer;
+    @FXML private HBox  toastContainer;
     @FXML private Label toastMessage;
 
     public void show(String message) {
-        show(message, "info");
+        show(message, NotificationType.INFO);
     }
 
-    public void show(String message, String type) {
+    public void show(String message, NotificationType type) {
         toastMessage.setText(message);
-        toastContainer.getStyleClass().removeAll("toast-info", "toast-success", "toast-error");
-        toastContainer.getStyleClass().add("toast-" + type);
+        toastContainer.getStyleClass().removeAll(
+            NotificationType.INFO.toastCssClass(),
+            NotificationType.SUCCESS.toastCssClass(),
+            NotificationType.WARNING.toastCssClass(),
+            NotificationType.ERROR.toastCssClass()
+        );
+        toastContainer.getStyleClass().add(type.toastCssClass());
 
         toastContainer.setVisible(true);
         toastContainer.setManaged(true);

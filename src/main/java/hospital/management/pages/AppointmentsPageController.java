@@ -3,6 +3,7 @@ package hospital.management.pages;
 import hospital.management.pages.components.CalendarController;
 import hospital.management.pages.components.SidebarController;
 import hospital.management.backend.model.patient.Appointment;
+import hospital.management.enums.PageRoute;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -24,7 +25,7 @@ public class AppointmentsPageController {
     @FXML private TableColumn<Appointment, String> apptStatusCol;
 
     public void initialize() {
-        if (sidebarController != null) sidebarController.setActiveItem("appointments");
+        if (sidebarController != null) sidebarController.setActiveItem(PageRoute.APPOINTMENTS);
 
         apptIdCol.setCellValueFactory(new PropertyValueFactory<>("id"));
         apptPatientCol.setCellValueFactory(new PropertyValueFactory<>("patientName"));

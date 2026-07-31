@@ -1,5 +1,6 @@
 package hospital.management.pages.components;
 
+import hospital.management.enums.PageRoute;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -14,52 +15,31 @@ public class SidebarController {
     @FXML private Button appointmentsBtn;
     @FXML private Button billingBtn;
 
-    public void setActiveItem(String key) {
+    public void setActiveItem(PageRoute route) {
         dashboardBtn.getStyleClass().remove("active");
         patientsBtn.getStyleClass().remove("active");
         appointmentsBtn.getStyleClass().remove("active");
         billingBtn.getStyleClass().remove("active");
 
-        Button target = switch (key) {
-            case "dashboard" -> dashboardBtn;
-            case "patients" -> patientsBtn;
-            case "appointments" -> appointmentsBtn;
-            case "billing" -> billingBtn;
-            default -> null;
+        Button target = switch (route) {
+            case DASHBOARD    -> dashboardBtn;
+            case PATIENTS     -> patientsBtn;
+            case APPOINTMENTS -> appointmentsBtn;
+            case BILLING      -> billingBtn;
+            default           -> null;
         };
-        if (target != null) {
-            target.getStyleClass().add("active");
-        }
+        if (target != null) target.getStyleClass().add("active");
     }
 
-    @FXML
-    private void handleDashboard() {
-        navigate("/hospital/management/frontend/pages/dashboard.fxml");
-    }
+    @FXML private void handleDashboard()    { navigate(PageRoute.DASHBOARD); }
+    @FXML private void handlePatients()     { navigate(PageRoute.PATIENTS); }
+    @FXML private void handleAppointments() { navigate(PageRoute.APPOINTMENTS); }
+    @FXML private void handleBilling()      { navigate(PageRoute.BILLING); }
+    @FXML private void handleLogout()       { navigate(PageRoute.AUTH); }
 
-    @FXML
-    private void handlePatients() {
-        navigate("/hospital/management/frontend/pages/patients-page.fxml");
-    }
-
-    @FXML
-    private void handleAppointments() {
-        navigate("/hospital/management/frontend/pages/appointments-page.fxml");
-    }
-
-    @FXML
-    private void handleBilling() {
-        navigate("/hospital/management/frontend/pages/billing-page.fxml");
-    }
-
-    @FXML
-    private void handleLogout() {
-        navigate("/hospital/management/frontend/pages/home-page.fxml");
-    }
-
-    private void navigate(String fxmlPath) {
+    private void navigate(PageRoute route) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(route.getFxmlPath()));
             Parent root = loader.load();
             Scene scene = dashboardBtn.getScene();
             Scene newScene = new Scene(root, scene.getWidth(), scene.getHeight());
@@ -68,7 +48,7 @@ public class SidebarController {
             );
             ((Stage) scene.getWindow()).setScene(newScene);
         } catch (Exception e) {
-            System.err.println("Navigation to " + fxmlPath + " failed: " + e.getMessage());
+            System.err.println("Navigation to " + route.getFxmlPath() + " failed: " + e.getMessage());
         }
     }
 }

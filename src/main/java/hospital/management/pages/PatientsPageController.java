@@ -2,6 +2,7 @@ package hospital.management.pages;
 
 import hospital.management.pages.components.SidebarController;
 import hospital.management.pages.components.PatientTableController;
+import hospital.management.enums.PageRoute;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -16,7 +17,7 @@ public class PatientsPageController {
     @FXML private Label totalLabel;
 
     public void initialize() {
-        if (sidebarController != null) sidebarController.setActiveItem("patients");
+        if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PATIENTS);
 
         statusFilter.getItems().addAll("All", "Admitted", "Discharged", "Pending", "Cancelled");
         statusFilter.setValue("All");

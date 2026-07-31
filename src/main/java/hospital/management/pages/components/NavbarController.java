@@ -1,5 +1,6 @@
 package hospital.management.pages.components;
 
+import hospital.management.enums.PageRoute;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -11,34 +12,19 @@ public class NavbarController {
 
     @FXML private Button dashboardBtn;
 
-    @FXML
-    private void handleDashboard() {
-        navigate("/hospital/management/frontend/pages/dashboard.fxml");
-    }
-
-    @FXML
-    private void handlePatients() {
-        navigate("/hospital/management/frontend/pages/patients-page.fxml");
-    }
-
-    @FXML
-    private void handleAppointments() {
-        navigate("/hospital/management/frontend/pages/appointments-page.fxml");
-    }
-
-    @FXML
-    private void handleBilling() {
-        navigate("/hospital/management/frontend/pages/billing-page.fxml");
-    }
+    @FXML private void handleDashboard()    { navigate(PageRoute.DASHBOARD); }
+    @FXML private void handlePatients()     { navigate(PageRoute.PATIENTS); }
+    @FXML private void handleAppointments() { navigate(PageRoute.APPOINTMENTS); }
+    @FXML private void handleBilling()      { navigate(PageRoute.BILLING); }
 
     @FXML
     private void handleProfile() {
         System.out.println("Profile clicked");
     }
 
-    private void navigate(String fxmlPath) {
+    private void navigate(PageRoute route) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(route.getFxmlPath()));
             Parent root = loader.load();
             Scene scene = dashboardBtn.getScene();
             Scene newScene = new Scene(root, scene.getWidth(), scene.getHeight());
@@ -47,7 +33,7 @@ public class NavbarController {
             );
             ((Stage) scene.getWindow()).setScene(newScene);
         } catch (Exception e) {
-            System.err.println("Navigation to " + fxmlPath + " failed: " + e.getMessage());
+            System.err.println("Navigation to " + route.getFxmlPath() + " failed: " + e.getMessage());
         }
     }
 }

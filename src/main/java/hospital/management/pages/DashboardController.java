@@ -3,6 +3,7 @@ package hospital.management.pages;
 import hospital.management.pages.components.SidebarController;
 import hospital.management.pages.components.StatsWidgetController;
 import hospital.management.backend.model.patient.Patient;
+import hospital.management.enums.PageRoute;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.chart.*;
@@ -28,7 +29,7 @@ public class DashboardController {
     @FXML private TableColumn<Patient, String> recentStatusCol;
 
     public void initialize() {
-        if (sidebarController != null) sidebarController.setActiveItem("dashboard");
+        if (sidebarController != null) sidebarController.setActiveItem(PageRoute.DASHBOARD);
 
         setupAdmissionsChart();
         setupStatusChart();
