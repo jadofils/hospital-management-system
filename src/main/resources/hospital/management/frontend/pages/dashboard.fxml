@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.chart.*?>
+<?import java.net.URL?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="hospital.management.pages.DashboardController"
+            styleClass="page-root">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/dashboard.css"/>
+        <URL value="@../../css/stats.css"/>
+        <URL value="@../../css/table.css"/>
+        <URL value="@../../css/buttons.css"/>
+    </stylesheets>
+
+    <top>
+        <fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/>
+    </top>
+
+    <left>
+        <fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+            <VBox styleClass="dashboard-content" spacing="20">
+
+                <!-- Page title -->
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <FontIcon iconLiteral="fas-th-large" iconSize="18" styleClass="page-title-icon"/>
+                    <Label text="Dashboard" styleClass="section-title"/>
+                </HBox>
+
+                <!-- Stats row -->
+                <fx:include fx:id="statsWidget"
+                            source="/hospital/management/frontend/components/stats/stats-widget.fxml"/>
+
+                <!-- Charts row -->
+                <HBox spacing="16" styleClass="dashboard-section">
+                    <VBox styleClass="chart-panel" HBox.hgrow="ALWAYS" spacing="8">
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-chart-bar" iconSize="14" styleClass="chart-title-icon"/>
+                            <Label text="Monthly Admissions" styleClass="chart-title"/>
+                        </HBox>
+                        <BarChart fx:id="admissionsChart" prefHeight="260" animated="false">
+                            <xAxis><CategoryAxis fx:id="admissionsXAxis" label="Month"/></xAxis>
+                            <yAxis><NumberAxis   fx:id="admissionsYAxis" label="Patients"/></yAxis>
+                        </BarChart>
+                    </VBox>
+                    <VBox styleClass="chart-panel" prefWidth="300" spacing="8">
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-chart-pie" iconSize="14" styleClass="chart-title-icon"/>
+                            <Label text="Patient Status" styleClass="chart-title"/>
+                        </HBox>
+                        <PieChart fx:id="statusChart" prefHeight="260" animated="false"/>
+                    </VBox>
+                </HBox>
+
+                <!-- Quick actions -->
+                <HBox styleClass="quick-actions" spacing="10" alignment="CENTER_LEFT">
+                    <HBox spacing="4" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-bolt" iconSize="13" styleClass="label-tag-icon"/>
+                        <Label text="Quick Actions:" styleClass="label-tag"/>
+                    </HBox>
+                    <Button styleClass="quick-action-btn" contentDisplay="LEFT" text="New Patient">
+                        <graphic><FontIcon iconLiteral="fas-user-plus" iconSize="13"/></graphic>
+                    </Button>
+                    <Button styleClass="quick-action-btn" contentDisplay="LEFT" text="Appointment">
+                        <graphic><FontIcon iconLiteral="fas-calendar-plus" iconSize="13"/></graphic>
+                    </Button>
+                    <Button styleClass="quick-action-btn" contentDisplay="LEFT" text="Generate Report">
+                        <graphic><FontIcon iconLiteral="fas-file-export" iconSize="13"/></graphic>
+                    </Button>
+                    <Button styleClass="quick-action-btn" contentDisplay="LEFT" text="Process Billing">
+                        <graphic><FontIcon iconLiteral="fas-file-invoice-dollar" iconSize="13"/></graphic>
+                    </Button>
+                </HBox>
+
+                <!-- Recent patients table -->
+                <VBox styleClass="recent-table-panel" spacing="10">
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-history" iconSize="15" styleClass="page-title-icon"/>
+                        <Label text="Recent Patients" styleClass="section-title"/>
+                    </HBox>
+                    <TableView fx:id="recentTable" prefHeight="220">
+                        <columns>
+                            <TableColumn fx:id="recentIdCol"     text="ID"     prefWidth="80"/>
+                            <TableColumn fx:id="recentNameCol"   text="Name"   prefWidth="180"/>
+                            <TableColumn fx:id="recentAgeCol"    text="Age"    prefWidth="60"/>
+                            <TableColumn fx:id="recentStatusCol" text="Status" prefWidth="120"/>
+                        </columns>
+                    </TableView>
+                </VBox>
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/>
+    </bottom>
+</BorderPane>

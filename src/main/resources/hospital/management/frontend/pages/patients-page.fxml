@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="hospital.management.pages.PatientsPageController"
+            styleClass="page-root">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/table.css"/>
+        <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/search.css"/>
+        <URL value="@../../css/form.css"/>
+    </stylesheets>
+
+    <top>
+        <fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/>
+    </top>
+
+    <left>
+        <fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/>
+    </left>
+
+    <center>
+        <VBox styleClass="page-content" spacing="16">
+
+            <!-- Header bar -->
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="fas-user-injured" iconSize="18" styleClass="page-title-icon"/>
+                <Label text="Patients" styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="totalLabel" text="" styleClass="label-tag"/>
+                <Button fx:id="addPatientBtn" styleClass="primary-button"
+                        contentDisplay="LEFT" text="Add Patient">
+                    <graphic><FontIcon iconLiteral="fas-user-plus" iconSize="13"/></graphic>
+                </Button>
+            </HBox>
+
+            <!-- Filters row -->
+            <HBox spacing="12" alignment="CENTER_LEFT">
+                <HBox styleClass="search-input-box" alignment="CENTER_LEFT" spacing="6">
+                    <FontIcon iconLiteral="fas-search" iconSize="13" styleClass="search-icon"/>
+                    <TextField fx:id="searchField" promptText="Search by name or ID..."
+                               styleClass="search-field" prefWidth="260" HBox.hgrow="ALWAYS"/>
+                </HBox>
+                <HBox spacing="6" alignment="CENTER_LEFT">
+                    <FontIcon iconLiteral="fas-filter" iconSize="12" styleClass="filter-label"/>
+                    <Label text="Status:" styleClass="filter-label"/>
+                </HBox>
+                <ComboBox fx:id="statusFilter" prefWidth="140" styleClass="filter-combo"/>
+            </HBox>
+
+            <!-- Advanced search -->
+            <fx:include source="/hospital/management/frontend/components/search/advanced-search.fxml"/>
+
+            <!-- Patient table -->
+            <fx:include fx:id="patientTable"
+                        source="/hospital/management/frontend/components/table/patient-table.fxml"
+                        VBox.vgrow="ALWAYS"/>
+        </VBox>
+    </center>
+
+    <bottom>
+        <fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/>
+    </bottom>
+</BorderPane>

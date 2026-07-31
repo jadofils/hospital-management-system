@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.AuthPageController"
+           styleClass="auth-root"
+           alignment="CENTER">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/auth.css"/>
+        <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/tabs.css"/>
+    </stylesheets>
+
+    <VBox styleClass="auth-card" alignment="TOP_CENTER" spacing="20"
+          StackPane.alignment="CENTER">
+
+        <!-- Brand header -->
+        <VBox alignment="CENTER" spacing="6">
+            <Label text="+ HMS" styleClass="auth-logo"/>
+            <Label text="Hospital Management System" styleClass="auth-title"/>
+            <Label text="Sign in to your account to continue" styleClass="auth-subtitle"/>
+        </VBox>
+
+        <!-- Tab switcher -->
+        <TabPane styleClass="auth-tab-pane tabs" tabClosingPolicy="UNAVAILABLE">
+
+            <!-- LOGIN -->
+            <Tab text="Sign In">
+                <VBox spacing="14" styleClass="page-content">
+                    <VBox spacing="4">
+                        <Label text="Email Address" styleClass="form-field-label"/>
+                        <TextField fx:id="loginEmail" promptText="you@hospital.com"
+                                   styleClass="auth-input"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="Password" styleClass="form-field-label"/>
+                        <PasswordField fx:id="loginPassword" promptText="••••••••"
+                                       styleClass="auth-input"/>
+                    </VBox>
+                    <Label fx:id="loginError" text="" styleClass="validation-error"/>
+                    <Button text="Sign In" styleClass="auth-btn" maxWidth="Infinity"
+                            onAction="#handleLogin"/>
+                    <HBox alignment="CENTER">
+                        <Button text="Forgot password?" styleClass="auth-link-btn"/>
+                    </HBox>
+                </VBox>
+            </Tab>
+
+            <!-- REGISTER -->
+            <Tab text="Register">
+                <VBox spacing="12" styleClass="page-content">
+                    <HBox spacing="10">
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="First Name" styleClass="form-field-label"/>
+                            <TextField fx:id="regFirstName" promptText="First name"
+                                       styleClass="auth-input"/>
+                        </VBox>
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="Last Name" styleClass="form-field-label"/>
+                            <TextField fx:id="regLastName" promptText="Last name"
+                                       styleClass="auth-input"/>
+                        </VBox>
+                    </HBox>
+                    <VBox spacing="4">
+                        <Label text="Email" styleClass="form-field-label"/>
+                        <TextField fx:id="regEmail" promptText="you@hospital.com"
+                                   styleClass="auth-input"/>
+                    </VBox>
+                    <VBox spacing="4">
+                        <Label text="Role" styleClass="form-field-label"/>
+                        <ComboBox fx:id="regRole" maxWidth="Infinity" styleClass="form-combo"/>
+                    </VBox>
+                    <HBox spacing="10">
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="Password" styleClass="form-field-label"/>
+                            <PasswordField fx:id="regPassword" promptText="••••••••"
+                                           styleClass="auth-input"/>
+                        </VBox>
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label text="Confirm" styleClass="form-field-label"/>
+                            <PasswordField fx:id="regConfirmPassword" promptText="••••••••"
+                                           styleClass="auth-input"/>
+                        </VBox>
+                    </HBox>
+                    <Label fx:id="regError" text="" styleClass="validation-error"/>
+                    <Button text="Create Account" styleClass="auth-btn" maxWidth="Infinity"
+                            onAction="#handleRegister"/>
+                </VBox>
+            </Tab>
+
+            <!-- RESET PASSWORD -->
+            <Tab text="Reset Password">
+                <VBox spacing="14" styleClass="page-content">
+                    <Label text="Enter your email address and we will send you a reset link."
+                           styleClass="auth-subtitle" wrapText="true"/>
+                    <VBox spacing="4">
+                        <Label text="Email Address" styleClass="form-field-label"/>
+                        <TextField fx:id="resetEmail" promptText="you@hospital.com"
+                                   styleClass="auth-input"/>
+                    </VBox>
+                    <Label fx:id="resetMessage" text="" styleClass="body-text" wrapText="true"/>
+                    <Button text="Send Reset Link" styleClass="auth-btn" maxWidth="Infinity"
+                            onAction="#handleResetPassword"/>
+                </VBox>
+            </Tab>
+        </TabPane>
+    </VBox>
+</StackPane>

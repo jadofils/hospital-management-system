@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import java.net.URL?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="hospital.management.pages.AuthPageController"
+            styleClass="home-root">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/home.css"/>
+        <URL value="@../../css/form.css"/>
+        <URL value="@../../css/tabs.css"/>
+    </stylesheets>
+
+    <!-- ───── Center: two-column split ───── -->
+    <center>
+        <HBox>
+
+            <!-- ═══════════════ LEFT — Hero / Branding ═══════════════ -->
+            <VBox styleClass="hero-panel" HBox.hgrow="ALWAYS" spacing="20">
+
+                <!-- Logo & brand name -->
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <FontIcon iconLiteral="fas-hospital" iconSize="36" styleClass="hero-brand-icon"/>
+                    <VBox spacing="2">
+                        <Label text="HMS" styleClass="hero-logo"/>
+                        <Label text="Hospital Management System" styleClass="hero-logo-sub"/>
+                    </VBox>
+                </HBox>
+
+                <Label text="Modern Healthcare, Intelligently Managed."
+                       styleClass="hero-title"/>
+                <Label text="A unified platform for managing patients, appointments, doctors, and billing — designed for speed, clarity, and care."
+                       styleClass="hero-subtitle" wrapText="true"/>
+
+                <!-- Feature bullets -->
+                <VBox spacing="0">
+                    <HBox styleClass="feature-row" spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-check-circle" iconSize="14" styleClass="feature-icon"/>
+                        <Label text="Real-time patient tracking &amp; status management" styleClass="feature-text"/>
+                    </HBox>
+                    <HBox styleClass="feature-row" spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-check-circle" iconSize="14" styleClass="feature-icon"/>
+                        <Label text="Smart appointment scheduling with calendar view" styleClass="feature-text"/>
+                    </HBox>
+                    <HBox styleClass="feature-row" spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-check-circle" iconSize="14" styleClass="feature-icon"/>
+                        <Label text="Integrated billing, invoicing &amp; payment tracking" styleClass="feature-text"/>
+                    </HBox>
+                    <HBox styleClass="feature-row" spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-check-circle" iconSize="14" styleClass="feature-icon"/>
+                        <Label text="Role-based access for doctors, nurses &amp; admins" styleClass="feature-text"/>
+                    </HBox>
+                    <HBox styleClass="feature-row" spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-check-circle" iconSize="14" styleClass="feature-icon"/>
+                        <Label text="Analytics dashboard with live statistics &amp; charts" styleClass="feature-text"/>
+                    </HBox>
+                </VBox>
+
+                <!-- Quick stats strip -->
+                <HBox styleClass="hero-stat-panel" spacing="32" alignment="CENTER">
+                    <VBox alignment="CENTER" spacing="4">
+                        <FontIcon iconLiteral="fas-user-injured" iconSize="20" styleClass="hero-stat-icon"/>
+                        <Label text="1,284+" styleClass="hero-stat-value"/>
+                        <Label text="Patients" styleClass="hero-stat-label"/>
+                    </VBox>
+                    <VBox alignment="CENTER" spacing="4">
+                        <FontIcon iconLiteral="fas-calendar-check" iconSize="20" styleClass="hero-stat-icon"/>
+                        <Label text="47" styleClass="hero-stat-value"/>
+                        <Label text="Appts Today" styleClass="hero-stat-label"/>
+                    </VBox>
+                    <VBox alignment="CENTER" spacing="4">
+                        <FontIcon iconLiteral="fas-dollar-sign" iconSize="20" styleClass="hero-stat-icon"/>
+                        <Label text="\$38.5k" styleClass="hero-stat-value"/>
+                        <Label text="Revenue" styleClass="hero-stat-label"/>
+                    </VBox>
+                    <VBox alignment="CENTER" spacing="4">
+                        <FontIcon iconLiteral="fas-server" iconSize="20" styleClass="hero-stat-icon"/>
+                        <Label text="24/7" styleClass="hero-stat-value"/>
+                        <Label text="Uptime" styleClass="hero-stat-label"/>
+                    </VBox>
+                </HBox>
+
+                <Region VBox.vgrow="ALWAYS"/>
+
+                <Label text="© 2026 Amalitech – Hospital Management System v1.0"
+                       styleClass="hero-logo-sub"/>
+            </VBox>
+
+            <!-- ═══════════════ RIGHT — Auth form ═══════════════ -->
+            <VBox styleClass="auth-panel" prefWidth="520" minWidth="400" spacing="24">
+
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <FontIcon iconLiteral="fas-lock" iconSize="22" styleClass="auth-lock-icon"/>
+                    <VBox spacing="2">
+                        <Label text="Welcome back" styleClass="auth-welcome"/>
+                        <Label text="Sign in to access your dashboard."
+                               styleClass="auth-welcome-sub" wrapText="true"/>
+                    </VBox>
+                </HBox>
+
+                <VBox styleClass="home-auth-card" spacing="0">
+                    <TabPane styleClass="home-tab-pane" tabClosingPolicy="UNAVAILABLE">
+
+                        <!-- ─── SIGN IN ─── -->
+                        <Tab text="Sign In">
+                            <VBox spacing="14" style="-fx-padding: 20px 0 0 0;">
+                                <VBox spacing="4">
+                                    <HBox spacing="6" alignment="CENTER_LEFT">
+                                        <FontIcon iconLiteral="fas-envelope" iconSize="12" styleClass="field-icon"/>
+                                        <Label text="Email Address" styleClass="form-field-label"/>
+                                    </HBox>
+                                    <TextField fx:id="loginEmail"
+                                               promptText="you@hospital.com"
+                                               styleClass="home-input"/>
+                                </VBox>
+                                <VBox spacing="4">
+                                    <HBox spacing="6" alignment="CENTER_LEFT">
+                                        <FontIcon iconLiteral="fas-lock" iconSize="12" styleClass="field-icon"/>
+                                        <Label text="Password" styleClass="form-field-label"/>
+                                    </HBox>
+                                    <PasswordField fx:id="loginPassword"
+                                                   promptText="••••••••"
+                                                   styleClass="home-input"/>
+                                </VBox>
+                                <Label fx:id="loginError" text="" styleClass="validation-error"/>
+                                <Button styleClass="home-primary-btn" maxWidth="Infinity"
+                                        onAction="#handleLogin" contentDisplay="LEFT" text="Sign In">
+                                    <graphic><FontIcon iconLiteral="fas-sign-in-alt" iconSize="14"/></graphic>
+                                </Button>
+                                <HBox alignment="CENTER_RIGHT">
+                                    <Button text="Forgot password?" styleClass="home-link-btn"
+                                            contentDisplay="LEFT">
+                                        <graphic><FontIcon iconLiteral="fas-question-circle" iconSize="12"/></graphic>
+                                    </Button>
+                                </HBox>
+                            </VBox>
+                        </Tab>
+
+                        <!-- ─── RESET PASSWORD ─── -->
+                        <Tab text="Reset Password">
+                            <VBox spacing="14" style="-fx-padding: 20px 0 0 0;">
+                                <Label text="Enter your registered email and we will send you a reset link."
+                                       styleClass="body-text" wrapText="true"/>
+                                <VBox spacing="4">
+                                    <HBox spacing="6" alignment="CENTER_LEFT">
+                                        <FontIcon iconLiteral="fas-envelope" iconSize="12" styleClass="field-icon"/>
+                                        <Label text="Email Address" styleClass="form-field-label"/>
+                                    </HBox>
+                                    <TextField fx:id="resetEmail"
+                                               promptText="you@hospital.com"
+                                               styleClass="home-input"/>
+                                </VBox>
+                                <Label fx:id="resetMessage" text="" styleClass="body-text" wrapText="true"/>
+                                <Button styleClass="home-primary-btn" maxWidth="Infinity"
+                                        onAction="#handleResetPassword" contentDisplay="LEFT"
+                                        text="Send Reset Link">
+                                    <graphic><FontIcon iconLiteral="fas-paper-plane" iconSize="14"/></graphic>
+                                </Button>
+                            </VBox>
+                        </Tab>
+                    </TabPane>
+                </VBox>
+
+                <HBox alignment="CENTER" spacing="4">
+                    <FontIcon iconLiteral="fas-shield-alt" iconSize="12" styleClass="auth-welcome-sub"/>
+                    <Label text="Powered by" styleClass="auth-welcome-sub"/>
+                    <Button text="Amalitech Training" styleClass="home-link-btn"/>
+                </HBox>
+            </VBox>
+        </HBox>
+    </center>
+
+    <!-- ───── Bottom footer ───── -->
+    <bottom>
+        <HBox styleClass="home-footer" spacing="20" alignment="CENTER">
+            <HBox spacing="6" alignment="CENTER_LEFT">
+                <FontIcon iconLiteral="fas-hospital" iconSize="14" styleClass="home-footer-text"/>
+                <Label text="© 2026 Hospital Management System. All rights reserved."
+                       styleClass="home-footer-text"/>
+            </HBox>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Privacy Policy"   styleClass="home-footer-link"/>
+            <Button text="Terms of Service" styleClass="home-footer-link"/>
+            <Button text="Contact Us"       styleClass="home-footer-link"/>
+        </HBox>
+    </bottom>
+</BorderPane>
