@@ -2,7 +2,7 @@ package hospital.management.pages;
 
 import hospital.management.pages.components.CalendarController;
 import hospital.management.pages.components.SidebarController;
-import hospital.management.model.Appointment;
+import hospital.management.backend.model.patient.Appointment;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;

@@ -2,8 +2,6 @@ package hospital.management.pages;
 
 import hospital.management.pages.components.SidebarController;
 import hospital.management.pages.components.PatientTableController;
-import hospital.management.model.Patient;
-import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 

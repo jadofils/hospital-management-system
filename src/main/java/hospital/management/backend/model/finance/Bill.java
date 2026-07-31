@@ -1,39 +1,35 @@
-package hospital.management.model;
+package hospital.management.backend.model.finance;
 
 import javafx.beans.property.*;
 
-public class Appointment {
+public class Bill {
     private final StringProperty id;
     private final StringProperty patientName;
-    private final StringProperty doctorName;
     private final StringProperty date;
-    private final StringProperty time;
+    private final DoubleProperty amount;
     private final StringProperty status;
-    private final StringProperty notes;
+    private final StringProperty description;
 
-    public Appointment(String id, String patientName, String doctorName,
-                       String date, String time, String status, String notes) {
+    public Bill(String id, String patientName, String date,
+                double amount, String status, String description) {
         this.id = new SimpleStringProperty(id);
         this.patientName = new SimpleStringProperty(patientName);
-        this.doctorName = new SimpleStringProperty(doctorName);
         this.date = new SimpleStringProperty(date);
-        this.time = new SimpleStringProperty(time);
+        this.amount = new SimpleDoubleProperty(amount);
         this.status = new SimpleStringProperty(status);
-        this.notes = new SimpleStringProperty(notes);
+        this.description = new SimpleStringProperty(description);
     }
 
     public String getId() { return id.get(); }
     public StringProperty idProperty() { return id; }
     public String getPatientName() { return patientName.get(); }
     public StringProperty patientNameProperty() { return patientName; }
-    public String getDoctorName() { return doctorName.get(); }
-    public StringProperty doctorNameProperty() { return doctorName; }
     public String getDate() { return date.get(); }
     public StringProperty dateProperty() { return date; }
-    public String getTime() { return time.get(); }
-    public StringProperty timeProperty() { return time; }
+    public double getAmount() { return amount.get(); }
+    public DoubleProperty amountProperty() { return amount; }
     public String getStatus() { return status.get(); }
     public StringProperty statusProperty() { return status; }
-    public String getNotes() { return notes.get(); }
-    public StringProperty notesProperty() { return notes; }
+    public String getDescription() { return description.get(); }
+    public StringProperty descriptionProperty() { return description; }
 }

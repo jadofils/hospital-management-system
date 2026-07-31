@@ -1,6 +1,6 @@
 package hospital.management.pages.components;
 
-import hospital.management.model.Patient;
+import hospital.management.backend.model.patient.Patient;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;

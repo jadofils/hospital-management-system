@@ -1,7 +1,7 @@
 package hospital.management.pages;
 
 import hospital.management.pages.components.SidebarController;
-import hospital.management.model.Bill;
+import hospital.management.backend.model.finance.Bill;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
