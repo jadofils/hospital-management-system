@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Launcher" type="Application" factoryName="Application" singleton="true">
+    <option name="MAIN_CLASS_NAME" value="hospital.management.Launcher" />
+    <module name="hospital-management-system" />
+    <option name="VM_PARAMETERS" value="--module-path &quot;C:\Users\Ishimwe-Conscience\Downloads\java-dependencies-libraries\openjfx-26.0.2_windows-x64_bin-sdk\javafx-sdk-26.0.2\lib&quot; --add-modules javafx.controls,javafx.fxml,javafx.web,javafx.swing" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
