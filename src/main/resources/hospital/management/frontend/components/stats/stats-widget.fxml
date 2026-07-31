@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.StatsWidgetController"
+      styleClass="stats-row"
+      spacing="16">
+
+    <stylesheets>
+        <URL value="@../../../css/stats.css"/>
+    </stylesheets>
+
+    <!-- Total Patients -->
+    <VBox styleClass="stat-card stat-card-blue" spacing="4" HBox.hgrow="ALWAYS">
+        <Label text="Total Patients"    styleClass="stat-label"/>
+        <Label fx:id="totalPatientsValue" text="0" styleClass="stat-value"/>
+        <Label fx:id="totalPatientsTrend" text=""  styleClass="stat-trend"/>
+    </VBox>
+
+    <!-- Today's Appointments -->
+    <VBox styleClass="stat-card stat-card-green" spacing="4" HBox.hgrow="ALWAYS">
+        <Label text="Today's Appointments"        styleClass="stat-label"/>
+        <Label fx:id="todayAppointmentsValue" text="0" styleClass="stat-value"/>
+        <Label fx:id="todayAppointmentsTrend" text=""  styleClass="stat-trend"/>
+    </VBox>
+
+    <!-- Revenue -->
+    <VBox styleClass="stat-card stat-card-yellow" spacing="4" HBox.hgrow="ALWAYS">
+        <Label text="Monthly Revenue"  styleClass="stat-label"/>
+        <Label fx:id="revenueValue"    text="\$0"  styleClass="stat-value"/>
+        <Label fx:id="revenueTrend"    text=""    styleClass="stat-trend"/>
+    </VBox>
+
+    <!-- Pending Bills -->
+    <VBox styleClass="stat-card stat-card-red" spacing="4" HBox.hgrow="ALWAYS">
+        <Label text="Pending Bills"       styleClass="stat-label"/>
+        <Label fx:id="pendingBillsValue"  text="0" styleClass="stat-value"/>
+        <Label fx:id="pendingBillsTrend"  text=""  styleClass="stat-trend"/>
+    </VBox>
+</HBox>

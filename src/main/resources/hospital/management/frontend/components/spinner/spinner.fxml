@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      styleClass="spinner-overlay"
+      spacing="8"
+      alignment="CENTER"
+      prefWidth="Infinity"
+      prefHeight="Infinity">
+
+    <stylesheets>
+        <URL value="@../../../css/spinner.css"/>
+    </stylesheets>
+
+    <ProgressIndicator prefWidth="48" prefHeight="48"/>
+    <Label text="Loading..." styleClass="spinner-label"/>
+</VBox>

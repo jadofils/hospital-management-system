@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import java.net.URL?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      styleClass="profile-card"
+      spacing="8"
+      alignment="TOP_CENTER">
+
+    <stylesheets>
+        <URL value="@../../../css/card.css"/>
+        <URL value="@../../../css/buttons.css"/>
+    </stylesheets>
+
+    <StackPane alignment="CENTER" prefWidth="72" prefHeight="72">
+        <VBox styleClass="avatar" alignment="CENTER">
+            <Label text="DS" styleClass="avatar-initials"/>
+        </VBox>
+    </StackPane>
+
+    <Label text="Dr. David Smith"    styleClass="card-name"/>
+    <Label text="Cardiologist · D002" styleClass="card-sub"/>
+
+    <Label text="Available" styleClass="availability-badge available"/>
+
+    <Pane styleClass="divider" prefHeight="1" maxWidth="Infinity"/>
+
+    <VBox spacing="6">
+        <HBox spacing="8" styleClass="card-detail-row">
+            <Label text="Phone"     styleClass="card-detail-label"/>
+            <Label text="555-0201"  styleClass="card-detail-value"/>
+        </HBox>
+        <HBox spacing="8" styleClass="card-detail-row">
+            <Label text="Email"     styleClass="card-detail-label"/>
+            <Label text="d.smith@hms.com" styleClass="card-detail-value"/>
+        </HBox>
+    </VBox>
+
+    <Button text="Book Appointment" styleClass="primary-button" maxWidth="Infinity"/>
+</VBox>

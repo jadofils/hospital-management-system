@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import java.net.URL?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.CalendarController"
+      styleClass="calendar-container"
+      spacing="12">
+
+    <stylesheets>
+        <URL value="@../../../css/calendar.css"/>
+        <URL value="@../../../css/buttons.css"/>
+    </stylesheets>
+
+    <!-- Header: prev / month-year / next -->
+    <HBox styleClass="calendar-header" alignment="CENTER" spacing="12">
+        <Button fx:id="prevBtn" text="&lt;" styleClass="calendar-nav-btn" onAction="#handlePrev"/>
+        <Label  fx:id="monthYearLabel" text="July 2026" styleClass="calendar-month-label"/>
+        <Button fx:id="nextBtn" text="&gt;" styleClass="calendar-nav-btn" onAction="#handleNext"/>
+    </HBox>
+
+    <!-- Day grid (populated by controller) -->
+    <GridPane fx:id="calendarGrid" hgap="4" vgap="4" alignment="CENTER"/>
+</VBox>

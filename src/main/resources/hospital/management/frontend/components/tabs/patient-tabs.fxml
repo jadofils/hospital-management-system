@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<TabPane xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         tabClosingPolicy="UNAVAILABLE"
+         VBox.vgrow="ALWAYS">
+
+    <stylesheets>
+        <URL value="@../../../css/tabs.css"/>
+    </stylesheets>
+
+    <Tab text="History">
+        <VBox spacing="10" styleClass="page-content">
+            <Label text="Medical History" styleClass="subheading"/>
+            <Label text="2026-03-15 — Cardiology consultation with Dr. Smith."
+                   styleClass="body-text" wrapText="true"/>
+            <Label text="2025-11-02 — Routine check-up, all results normal."
+                   styleClass="body-text" wrapText="true"/>
+            <Label text="2025-06-18 — Blood test: Hemoglobin within range."
+                   styleClass="body-text" wrapText="true"/>
+        </VBox>
+    </Tab>
+
+    <Tab text="Prescriptions">
+        <VBox spacing="10" styleClass="page-content">
+            <Label text="Active Prescriptions" styleClass="subheading"/>
+            <HBox spacing="12" styleClass="card">
+                <VBox spacing="4">
+                    <Label text="Atorvastatin 20mg" styleClass="card-name"/>
+                    <Label text="Once daily · 90 days" styleClass="card-sub"/>
+                    <Label text="Dr. Smith · Prescribed 2026-07-10" styleClass="label-tag"/>
+                </VBox>
+            </HBox>
+            <HBox spacing="12" styleClass="card">
+                <VBox spacing="4">
+                    <Label text="Metformin 500mg" styleClass="card-name"/>
+                    <Label text="Twice daily · 60 days" styleClass="card-sub"/>
+                    <Label text="Dr. Johnson · Prescribed 2026-06-25" styleClass="label-tag"/>
+                </VBox>
+            </HBox>
+        </VBox>
+    </Tab>
+
+    <Tab text="Billing">
+        <VBox spacing="10" styleClass="page-content">
+            <Label text="Billing Summary" styleClass="subheading"/>
+            <HBox spacing="20" alignment="CENTER_LEFT">
+                <VBox spacing="4" styleClass="stat-card stat-card-blue">
+                    <Label text="Total Billed" styleClass="stat-label"/>
+                    <Label text="\$3,200.00"    styleClass="stat-value"/>
+                </VBox>
+                <VBox spacing="4" styleClass="stat-card stat-card-green">
+                    <Label text="Paid"    styleClass="stat-label"/>
+                    <Label text="\$2,350.00" styleClass="stat-value"/>
+                </VBox>
+                <VBox spacing="4" styleClass="stat-card stat-card-yellow">
+                    <Label text="Balance Due" styleClass="stat-label"/>
+                    <Label text="\$850.00"     styleClass="stat-value"/>
+                </VBox>
+            </HBox>
+        </VBox>
+    </Tab>
+</TabPane>

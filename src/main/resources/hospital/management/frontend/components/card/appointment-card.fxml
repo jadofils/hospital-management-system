@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import java.net.URL?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      styleClass="appointment-card"
+      spacing="6">
+
+    <stylesheets>
+        <URL value="@../../../css/card.css"/>
+        <URL value="@../../../css/buttons.css"/>
+    </stylesheets>
+
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Label text="09:00 AM" styleClass="appointment-time"/>
+        <Label text="Confirmed" styleClass="availability-badge available"/>
+    </HBox>
+
+    <Label text="Alice Johnson" styleClass="card-name"/>
+
+    <HBox spacing="8" styleClass="card-detail-row">
+        <Label text="Doctor"  styleClass="card-detail-label"/>
+        <Label text="Dr. Smith" styleClass="card-detail-value"/>
+    </HBox>
+    <HBox spacing="8" styleClass="card-detail-row">
+        <Label text="Type"    styleClass="card-detail-label"/>
+        <Label text="Consultation" styleClass="card-detail-value"/>
+    </HBox>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT">
+        <Button text="Cancel"   styleClass="danger-button"/>
+        <Button text="Reschedule" styleClass="secondary-button"/>
+    </HBox>
+</VBox>

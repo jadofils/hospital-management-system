@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.SearchableDropdownController"
+      styleClass="searchable-dropdown"
+      spacing="4">
+
+    <stylesheets>
+        <URL value="@../../../css/search-dropdown.css"/>
+    </stylesheets>
+
+    <TextField fx:id="searchField" promptText="Type to filter..."
+               styleClass="dropdown-search-field"/>
+    <ComboBox fx:id="dropdown" maxWidth="Infinity" styleClass="combo-box"/>
+</VBox>

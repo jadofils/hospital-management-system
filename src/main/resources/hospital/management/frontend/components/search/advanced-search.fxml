@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.AdvancedSearchController"
+      spacing="10"
+      styleClass="card">
+
+    <stylesheets>
+        <URL value="@../../../css/search.css"/>
+        <URL value="@../../../css/form.css"/>
+    </stylesheets>
+
+    <Label text="Advanced Search" styleClass="subheading"/>
+
+    <HBox spacing="12" alignment="CENTER_LEFT">
+        <VBox spacing="4" HBox.hgrow="ALWAYS">
+            <Label text="Patient ID" styleClass="form-field-label"/>
+            <TextField fx:id="patientIdField" promptText="e.g. P001" styleClass="form-input"/>
+        </VBox>
+        <VBox spacing="4" HBox.hgrow="ALWAYS">
+            <Label text="Doctor Name" styleClass="form-field-label"/>
+            <TextField fx:id="doctorNameField" promptText="Doctor name" styleClass="form-input"/>
+        </VBox>
+        <VBox spacing="4">
+            <Label text="Date" styleClass="form-field-label"/>
+            <DatePicker fx:id="appointmentDatePicker" styleClass="form-date-picker"/>
+        </VBox>
+        <VBox spacing="4">
+            <Label text="Status" styleClass="form-field-label"/>
+            <ComboBox fx:id="statusFilter" styleClass="form-combo" prefWidth="130"/>
+        </VBox>
+    </HBox>
+
+    <HBox spacing="8" alignment="CENTER_RIGHT">
+        <Button fx:id="resetBtn"  text="Reset"  styleClass="secondary-button"/>
+        <Button fx:id="searchBtn" text="Search" styleClass="primary-button"/>
+    </HBox>
+</VBox>

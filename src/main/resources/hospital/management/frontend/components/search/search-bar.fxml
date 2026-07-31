@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.SearchBarController"
+      spacing="8"
+      alignment="CENTER_LEFT">
+
+    <stylesheets>
+        <URL value="@../../../css/search.css"/>
+    </stylesheets>
+
+    <TextField fx:id="searchField" promptText="Search patients, doctors..."
+               styleClass="search-field" HBox.hgrow="ALWAYS"/>
+    <Button fx:id="searchBtn" text="Search" styleClass="search-button"/>
+</HBox>

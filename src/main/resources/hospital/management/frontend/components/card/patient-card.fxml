@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import java.net.URL?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      styleClass="profile-card"
+      spacing="8"
+      alignment="TOP_CENTER">
+
+    <stylesheets>
+        <URL value="@../../../css/card.css"/>
+        <URL value="@../../../css/buttons.css"/>
+    </stylesheets>
+
+    <!-- Avatar -->
+    <StackPane alignment="CENTER" prefWidth="72" prefHeight="72">
+        <VBox styleClass="avatar" alignment="CENTER">
+            <Label text="AJ" styleClass="avatar-initials"/>
+        </VBox>
+    </StackPane>
+
+    <Label text="Alice Johnson"   styleClass="card-name"/>
+    <Label text="Patient · P001"  styleClass="card-sub"/>
+
+    <Pane styleClass="divider" prefHeight="1" maxWidth="Infinity"/>
+
+    <VBox spacing="6">
+        <HBox spacing="8" styleClass="card-detail-row">
+            <Label text="Age"    styleClass="card-detail-label"/>
+            <Label text="30"     styleClass="card-detail-value"/>
+        </HBox>
+        <HBox spacing="8" styleClass="card-detail-row">
+            <Label text="Gender" styleClass="card-detail-label"/>
+            <Label text="Female" styleClass="card-detail-value"/>
+        </HBox>
+        <HBox spacing="8" styleClass="card-detail-row">
+            <Label text="Phone"  styleClass="card-detail-label"/>
+            <Label text="555-0101" styleClass="card-detail-value"/>
+        </HBox>
+        <HBox spacing="8" styleClass="card-detail-row">
+            <Label text="Status" styleClass="card-detail-label"/>
+            <Label text="Admitted" styleClass="card-detail-value text-primary"/>
+        </HBox>
+    </VBox>
+
+    <Button text="View Details" styleClass="primary-button" maxWidth="Infinity"/>
+</VBox>

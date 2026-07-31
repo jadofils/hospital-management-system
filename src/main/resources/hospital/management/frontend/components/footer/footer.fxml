@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.FooterController"
+      styleClass="footer"
+      spacing="16"
+      alignment="CENTER">
+
+    <stylesheets>
+        <URL value="@../../../css/footer.css"/>
+    </stylesheets>
+
+    <Label text="© 2026 Hospital Management System. All rights reserved."
+           styleClass="footer-label"/>
+
+    <Region HBox.hgrow="ALWAYS"/>
+
+    <Hyperlink fx:id="privacyLink" text="Privacy Policy" styleClass="footer-link"/>
+    <Hyperlink fx:id="termsLink"   text="Terms of Service" styleClass="footer-link"/>
+    <Hyperlink fx:id="contactLink" text="Contact Us"      styleClass="footer-link"/>
+</HBox>

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.components.ModalController"
+           fx:id="modalOverlay"
+           styleClass="modal-overlay"
+           visible="false"
+           managed="false">
+
+    <stylesheets>
+        <URL value="@../../../css/modal.css"/>
+        <URL value="@../../../css/buttons.css"/>
+    </stylesheets>
+
+    <VBox fx:id="modalBox" styleClass="modal-box" StackPane.alignment="CENTER">
+        <!-- Header -->
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <Label fx:id="modalTitle" text="Confirm Action" styleClass="modal-title"
+                   HBox.hgrow="ALWAYS"/>
+            <Button text="x" styleClass="modal-close-btn" onAction="#handleClose"/>
+        </HBox>
+
+        <!-- Body -->
+        <Label fx:id="modalBody"
+               text="Are you sure you want to proceed? This action cannot be undone."
+               styleClass="modal-body"
+               wrapText="true"/>
+
+        <!-- Footer -->
+        <HBox styleClass="modal-footer" spacing="10">
+            <Button fx:id="cancelBtn"  text="Cancel"  styleClass="secondary-button"/>
+            <Button fx:id="confirmBtn" text="Confirm" styleClass="primary-button"/>
+        </HBox>
+    </VBox>
+</StackPane>

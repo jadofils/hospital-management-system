@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import java.net.URL?>
+<Accordion xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml">
+
+    <stylesheets>
+        <URL value="@../../../css/accordion.css"/>
+    </stylesheets>
+
+    <panes>
+        <TitledPane text="Allergies &amp; Contraindications" expanded="true">
+            <VBox spacing="6" styleClass="page-content">
+                <Label text="Penicillin — Severe (anaphylaxis)" styleClass="body-text" wrapText="true"/>
+                <Label text="Aspirin — Mild (rash)"             styleClass="body-text" wrapText="true"/>
+            </VBox>
+        </TitledPane>
+
+        <TitledPane text="Previous Surgeries">
+            <VBox spacing="6" styleClass="page-content">
+                <Label text="Appendectomy — 2018" styleClass="body-text"/>
+                <Label text="Knee arthroscopy — 2022" styleClass="body-text"/>
+            </VBox>
+        </TitledPane>
+
+        <TitledPane text="Chronic Conditions">
+            <VBox spacing="6" styleClass="page-content">
+                <Label text="Type 2 Diabetes — managed" styleClass="body-text"/>
+                <Label text="Hypertension — controlled" styleClass="body-text"/>
+            </VBox>
+        </TitledPane>
+
+        <TitledPane text="Emergency Contacts">
+            <VBox spacing="6" styleClass="page-content">
+                <Label text="John Johnson (Spouse) — 555-0200" styleClass="body-text"/>
+                <Label text="Mary Davis (Parent) — 555-0300"   styleClass="body-text"/>
+            </VBox>
+        </TitledPane>
+    </panes>
+</Accordion>

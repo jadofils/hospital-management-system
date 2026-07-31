@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.SidebarController"
+      fx:id="sidebarRoot"
+      styleClass="sidebar"
+      spacing="2">
+
+    <stylesheets>
+        <URL value="@../../../css/sidebar.css"/>
+    </stylesheets>
+
+    <Label text="MENU" styleClass="sidebar-section-label"/>
+
+    <Button fx:id="dashboardBtn" text="Dashboard" styleClass="sidebar-item"
+            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleDashboard">
+        <graphic><FontIcon iconLiteral="fas-th-large" iconSize="14"/></graphic>
+    </Button>
+    <Button fx:id="patientsBtn" text="Patients" styleClass="sidebar-item"
+            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handlePatients">
+        <graphic><FontIcon iconLiteral="fas-user-injured" iconSize="14"/></graphic>
+    </Button>
+    <Button fx:id="appointmentsBtn" text="Appointments" styleClass="sidebar-item"
+            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleAppointments">
+        <graphic><FontIcon iconLiteral="fas-calendar-check" iconSize="14"/></graphic>
+    </Button>
+    <Button fx:id="billingBtn" text="Billing" styleClass="sidebar-item"
+            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleBilling">
+        <graphic><FontIcon iconLiteral="fas-file-invoice-dollar" iconSize="14"/></graphic>
+    </Button>
+
+    <Label text="REPORTS" styleClass="sidebar-section-label"/>
+    <Button text="Analytics" styleClass="sidebar-item" maxWidth="Infinity" contentDisplay="LEFT">
+        <graphic><FontIcon iconLiteral="fas-chart-bar" iconSize="14"/></graphic>
+    </Button>
+    <Button text="Reports" styleClass="sidebar-item" maxWidth="Infinity" contentDisplay="LEFT">
+        <graphic><FontIcon iconLiteral="fas-file-alt" iconSize="14"/></graphic>
+    </Button>
+
+    <Region VBox.vgrow="ALWAYS"/>
+
+    <Label text="ACCOUNT" styleClass="sidebar-section-label"/>
+    <Button text="Settings" styleClass="sidebar-item" maxWidth="Infinity" contentDisplay="LEFT">
+        <graphic><FontIcon iconLiteral="fas-cog" iconSize="14"/></graphic>
+    </Button>
+    <Button text="Logout" styleClass="sidebar-item danger-item"
+            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleLogout">
+        <graphic><FontIcon iconLiteral="fas-sign-out-alt" iconSize="14"/></graphic>
+    </Button>
+</VBox>
