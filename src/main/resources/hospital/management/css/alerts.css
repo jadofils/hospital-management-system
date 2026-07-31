@@ -78,3 +78,8 @@
 .toast-success { -fx-background-color: #27AE60; }
 .toast-error   { -fx-background-color: #E74C3C; }
 .toast-warning { -fx-background-color: #F39C12; }
+
+/* Wrapper that anchors the toast include to the page's bottom-right corner */
+.toast-anchor {
+    -fx-padding: 0 1.429em 1.429em 0;
+}

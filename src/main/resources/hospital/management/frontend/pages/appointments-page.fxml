@@ -3,17 +3,21 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
-<BorderPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="hospital.management.pages.AppointmentsPageController"
-            styleClass="page-root">
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.clinical.AppointmentsPageController">
 
     <stylesheets>
         <URL value="@../../css/global.css"/>
         <URL value="@../../css/calendar.css"/>
         <URL value="@../../css/table.css"/>
         <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/modal.css"/>
+        <URL value="@../../css/alerts.css"/>
+        <URL value="@../../css/spinner.css"/>
     </stylesheets>
+
+    <BorderPane styleClass="page-root">
 
     <top>
         <fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/>
@@ -23,7 +27,12 @@
         <fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/>
     </left>
 
+    <right>
+        <fx:include fx:id="rightSidebar" source="/hospital/management/frontend/components/right-sidebar/right-sidebar.fxml"/>
+    </right>
+
     <center>
+        <ScrollPane fitToWidth="true" styleClass="scroll-pane">
         <VBox styleClass="page-content" spacing="16">
 
             <!-- Page title -->
@@ -43,26 +52,30 @@
                         <FontIcon iconLiteral="fas-list-ul" iconSize="14" styleClass="page-title-icon"/>
                         <Label text="Appointments for selected date" styleClass="subheading"
                                HBox.hgrow="ALWAYS"/>
-                        <Button styleClass="primary-button" contentDisplay="LEFT" text="New Appointment">
+                        <Button fx:id="addAppointmentBtn" styleClass="primary-button"
+                                contentDisplay="LEFT" text="New Appointment">
                             <graphic><FontIcon iconLiteral="fas-calendar-plus" iconSize="13"/></graphic>
                         </Button>
                     </HBox>
 
-                    <TableView fx:id="appointmentsTable" VBox.vgrow="ALWAYS">
-                        <columns>
-                            <TableColumn fx:id="apptIdCol"      text="ID"      prefWidth="70"/>
-                            <TableColumn fx:id="apptPatientCol" text="Patient"  prefWidth="150"/>
-                            <TableColumn fx:id="apptDoctorCol"  text="Doctor"   prefWidth="140"/>
-                            <TableColumn fx:id="apptTimeCol"    text="Time"     prefWidth="80"/>
-                            <TableColumn fx:id="apptStatusCol"  text="Status"   prefWidth="100"/>
-                        </columns>
-                    </TableView>
+                    <fx:include fx:id="appointmentTable"
+                                source="/hospital/management/frontend/components/table/appointment-table.fxml"
+                                VBox.vgrow="ALWAYS"/>
                 </VBox>
             </HBox>
         </VBox>
+        </ScrollPane>
     </center>
 
     <bottom>
         <fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/>
     </bottom>
-</BorderPane>
+    </BorderPane>
+
+    <fx:include fx:id="formDialog" source="/hospital/management/frontend/components/formdialog/form-dialog.fxml"/>
+    <fx:include fx:id="confirmModal" source="/hospital/management/frontend/components/modal/modal.fxml"/>
+
+    <StackPane StackPane.alignment="BOTTOM_RIGHT" styleClass="toast-anchor" pickOnBounds="false">
+        <fx:include fx:id="toast" source="/hospital/management/frontend/components/toast/toast.fxml"/>
+    </StackPane>
+</StackPane>

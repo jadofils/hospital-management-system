@@ -22,7 +22,7 @@ public final class AppConfig {
 
     // ── Resource paths ────────────────────────────────────────────────────
     public static final String CSS_PATH         = "/hospital/management/css/global.css";
-    public static final String AUTH_FXML_PATH   = "/hospital/management/frontend/pages/auth-pages.fxml";
+    public static final String HOME_FXML_PATH   = "/hospital/management/frontend/pages/home-page.fxml";
 
     // ── Pagination ────────────────────────────────────────────────────────
     /** Default number of rows per page in all table views. */

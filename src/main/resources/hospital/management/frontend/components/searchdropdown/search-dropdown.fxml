@@ -4,7 +4,7 @@
 <?import javafx.scene.control.*?>
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      fx:controller="hospital.management.pages.components.SearchableDropdownController"
+      fx:controller="hospital.management.pages.components.shared.search.SearchableDropdownController"
       styleClass="searchable-dropdown"
       spacing="4">
 

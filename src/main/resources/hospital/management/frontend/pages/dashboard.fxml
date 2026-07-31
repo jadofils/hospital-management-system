@@ -6,7 +6,7 @@
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="hospital.management.pages.DashboardController"
+            fx:controller="hospital.management.pages.dashboard.DashboardController"
             styleClass="page-root">
 
     <stylesheets>
@@ -24,6 +24,10 @@
     <left>
         <fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/>
     </left>
+
+    <right>
+        <fx:include fx:id="rightSidebar" source="/hospital/management/frontend/components/right-sidebar/right-sidebar.fxml"/>
+    </right>
 
     <center>
         <ScrollPane fitToWidth="true" styleClass="scroll-pane">

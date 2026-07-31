@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.lab.LabOrderTableController"
+      spacing="0"
+      VBox.vgrow="ALWAYS">
+
+    <stylesheets>
+        <URL value="@../../../css/table.css"/>
+    </stylesheets>
+
+    <TableView fx:id="table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="idColumn"        text="Order #"    prefWidth="100"/>
+            <TableColumn fx:id="doctorIdColumn"   text="Doctor ID"  prefWidth="160"/>
+            <TableColumn fx:id="testNameColumn"   text="Test"       prefWidth="180"/>
+            <TableColumn fx:id="statusColumn"     text="Status"     prefWidth="120"/>
+            <TableColumn fx:id="orderedAtColumn"  text="Ordered"    prefWidth="140"/>
+            <TableColumn fx:id="actionsColumn"    text="Actions"    prefWidth="90"/>
+        </columns>
+    </TableView>
+
+    <Pagination fx:id="pagination" pageCount="1" maxPageIndicatorCount="5"/>
+</VBox>

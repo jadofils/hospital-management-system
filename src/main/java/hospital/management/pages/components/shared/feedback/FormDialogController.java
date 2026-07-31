@@ -1,0 +1,127 @@
+package hospital.management.pages.components.shared.feedback;
+
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
+import javafx.scene.control.Control;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressIndicator;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import org.kordamp.ikonli.javafx.FontIcon;
+
+import java.util.function.Consumer;
+
+/**
+ * Reusable modal form dialog used by every data page.
+ *
+ * Each page opens it in "Add" mode (empty fields) or "Update" mode (fields
+ * pre-filled from the selected row) and populates it with labeled fields via
+ * {@link #addField(String, String, Control)}.
+ */
+public class FormDialogController {
+
+    @FXML private StackPane    dialogOverlay;
+    @FXML private VBox         fieldsBox;
+    @FXML private Label        dialogTitle;
+    @FXML private FontIcon     dialogIcon;
+    @FXML private Label        dialogError;
+    @FXML private Button       submitBtn;
+    @FXML private ProgressIndicator submitSpinner;
+
+    private Consumer<Void> onSubmit;
+    private boolean addMode = true;
+
+    public void initialize() {
+        submitBtn.setOnAction(e -> {
+            if (onSubmit == null) return;
+            setLoading(true);
+            onSubmit.accept(null);
+        });
+    }
+
+    /** Opens the dialog. Callback runs when the (blue) submit button is pressed. */
+    public void open(String title, String iconLiteral, boolean addMode, Consumer<Void> onSubmit) {
+        this.onSubmit = onSubmit;
+        this.addMode = addMode;
+        dialogTitle.setText(title);
+        if (iconLiteral == null || iconLiteral.isBlank()) {
+            dialogIcon.setVisible(false);
+            dialogIcon.setManaged(false);
+        } else {
+            dialogIcon.setVisible(true);
+            dialogIcon.setManaged(true);
+            dialogIcon.setIconLiteral(iconLiteral);
+        }
+        dialogError.setText("");
+        fieldsBox.getChildren().clear();
+        setLoading(false);
+        dialogOverlay.setVisible(true);
+        dialogOverlay.setManaged(true);
+        Platform.runLater(() -> {
+            if (!fieldsBox.getChildren().isEmpty()) {
+                fieldsBox.getChildren().get(0).requestFocus();
+            }
+        });
+    }
+
+    /** Appends a labeled field row (label + icon above the control), home-form style. */
+    public void addField(String label, String iconLiteral, Control control) {
+        HBox labelRow = new HBox(6);
+        labelRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        if (iconLiteral != null && !iconLiteral.isBlank()) {
+            FontIcon icon = new FontIcon(iconLiteral);
+            icon.setIconSize(12);
+            icon.getStyleClass().add("field-icon");
+            labelRow.getChildren().add(icon);
+        }
+        Label lbl = new Label(label);
+        lbl.getStyleClass().add("field-label");
+        labelRow.getChildren().add(lbl);
+
+        VBox row = new VBox(4);
+        row.getChildren().addAll(labelRow, control);
+        fieldsBox.getChildren().add(row);
+    }
+
+    /** Appends a fully custom row (e.g. two controls side by side). */
+    public void addRow(Node node) {
+        fieldsBox.getChildren().add(node);
+    }
+
+    /** Clears every field row previously added. */
+    public void clearFields() {
+        fieldsBox.getChildren().clear();
+    }
+
+    public void setError(String message) {
+        dialogError.setText(message == null ? "" : message);
+    }
+
+    public boolean isAddMode() {
+        return addMode;
+    }
+
+    /** Shows/hides the in-button spinner and disables the submit button while running. */
+    public void setLoading(boolean loading) {
+        submitSpinner.setVisible(loading);
+        submitSpinner.setManaged(loading);
+        submitBtn.setDisable(loading);
+        if (!loading) {
+            submitBtn.setText(addMode ? "Add" : "Update");
+        }
+    }
+
+    public void close() {
+        dialogOverlay.setVisible(false);
+        dialogOverlay.setManaged(false);
+        setLoading(false);
+    }
+
+    @FXML
+    private void handleClose() {
+        close();
+    }
+}

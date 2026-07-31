@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.doctor.ScheduleController">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/table.css"/>
+        <URL value="@../../css/calendar.css"/>
+        <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/modal.css"/>
+        <URL value="@../../css/alerts.css"/>
+        <URL value="@../../css/spinner.css"/>
+    </stylesheets>
+
+    <BorderPane styleClass="page-root">
+
+    <top><fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/></top>
+    <left><fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/></left>
+    <right><fx:include fx:id="rightSidebar" source="/hospital/management/frontend/components/right-sidebar/right-sidebar.fxml"/></right>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+            <VBox styleClass="page-content" spacing="16">
+
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <FontIcon iconLiteral="fas-calendar-alt" iconSize="18" styleClass="page-title-icon"/>
+                    <Label text="My Schedule" styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="addSlotBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Availability">
+                        <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
+                    </Button>
+                </HBox>
+
+                <!-- Weekly schedule grid -->
+                <HBox spacing="8" styleClass="card">
+                    <VBox fx:id="monCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                        <Label text="MON" styleClass="schedule-day-header"/>
+                    </VBox>
+                    <VBox fx:id="tueCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                        <Label text="TUE" styleClass="schedule-day-header"/>
+                    </VBox>
+                    <VBox fx:id="wedCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                        <Label text="WED" styleClass="schedule-day-header"/>
+                    </VBox>
+                    <VBox fx:id="thuCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                        <Label text="THU" styleClass="schedule-day-header"/>
+                    </VBox>
+                    <VBox fx:id="friCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                        <Label text="FRI" styleClass="schedule-day-header"/>
+                    </VBox>
+                    <VBox fx:id="satCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                        <Label text="SAT" styleClass="schedule-day-header"/>
+                    </VBox>
+                    <VBox fx:id="sunCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                        <Label text="SUN" styleClass="schedule-day-header"/>
+                    </VBox>
+                </HBox>
+
+                <!-- Schedule table -->
+                <fx:include fx:id="scheduleTable"
+                            source="/hospital/management/frontend/components/table/doctor-schedule-table.fxml"
+                            VBox.vgrow="ALWAYS"/>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom><fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/></bottom>
+    </BorderPane>
+
+    <fx:include fx:id="formDialog" source="/hospital/management/frontend/components/formdialog/form-dialog.fxml"/>
+    <fx:include fx:id="confirmModal" source="/hospital/management/frontend/components/modal/modal.fxml"/>
+
+    <StackPane StackPane.alignment="BOTTOM_RIGHT" styleClass="toast-anchor" pickOnBounds="false">
+        <fx:include fx:id="toast" source="/hospital/management/frontend/components/toast/toast.fxml"/>
+    </StackPane>
+</StackPane>
