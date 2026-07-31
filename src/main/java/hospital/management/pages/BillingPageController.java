@@ -1,11 +1,13 @@
 package hospital.management.pages;
 
 import hospital.management.pages.components.SidebarController;
-import hospital.management.backend.model.finance.Bill;
+import hospital.management.backend.model.finance.Invoice;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class BillingPageController {
 
@@ -15,38 +17,41 @@ public class BillingPageController {
     @FXML private Label paidLabel;
     @FXML private Label pendingLabel;
 
-    @FXML private TableView<Bill> billingTable;
-    @FXML private TableColumn<Bill, String> billIdCol;
-    @FXML private TableColumn<Bill, String> billPatientCol;
-    @FXML private TableColumn<Bill, String> billDateCol;
-    @FXML private TableColumn<Bill, Double> billAmountCol;
-    @FXML private TableColumn<Bill, String> billStatusCol;
-    @FXML private TableColumn<Bill, String> billDescCol;
+    @FXML private TableView<Invoice> billingTable;
+    @FXML private TableColumn<Invoice, String>     billIdCol;
+    @FXML private TableColumn<Invoice, String>     billPatientCol;
+    @FXML private TableColumn<Invoice, LocalDateTime> billDateCol;
+    @FXML private TableColumn<Invoice, BigDecimal> billAmountCol;
+    @FXML private TableColumn<Invoice, String>     billStatusCol;
+    @FXML private TableColumn<Invoice, String>     billDescCol;
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem("billing");
 
-        billIdCol.setCellValueFactory(new PropertyValueFactory<>("id"));
-        billPatientCol.setCellValueFactory(new PropertyValueFactory<>("patientName"));
-        billDateCol.setCellValueFactory(new PropertyValueFactory<>("date"));
-        billAmountCol.setCellValueFactory(new PropertyValueFactory<>("amount"));
-        billStatusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
-        billDescCol.setCellValueFactory(new PropertyValueFactory<>("description"));
+        billIdCol.setCellValueFactory(new PropertyValueFactory<>("invoiceId"));
+        billPatientCol.setCellValueFactory(new PropertyValueFactory<>("patientId"));
+        billDateCol.setCellValueFactory(new PropertyValueFactory<>("issuedAt"));
+        billAmountCol.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
+        billStatusCol.setCellValueFactory(new PropertyValueFactory<>("paymentStatus"));
+        billDescCol.setCellValueFactory(new PropertyValueFactory<>("appointmentId"));
 
         billingTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
-        var bills = FXCollections.observableArrayList(
-            new Bill("INV-001", "Alice Johnson", "2026-07-28", 1_200.00, "Paid",    "Consultation + Lab"),
-            new Bill("INV-002", "Bob Smith",     "2026-07-27",   850.00, "Paid",    "X-Ray + Medication"),
-            new Bill("INV-003", "Clara Davis",   "2026-07-26", 3_400.00, "Pending", "Surgery prep"),
-            new Bill("INV-004", "Daniel Brown",  "2026-07-25",   620.00, "Pending", "Cardiology visit"),
-            new Bill("INV-005", "Eva Martinez",  "2026-07-24", 2_100.00, "Paid",    "ICU - 2 days")
+        var invoices = FXCollections.observableArrayList(
+            new Invoice("INV-001", "APT-001", "PAT-001", new BigDecimal("1200.00"), "paid",    LocalDateTime.now().minusDays(3), LocalDateTime.now(), null),
+            new Invoice("INV-002", "APT-002", "PAT-002", new BigDecimal("850.00"),  "paid",    LocalDateTime.now().minusDays(4), LocalDateTime.now(), null),
+            new Invoice("INV-003", "APT-003", "PAT-003", new BigDecimal("3400.00"), "unpaid",  LocalDateTime.now().minusDays(5), LocalDateTime.now(), null),
+            new Invoice("INV-004", "APT-004", "PAT-004", new BigDecimal("620.00"),  "unpaid",  LocalDateTime.now().minusDays(6), LocalDateTime.now(), null),
+            new Invoice("INV-005", "APT-005", "PAT-005", new BigDecimal("2100.00"), "paid",    LocalDateTime.now().minusDays(7), LocalDateTime.now(), null)
         );
 
-        billingTable.setItems(bills);
+        billingTable.setItems(invoices);
 
-        double total   = bills.stream().mapToDouble(Bill::getAmount).sum();
-        double paid    = bills.stream().filter(b -> "Paid".equals(b.getStatus())).mapToDouble(Bill::getAmount).sum();
+        double total   = invoices.stream().mapToDouble(i -> i.getTotalAmount().doubleValue()).sum();
+        double paid    = invoices.stream()
+                                 .filter(i -> "paid".equals(i.getPaymentStatus()))
+                                 .mapToDouble(i -> i.getTotalAmount().doubleValue())
+                                 .sum();
         double pending = total - paid;
 
         totalRevenueLabel.setText(String.format("$%,.2f", total));
