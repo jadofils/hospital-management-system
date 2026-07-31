@@ -14,4 +14,22 @@ public class EnvConfig {
     public static String getCloudName()      { return dotenv.get("CLOUDINARY_CLOUD_NAME"); }
     public static String getCloudApiKey()    { return dotenv.get("CLOUDINARY_API_KEY"); }
     public static String getCloudApiSecret() { return dotenv.get("CLOUDINARY_API_SECRET"); }
+
+    // ── Gmail / SMTP ──────────────────────────────────────────────────────
+    public static String getMailHost()     { return dotenv.get("GMAIL_HOST"); }
+    public static int    getMailPort()     { return Integer.parseInt(dotenv.get("GMAIL_PORT")); }
+    public static String getMailUsername() { return dotenv.get("GMAIL_USERNAME"); }
+    public static String getMailPassword() { return dotenv.get("GMAIL_PASSWORD"); }
+    public static String getMailFromName() { return dotenv.get("GMAIL_FROM_NAME"); }
+
+    // ── JWT ───────────────────────────────────────────────────────────────
+    public static String getJwtSecret()      { return dotenv.get("JWT_SECRET"); }
+    public static int    getJwtExpiryHours() { return Integer.parseInt(dotenv.get("JWT_EXPIRY_HOURS")); }
+
+    // ── Security ──────────────────────────────────────────────────────────
+    public static int getBcryptRounds() { return Integer.parseInt(dotenv.get("BCRYPT_ROUNDS")); }
+
+    // ── Application ───────────────────────────────────────────────────────
+    public static int getPageSize()          { return Integer.parseInt(dotenv.get("APP_PAGE_SIZE")); }
+    public static int getMaxUploadSizeMb()   { return Integer.parseInt(dotenv.get("APP_MAX_UPLOAD_SIZE_MB")); }
 }
