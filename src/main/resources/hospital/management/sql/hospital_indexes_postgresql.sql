@@ -9,18 +9,16 @@
 --   2. GIN trigram indexes — fast ILIKE '%text%' for name search
 --   3. Partial active-record indexes — soft-delete pattern for tables
 --                                      not already covered by the schema
---   4. DCL: pharmacist_role — left as a comment template in
---                             hospital_objects.sql; activated here.
 --
--- Safe to re-run: uses CREATE INDEX IF NOT EXISTS and DO $$ blocks.
+-- Safe to re-run: uses CREATE INDEX IF NOT EXISTS.
+-- DCL roles are fully defined in hospital_objects.sql.
 -- =====================================================================
 
 -- =====================================================================
 -- 0. PREREQUISITES
--- pgcrypto  — gen_random_uuid() used by user_sessions (UUID PK)
--- pg_trgm   — GIN trigram operator class for ILIKE '%text%' search
+-- pgcrypto is already enabled by hospital_schema.sql.
+-- pg_trgm supplies gin_trgm_ops for ILIKE '%text%' GIN indexes.
 -- =====================================================================
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- =====================================================================
@@ -124,26 +122,6 @@ CREATE INDEX IF NOT EXISTS idx_medications_active
 CREATE INDEX IF NOT EXISTS idx_inventory_active
     ON medical_inventory(inventory_id)
     WHERE deleted_at IS NULL;
-
--- =====================================================================
--- 4. DCL — pharmacist_role
--- hospital_objects.sql left this as a commented template. Activated
--- here to mirror the Pharmacist application-level role as defense-in-depth.
--- The DO block avoids the "role already exists" error on re-runs.
--- =====================================================================
-
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'pharmacist_role') THEN
-    CREATE ROLE pharmacist_role;
-  END IF;
-END
-$$;
-
-GRANT SELECT, INSERT, UPDATE ON medical_inventory  TO pharmacist_role;
-GRANT SELECT, UPDATE          ON prescription_items TO pharmacist_role;
-GRANT SELECT                  ON medications        TO pharmacist_role;
-GRANT SELECT                  ON prescriptions      TO pharmacist_role;
 
 -- =====================================================================
 -- REFERENCE — indexes already in hospital_schema.sql
