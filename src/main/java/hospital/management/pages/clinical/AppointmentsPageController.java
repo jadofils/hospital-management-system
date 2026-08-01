@@ -1,6 +1,7 @@
 package hospital.management.pages.clinical;
 
 import hospital.management.pages.BasePageController;
+import hospital.management.pages.QuickAddCapable;
 import hospital.management.backend.model.patient.Appointment;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.clinical.AppointmentTableController;
@@ -17,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class AppointmentsPageController extends BasePageController {
+public class AppointmentsPageController extends BasePageController implements QuickAddCapable {
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -59,6 +60,11 @@ public class AppointmentsPageController extends BasePageController {
                     refreshTable();
                     toastSuccess("Appointment deleted.");
                 });
+    }
+
+    @Override
+    public void openAddDialog() {
+        openAppointmentDialog(null);
     }
 
     /** Opens the shared form dialog in Add mode (appointment == null) or Update mode. */

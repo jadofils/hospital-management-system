@@ -49,19 +49,36 @@ public final class AsyncJobRunner {
     /**
      * Runs {@code job} on a background thread. On success, {@code onSuccess} is
      * called on the JavaFX Application Thread with the result.
-     * Exceptions are logged; the UI is not notified (add an onError param if needed).
+     * Exceptions are logged; the UI is not notified — use the 3-arg overload
+     * below if the caller needs to react to a failure (e.g. show an error message).
      *
      * @param job       work to do off the FX thread
      * @param onSuccess callback invoked on the FX thread with the result
      */
     public static <T> Future<?> submit(java.util.concurrent.Callable<T> job,
                                        Consumer<T> onSuccess) {
+        return submit(job, onSuccess, e -> logger.error("Async job failed: " + e.getMessage(), e));
+    }
+
+    /**
+     * Same as {@link #submit(java.util.concurrent.Callable, Consumer)}, but also
+     * notifies the caller of a failure — the callback runs on the FX thread so it
+     * can safely update UI (e.g. show a validation/error label).
+     *
+     * @param job       work to do off the FX thread
+     * @param onSuccess callback invoked on the FX thread with the result
+     * @param onError   callback invoked on the FX thread with the thrown exception
+     */
+    public static <T> Future<?> submit(java.util.concurrent.Callable<T> job,
+                                       Consumer<T> onSuccess,
+                                       Consumer<Throwable> onError) {
         return POOL.submit(() -> {
             try {
                 T result = job.call();
                 Platform.runLater(() -> onSuccess.accept(result));
             } catch (Exception e) {
                 logger.error("Async job failed: " + e.getMessage(), e);
+                Platform.runLater(() -> onError.accept(e));
             }
         });
     }

@@ -58,12 +58,12 @@
                         <VBox spacing="10">
                             <HBox spacing="10">
                                 <VBox spacing="4" HBox.hgrow="ALWAYS">
-                                    <Label text="Username" styleClass="form-label"/>
-                                    <TextField fx:id="usernameField" promptText="Username" styleClass="form-field"/>
+                                    <Label text="Username" styleClass="form-field-label"/>
+                                    <TextField fx:id="usernameField" promptText="Username" styleClass="form-input"/>
                                 </VBox>
                                 <VBox spacing="4" HBox.hgrow="ALWAYS">
-                                    <Label text="Email" styleClass="form-label"/>
-                                    <TextField fx:id="emailField" promptText="Email" styleClass="form-field"/>
+                                    <Label text="Email" styleClass="form-field-label"/>
+                                    <TextField fx:id="emailField" promptText="Email" styleClass="form-input"/>
                                 </VBox>
                             </HBox>
                         </VBox>
@@ -79,16 +79,16 @@
                         <Label text="Change Password" styleClass="subheading"/>
                         <VBox spacing="10">
                             <VBox spacing="4">
-                                <Label text="Current Password" styleClass="form-label"/>
-                                <PasswordField fx:id="currentPassField" promptText="Current password" styleClass="form-field"/>
+                                <Label text="Current Password" styleClass="form-field-label"/>
+                                <PasswordField fx:id="currentPassField" promptText="Current password" styleClass="form-input"/>
                             </VBox>
                             <VBox spacing="4">
-                                <Label text="New Password" styleClass="form-label"/>
-                                <PasswordField fx:id="newPassField" promptText="New password" styleClass="form-field"/>
+                                <Label text="New Password" styleClass="form-field-label"/>
+                                <PasswordField fx:id="newPassField" promptText="New password" styleClass="form-input"/>
                             </VBox>
                             <VBox spacing="4">
-                                <Label text="Confirm New Password" styleClass="form-label"/>
-                                <PasswordField fx:id="confirmPassField" promptText="Confirm password" styleClass="form-field"/>
+                                <Label text="Confirm New Password" styleClass="form-field-label"/>
+                                <PasswordField fx:id="confirmPassField" promptText="Confirm password" styleClass="form-input"/>
                             </VBox>
                         </VBox>
                         <Label fx:id="passValidationMsg" text="" styleClass="text-danger"/>

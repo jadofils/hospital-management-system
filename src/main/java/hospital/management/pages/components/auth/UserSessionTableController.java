@@ -1,7 +1,7 @@
 package hospital.management.pages.components.auth;
 
 import hospital.management.pages.components.PaginatedTableController;
-import hospital.management.backend.model.user.UserSession;
+import hospital.management.backend.dto.auth.UserSessionDTO;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -14,20 +14,20 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
-public class UserSessionTableController extends PaginatedTableController<UserSession> {
+public class UserSessionTableController extends PaginatedTableController<UserSessionDTO> {
 
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm");
 
-    @FXML private TableColumn<UserSession, String> sessionLoginCol;
-    @FXML private TableColumn<UserSession, String> sessionExpiryCol;
-    @FXML private TableColumn<UserSession, String> sessionIpCol;
-    @FXML private TableColumn<UserSession, String> sessionAgentCol;
-    @FXML private TableColumn<UserSession, Void>   sessionActionCol;
+    @FXML private TableColumn<UserSessionDTO, String> sessionLoginCol;
+    @FXML private TableColumn<UserSessionDTO, String> sessionExpiryCol;
+    @FXML private TableColumn<UserSessionDTO, String> sessionIpCol;
+    @FXML private TableColumn<UserSessionDTO, String> sessionAgentCol;
+    @FXML private TableColumn<UserSessionDTO, Void>   sessionActionCol;
 
-    private Consumer<UserSession> onRevoke;
+    private Consumer<UserSessionDTO> onRevoke;
 
     /** Registers the callback invoked when the row-level Revoke button is pressed. */
-    public void setOnRevoke(Consumer<UserSession> onRevoke) {
+    public void setOnRevoke(Consumer<UserSessionDTO> onRevoke) {
         this.onRevoke = onRevoke;
     }
 
@@ -41,7 +41,7 @@ public class UserSessionTableController extends PaginatedTableController<UserSes
     }
 
     @Override
-    protected boolean matches(UserSession session, String lowerQuery) {
+    protected boolean matches(UserSessionDTO session, String lowerQuery) {
         return true;
     }
 
@@ -54,7 +54,7 @@ public class UserSessionTableController extends PaginatedTableController<UserSes
      * Mirrors the visual style of {@link PaginatedTableController#wireActionsColumn}
      * but only needs one button, not an edit/delete pair.
      */
-    private void wireRevokeColumn(TableColumn<UserSession, Void> actionsColumn) {
+    private void wireRevokeColumn(TableColumn<UserSessionDTO, Void> actionsColumn) {
         actionsColumn.setCellFactory(col -> new TableCell<>() {
             private final Button revokeBtn = new Button("", new FontIcon("fas-sign-out-alt"));
             {

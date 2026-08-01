@@ -56,21 +56,9 @@
     -fx-icon-color: #3498DB;
 }
 
-/* Danger item (Logout) */
-.danger-item {
-    -fx-text-fill: #E74C3C;
-}
-.danger-item .ikonli-font-icon {
-    -fx-fill: #E74C3C;
-    -fx-icon-color: #E74C3C;
-}
-.danger-item:hover {
-    -fx-background-color: #FADBD8;
-    -fx-text-fill: #C0392B;
-}
-.danger-item:hover .ikonli-font-icon {
-    -fx-fill: #C0392B;
-    -fx-icon-color: #C0392B;
+/* Logout — a real (danger-button) button rather than a plain nav link */
+.sidebar-logout-btn {
+    -fx-padding: 0.714em 0.857em;
 }
 
 /* ─── Collapsible section headers ───────────────────────────────────────── */

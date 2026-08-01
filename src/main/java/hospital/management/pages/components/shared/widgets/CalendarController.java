@@ -60,17 +60,26 @@ public class CalendarController {
         LocalDate firstOfMonth = currentMonth.atDay(1);
         int startColumn = firstOfMonth.getDayOfWeek().getValue() - 1;
         int daysInMonth = currentMonth.lengthOfMonth();
+        LocalDate today = LocalDate.now();
 
         int row = 1;
         int col = startColumn;
         for (int day = 1; day <= daysInMonth; day++) {
             LocalDate date = currentMonth.atDay(day);
             ToggleButton dayBtn = new ToggleButton(String.valueOf(day));
-            dayBtn.getStyleClass().add("calendar-day-btn");
+            dayBtn.getStyleClass().add("calendar-day-cell");
+            if (date.equals(today)) {
+                dayBtn.getStyleClass().add("today");
+            }
             if (date.equals(selectedDate)) {
                 dayBtn.getStyleClass().add("selected");
             }
-            dayBtn.setOnAction(e -> selectDate(date));
+            if (date.isBefore(today)) {
+                dayBtn.getStyleClass().add("past");
+                dayBtn.setDisable(true);
+            } else {
+                dayBtn.setOnAction(e -> selectDate(date));
+            }
             calendarGrid.add(dayBtn, col, row);
 
             col++;

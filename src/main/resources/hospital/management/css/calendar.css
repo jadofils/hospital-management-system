@@ -70,7 +70,16 @@
 }
 
 .calendar-day-cell:hover    { -fx-background-color: #EBF5FB; }
-.calendar-day-cell.today    { -fx-background-color: #3498DB; -fx-text-fill: white; }
-.calendar-day-cell.selected { -fx-background-color: #2980B9; -fx-text-fill: white; }
+.calendar-day-cell.today    { -fx-border-color: #3498DB; -fx-border-width: 1.5px; -fx-text-fill: #3498DB; -fx-font-weight: bold; }
+.calendar-day-cell.selected { -fx-background-color: #3498DB; -fx-text-fill: white; -fx-font-weight: bold; }
+.calendar-day-cell.selected.today { -fx-text-fill: white; -fx-border-color: transparent; }
 .calendar-day-cell.has-event { -fx-border-color: #F39C12; }
 .calendar-day-cell.other-month { -fx-text-fill: #D5DBDB; }
+
+/* Past dates are shown but cannot be selected */
+.calendar-day-cell.past {
+    -fx-text-fill: #D5DBDB;
+    -fx-cursor: default;
+    -fx-opacity: 1;
+}
+.calendar-day-cell.past:hover { -fx-background-color: transparent; }

@@ -13,6 +13,7 @@
     <stylesheets>
         <URL value="@../../../css/modal.css"/>
         <URL value="@../../../css/buttons.css"/>
+        <URL value="@../../../css/spinner.css"/>
     </stylesheets>
 
     <VBox fx:id="modalBox" styleClass="modal-box" StackPane.alignment="CENTER">

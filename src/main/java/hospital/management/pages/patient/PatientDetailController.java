@@ -96,6 +96,7 @@ public class PatientDetailController extends BasePageController {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PATIENTS);
 
         backBtn.setOnAction(e -> navigateBack());
+        editPatientBtn.setOnAction(e -> openEditPatientDialog());
 
         addVitalBtn.setOnAction(e -> openVitalDialog(null));
         vitalSignTableController.setRowActions(this::openVitalDialog, this::confirmDeleteVital);
@@ -106,7 +107,65 @@ public class PatientDetailController extends BasePageController {
         addAllergyBtn.setOnAction(e -> openAllergyDialog(null));
         patientAllergyTableController.setRowActions(this::openAllergyDialog, this::confirmDeleteAllergy);
 
+        // Medical Records, Appointments, Prescriptions, Lab Results and Billing are read-only
+        // in this drill-down (full CRUD lives on their own pages) — hide their Actions column
+        // instead of leaving dead edit/delete icons with no callback wired.
+        detailMedicalRecordTableController.hideActionsColumn();
+        detailAppointmentTableController.hideActionsColumn();
+        detailPrescriptionTableController.hideActionsColumn();
+        detailLabOrderTableController.hideActionsColumn();
+        detailInvoiceTableController.hideActionsColumn();
+
         refreshAllTables();
+    }
+
+    /** Opens the shared form dialog to update the currently loaded patient's summary details. */
+    private void openEditPatientDialog() {
+        if (currentPatient == null) return;
+
+        TextField firstName = new TextField(currentPatient.getFirstName());
+        TextField lastName  = new TextField(currentPatient.getLastName());
+        DatePicker dob       = new DatePicker(currentPatient.getDob());
+        ComboBox<String> gender = new ComboBox<>();
+        TextField phone     = new TextField(currentPatient.getPhone());
+        TextField email     = new TextField(currentPatient.getEmail());
+        TextField address   = new TextField(currentPatient.getAddress());
+
+        List.of(firstName, lastName, phone, email, address).forEach(f -> f.getStyleClass().add("form-input"));
+        dob.getStyleClass().add("form-date-picker");
+        gender.getStyleClass().add("form-combo");
+        gender.getItems().addAll("Male", "Female", "Other");
+        gender.setValue(currentPatient.getGender());
+
+        formDialogController.open("Update Patient", "fas-user-injured", false, v -> {
+            String fn = firstName.getText() == null ? "" : firstName.getText().trim();
+            String ln = lastName.getText() == null ? "" : lastName.getText().trim();
+            if (fn.isEmpty() || ln.isEmpty() || dob.getValue() == null || gender.getValue() == null) {
+                formDialogController.setError("First name, last name, date of birth and gender are required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+
+            currentPatient.setFirstName(fn);
+            currentPatient.setLastName(ln);
+            currentPatient.setDob(dob.getValue());
+            currentPatient.setGender(gender.getValue());
+            currentPatient.setPhone(phone.getText());
+            currentPatient.setEmail(email.getText());
+            currentPatient.setAddress(address.getText());
+
+            loadPatient(currentPatient);
+            formDialogController.close();
+            toastSuccess("Patient updated.");
+        });
+
+        formDialogController.addField("First Name", "fas-user", firstName);
+        formDialogController.addField("Last Name", "fas-user", lastName);
+        formDialogController.addField("Date of Birth", "fas-calendar", dob);
+        formDialogController.addField("Gender", "fas-venus-mars", gender);
+        formDialogController.addField("Phone", "fas-phone", phone);
+        formDialogController.addField("Email", "fas-envelope", email);
+        formDialogController.addField("Address", "fas-map-marker-alt", address);
     }
 
     /** Call this from the navigating controller to load a specific patient. */
@@ -372,6 +431,7 @@ public class PatientDetailController extends BasePageController {
                 System.err.println("Navigation to patients page failed: " + e.getMessage());
                 backBtn.setDisable(false);
                 backBtn.setGraphic(originalGraphic);
+                toastError("Couldn't return to the Patients page. Please try again.");
             }
         });
     }

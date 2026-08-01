@@ -19,21 +19,25 @@
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
             <version>21.0.6</version>
+            <classifier>${javafx.platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-fxml</artifactId>
             <version>21.0.6</version>
+            <classifier>${javafx.platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-web</artifactId>
             <version>21.0.6</version>
+            <classifier>${javafx.platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-swing</artifactId>
             <version>21.0.6</version>
+            <classifier>${javafx.platform}</classifier>
         </dependency>
         <dependency>
             <groupId>org.controlsfx</groupId>
@@ -159,11 +163,16 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- BCrypt password hashing -->
+        <!-- BCrypt password hashing.
+             org.mindrot:jbcrypt (previously used here) is abandoned at 0.4 (2013) and only
+             ever recognizes the "$2a$" hash-version prefix — it throws "Invalid salt revision"
+             on any "$2b$"/"$2y$" hash, which is exactly what the seeded accounts in
+             hospital_rbac_seed_postgresql.sql use. at.favre.lib:bcrypt is actively maintained
+             and verifies all bcrypt variants (2a/2b/2x/2y) transparently. -->
         <dependency>
-            <groupId>org.mindrot</groupId>
-            <artifactId>jbcrypt</artifactId>
-            <version>0.4</version>
+            <groupId>at.favre.lib</groupId>
+            <artifactId>bcrypt</artifactId>
+            <version>0.10.2</version>
         </dependency>
 
         <!-- Redis client -->
@@ -219,4 +228,38 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- Resolves the platform-specific JavaFX native jars automatically, so a
+         plain `java -cp ...` / IDE "Run" launch (not just `mvn javafx:run`)
+         finds the JavaFX runtime instead of failing with
+         "JavaFX runtime components are missing". -->
+    <profiles>
+        <profile>
+            <id>windows</id>
+            <activation>
+                <os><family>windows</family></os>
+            </activation>
+            <properties>
+                <javafx.platform>win</javafx.platform>
+            </properties>
+        </profile>
+        <profile>
+            <id>mac</id>
+            <activation>
+                <os><family>mac</family></os>
+            </activation>
+            <properties>
+                <javafx.platform>mac</javafx.platform>
+            </properties>
+        </profile>
+        <profile>
+            <id>unix</id>
+            <activation>
+                <os><family>unix</family></os>
+            </activation>
+            <properties>
+                <javafx.platform>linux</javafx.platform>
+            </properties>
+        </profile>
+    </profiles>
 </project>

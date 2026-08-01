@@ -63,8 +63,7 @@ hospital.management/
 │           ├── layout/    NavbarController, SidebarController, RightSidebarController, FooterController,
 │           │              BreadcrumbsController
 │           ├── feedback/  ToastController, ModalController, FormDialogController (Add/Edit dialog)
-│           ├── buttons/   ButtonController, LoadingButtonController
-│           ├── search/    SearchBarController, AdvancedSearchController, SearchableDropdownController
+│           ├── search/    AdvancedSearchController, SearchableDropdownController
 │           └── widgets/   CalendarController, StatsWidgetController
 └── backend/
     ├── dto/                                # Same domain grouping as pages/ above (auth, patient, doctor, ...)
@@ -80,8 +79,7 @@ src/main/resources/hospital/management/
 └── frontend/
     ├── components/                    # One subfolder per component: <comp>/<comp>.fxml
     │   ├── navbar/, footer/, sidebar/, right-sidebar/, breadcrumbs/
-    │   ├── buttons/    (button.fxml, loading-button.fxml)
-    │   ├── search/     (search-bar.fxml, advanced-search.fxml), searchdropdown/
+    │   ├── search/     (advanced-search.fxml), searchdropdown/
     │   ├── table/      (one <entity>-table.fxml per entity table controller — patient-table.fxml,
     │   │               doctor-table.fxml, invoice-table.fxml, ...)
     │   ├── formdialog/ (form-dialog.fxml — shared Add/Edit modal used by every page)

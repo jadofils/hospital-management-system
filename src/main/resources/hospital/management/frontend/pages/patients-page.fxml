@@ -62,7 +62,7 @@
             </HBox>
 
             <!-- Advanced search -->
-            <fx:include source="/hospital/management/frontend/components/search/advanced-search.fxml"/>
+            <fx:include fx:id="advancedSearch" source="/hospital/management/frontend/components/search/advanced-search.fxml"/>
 
             <!-- Patient table -->
             <fx:include fx:id="patientTable"

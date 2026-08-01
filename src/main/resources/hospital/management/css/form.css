@@ -119,7 +119,8 @@
 .form-dialog-box {
     -fx-pref-width: 36em;
     -fx-max-width: 40em;
-    -fx-max-height: 0.92 * 1000px;
+    /* Max height is bound to the window size at runtime in FormDialogController
+       so the dialog can never grow taller than the screen — see initialize(). */
 }
 .form-dialog-fields {
     -fx-padding: 0.857em 0.143em;

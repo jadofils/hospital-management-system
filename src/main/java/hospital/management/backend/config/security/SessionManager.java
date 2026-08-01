@@ -23,6 +23,7 @@ public final class SessionManager {
     private static String currentUsername;
     private static String currentRole;
     private static String currentToken;
+    private static String currentSessionId;
 
     private SessionManager() {}
 
@@ -36,18 +37,29 @@ public final class SessionManager {
      * @throws TokenExpiredException if the token is already expired at login time
      */
     public static void login(String token) {
-        currentUserId   = JwtConfig.getUserId(token);
-        currentUsername = JwtConfig.getUsername(token);
-        currentRole     = JwtConfig.getRole(token);
-        currentToken    = token;
+        login(token, null);
+    }
+
+    /**
+     * Same as {@link #login(String)}, additionally recording the backing
+     * {@code user_sessions.session_id} row so {@link #getCurrentSessionId()}
+     * can be passed to {@code AuthService.logout(sessionId)} later.
+     */
+    public static void login(String token, String sessionId) {
+        currentUserId    = JwtConfig.getUserId(token);
+        currentUsername  = JwtConfig.getUsername(token);
+        currentRole      = JwtConfig.getRole(token);
+        currentToken     = token;
+        currentSessionId = sessionId;
     }
 
     /** Clears all session state. Call on logout button or when a token expires mid-session. */
     public static void logout() {
-        currentUserId   = null;
-        currentUsername = null;
-        currentRole     = null;
-        currentToken    = null;
+        currentUserId    = null;
+        currentUsername  = null;
+        currentRole      = null;
+        currentToken     = null;
+        currentSessionId = null;
     }
 
     // ── Session state ─────────────────────────────────────────────────────────
@@ -102,6 +114,17 @@ public final class SessionManager {
     public static String getCurrentToken() {
         requireLoggedIn();
         return currentToken;
+    }
+
+    /**
+     * Returns the {@code user_sessions.session_id} row backing this login, or
+     * {@code null} if this session was established without one (e.g. login(token)
+     * called directly rather than login(token, sessionId)).
+     * @throws UnauthorizedException if no session is active
+     */
+    public static String getCurrentSessionId() {
+        requireLoggedIn();
+        return currentSessionId;
     }
 
     // ── Guard ─────────────────────────────────────────────────────────────────

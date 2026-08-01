@@ -5,6 +5,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.stage.Stage;
 
@@ -16,10 +17,15 @@ public class NavbarController {
     @FXML private void handlePatients()     { navigate(PageRoute.PATIENTS); }
     @FXML private void handleAppointments() { navigate(PageRoute.APPOINTMENTS); }
     @FXML private void handleBilling()      { navigate(PageRoute.BILLING); }
+    @FXML private void handleProfile()      { navigate(PageRoute.PROFILE); }
 
     @FXML
-    private void handleProfile() {
-        System.out.println("Profile clicked");
+    private void handleNotifications() {
+        // No notification feed is wired up to the top navbar yet (the right sidebar owns
+        // its own separate notification panel) — an honest placeholder beats a silent no-op.
+        Alert alert = new Alert(Alert.AlertType.INFORMATION, "No new notifications.");
+        alert.setHeaderText(null);
+        alert.showAndWait();
     }
 
     private void navigate(PageRoute route) {
@@ -34,6 +40,9 @@ public class NavbarController {
             ((Stage) scene.getWindow()).setScene(newScene);
         } catch (Exception e) {
             System.err.println("Navigation to " + route.getFxmlPath() + " failed: " + e.getMessage());
+            Alert alert = new Alert(Alert.AlertType.ERROR, "Couldn't open that page. Please try again.");
+            alert.setHeaderText(null);
+            alert.showAndWait();
         }
     }
 }

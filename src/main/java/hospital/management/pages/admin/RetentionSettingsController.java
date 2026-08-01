@@ -2,6 +2,7 @@ package hospital.management.pages.admin;
 
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.daemon.RetentionPolicy;
+import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -136,16 +137,18 @@ public class RetentionSettingsController extends BasePageController {
 
     @FXML
     private void onSave() {
-        try {
-            RetentionPolicy policy = buildPolicyFromForm();
-            // TODO: RetentionPolicyStore.save(policy);
-            // TODO: DatabaseCleanupDaemon.restart();
-            appendToLog("[STUB] Settings saved: " + policy);
-            statusLabel.setText("Settings saved — daemon will restart on next cycle.");
-            toastSuccess("Retention settings saved.");
-        } catch (IllegalArgumentException e) {
-            toastError(e.getMessage());
-        }
+        withSpinner(saveBtn, () -> {
+            try {
+                RetentionPolicy policy = buildPolicyFromForm();
+                // TODO: RetentionPolicyStore.save(policy);
+                // TODO: DatabaseCleanupDaemon.restart();
+                appendToLog("[STUB] Settings saved: " + policy);
+                statusLabel.setText("Settings saved — daemon will restart on next cycle.");
+                toastSuccess("Retention settings saved.");
+            } catch (IllegalArgumentException e) {
+                toastError(e.getMessage());
+            }
+        });
     }
 
     @FXML
@@ -168,28 +171,37 @@ public class RetentionSettingsController extends BasePageController {
 
     @FXML
     private void onPreview() {
-        // TODO: run previewCount queries and update all preview labels
-        previewNote.setText("Preview not yet connected to backend.");
-        previewUserCount.setText("?");
-        previewSysLogCount.setText("?");
-        previewAuditLogCount.setText("?");
-        previewArchiveCount.setText("?");
-        previewDeleteCount.setText("?");
+        withSpinner(previewBtn, () -> {
+            // TODO: run previewCount queries and update all preview labels
+            previewNote.setText("Preview not yet connected to backend.");
+            previewUserCount.setText("?");
+            previewSysLogCount.setText("?");
+            previewAuditLogCount.setText("?");
+            previewArchiveCount.setText("?");
+            previewDeleteCount.setText("?");
+            toast("Preview not yet connected to backend.", NotificationType.WARNING);
+        });
     }
 
     @FXML
     private void onResetDefaults() {
-        inactiveUserDaysSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_INACTIVE_USER_DAYS);
-        dbLogRetentionSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_DB_LOG_RETENTION_DAYS);
-        fileLogMaxSizeSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_FILE_LOG_MAX_SIZE_MB);
-        archiveRetentionSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_ARCHIVE_RETENTION_DAYS);
-        intervalHoursSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_CLEANUP_INTERVAL_HOURS);
-        appendToLog("[INFO] Settings reset to defaults.");
+        withSpinner(resetDefaultsBtn, () -> {
+            inactiveUserDaysSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_INACTIVE_USER_DAYS);
+            dbLogRetentionSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_DB_LOG_RETENTION_DAYS);
+            fileLogMaxSizeSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_FILE_LOG_MAX_SIZE_MB);
+            archiveRetentionSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_ARCHIVE_RETENTION_DAYS);
+            intervalHoursSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_CLEANUP_INTERVAL_HOURS);
+            appendToLog("[INFO] Settings reset to defaults.");
+            toastSuccess("Settings reset to defaults.");
+        });
     }
 
     @FXML
     private void onClearLog() {
-        lastRunLog.clear();
+        withSpinner(clearLogBtn, () -> {
+            lastRunLog.clear();
+            toastSuccess("Log cleared.");
+        });
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

@@ -35,6 +35,7 @@ public abstract class PaginatedTableController<T> {
 
     private Consumer<T> onEdit;
     private Consumer<T> onDelete;
+    private TableColumn<T, Void> actionsColumn;
 
     public void initialize() {
         configureColumns();
@@ -83,6 +84,7 @@ public abstract class PaginatedTableController<T> {
      * from its {@link #configureColumns()} instead of hand-rolling cell factories.
      */
     protected void wireActionsColumn(TableColumn<T, Void> actionsColumn) {
+        this.actionsColumn = actionsColumn;
         actionsColumn.setCellFactory(col -> new TableCell<>() {
             private final Button editBtn = new Button("", new FontIcon("fas-edit"));
             private final Button deleteBtn = new Button("", new FontIcon("fas-trash"));
@@ -104,6 +106,17 @@ public abstract class PaginatedTableController<T> {
                 setGraphic(empty ? null : box);
             }
         });
+    }
+
+    /**
+     * Hides the Actions column for read-only usages of this table (e.g. drill-down
+     * tabs that never call {@link #setRowActions}) so the edit/delete icons don't
+     * render as silent no-ops.
+     */
+    public void hideActionsColumn() {
+        if (actionsColumn != null) {
+            actionsColumn.setVisible(false);
+        }
     }
 
     private void refreshPagination() {

@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 public class FormDialogController {
 
     @FXML private StackPane    dialogOverlay;
+    @FXML private VBox         dialogBox;
     @FXML private VBox         fieldsBox;
     @FXML private Label        dialogTitle;
     @FXML private FontIcon     dialogIcon;
@@ -40,6 +41,13 @@ public class FormDialogController {
             setLoading(true);
             onSubmit.accept(null);
         });
+
+        // Keep the dialog within the window at all times — the overlay always
+        // spans the full page, so cap the box a bit under its height instead
+        // of a fixed CSS value that could exceed a smaller window.
+        dialogBox.maxHeightProperty().bind(
+            dialogOverlay.heightProperty().multiply(0.9)
+        );
     }
 
     /** Opens the dialog. Callback runs when the (blue) submit button is pressed. */

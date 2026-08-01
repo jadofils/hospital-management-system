@@ -92,9 +92,12 @@ public class FileLogArchiver implements CleanupTask {
     }
 
     private void recompress(Path archive) throws IOException {
-        Path temp = archive.resolveSibling(archive.getFileName() + ".tmp");
-        compress(archive);              // compress the already-compressed file
-        Files.move(temp, archive, StandardCopyOption.REPLACE_EXISTING);
+        // compress() always writes to <source>.gz, never to a ".tmp" sibling —
+        // recompressing an already-.gz file would otherwise try to move a file
+        // that was never created (foo.log.gz -> foo.log.gz.gz, not foo.log.gz.tmp).
+        Path doubleCompressed = archive.resolveSibling(archive.getFileName() + ".gz");
+        compress(archive);
+        Files.move(doubleCompressed, archive, StandardCopyOption.REPLACE_EXISTING);
     }
 
     // ── Staleness check ───────────────────────────────────────────────────────

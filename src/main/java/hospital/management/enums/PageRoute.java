@@ -93,6 +93,10 @@ public enum PageRoute {
           "/hospital/management/frontend/pages/users-page.fxml",
           RoleName.ADMIN),
 
+    ROLES("roles", "Roles & Permissions",
+          "/hospital/management/frontend/pages/roles-page.fxml",
+          RoleName.ADMIN),
+
     SYSTEM_LOGS("system-logs", "System Logs",
                 "/hospital/management/frontend/pages/system-logs-page.fxml",
                 RoleName.ADMIN),

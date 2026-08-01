@@ -1,6 +1,7 @@
 package hospital.management.pages.finance;
 
 import hospital.management.pages.BasePageController;
+import hospital.management.pages.QuickAddCapable;
 import hospital.management.backend.model.finance.Invoice;
 import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
@@ -17,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class InvoicePageController extends BasePageController {
+public class InvoicePageController extends BasePageController implements QuickAddCapable {
 
     @FXML private InvoiceTableController invoiceTableController;
 
@@ -59,6 +60,11 @@ public class InvoicePageController extends BasePageController {
                     refreshTable();
                     toastSuccess("Invoice deleted.");
                 });
+    }
+
+    @Override
+    public void openAddDialog() {
+        openInvoiceDialog(null);
     }
 
     /** Opens the shared form dialog in Add mode (invoice == null) or Update mode. */

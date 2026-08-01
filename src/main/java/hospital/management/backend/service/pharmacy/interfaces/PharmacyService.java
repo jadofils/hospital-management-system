@@ -14,4 +14,13 @@ public interface PharmacyService {
     MedicalInventoryDTO addStock(CreateMedicalInventoryDTO dto) throws Exception;
     List<MedicalInventoryDTO> findStockByMedication(String medicationId) throws Exception;
     List<MedicalInventoryDTO> findLowStock() throws Exception;
+
+    /**
+     * Updates an existing inventory batch (quantity, reorder level, supplier, etc.).
+     * Not part of the original interface sketch, but required so the low-stock
+     * transition logic (quantity drops to/below reorder level on a stock update)
+     * has somewhere real to live — see {@code PharmacyServiceImpl} for the
+     * before/after comparison that decides whether {@code INVENTORY_LOW_STOCK} fires.
+     */
+    MedicalInventoryDTO updateStock(String inventoryId, CreateMedicalInventoryDTO dto) throws Exception;
 }

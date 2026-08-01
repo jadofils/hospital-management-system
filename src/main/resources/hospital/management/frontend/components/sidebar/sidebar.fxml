@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import java.net.URL?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
@@ -12,6 +13,7 @@
 
     <stylesheets>
         <URL value="@../../../css/sidebar.css"/>
+        <URL value="@../../../css/buttons.css"/>
     </stylesheets>
 
     <!-- Collapse toggle — always visible at top -->
@@ -179,6 +181,10 @@
                             maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleUsers">
                         <graphic><FontIcon iconLiteral="fas-users" iconSize="14"/></graphic>
                     </Button>
+                    <Button fx:id="rolesBtn" text="Roles &amp; Permissions" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleRoles">
+                        <graphic><FontIcon iconLiteral="fas-user-shield" iconSize="14"/></graphic>
+                    </Button>
                     <Button fx:id="departmentsBtn" text="Departments" styleClass="sidebar-item"
                             maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleDepartments">
                         <graphic><FontIcon iconLiteral="fas-hospital" iconSize="14"/></graphic>
@@ -208,9 +214,10 @@
                 maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleProfile">
             <graphic><FontIcon iconLiteral="fas-user-circle" iconSize="14"/></graphic>
         </Button>
-        <Button fx:id="logoutBtn" text="Logout" styleClass="sidebar-item danger-item"
+        <Button fx:id="logoutBtn" text="Logout" styleClass="danger-button,sidebar-logout-btn"
                 maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleLogout">
             <graphic><FontIcon iconLiteral="fas-sign-out-alt" iconSize="14"/></graphic>
+            <VBox.margin><Insets top="8"/></VBox.margin>
         </Button>
     </VBox>
 

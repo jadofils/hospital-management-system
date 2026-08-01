@@ -1,6 +1,14 @@
 package hospital.management.pages.components.shared.layout;
 
+import hospital.management.backend.config.security.SessionManager;
+import hospital.management.backend.dao.auth.RoleDAOImpl;
+import hospital.management.backend.dao.auth.UserDAOImpl;
+import hospital.management.backend.dao.auth.UserRoleDAOImpl;
+import hospital.management.backend.dao.auth.UserSessionDAOImpl;
+import hospital.management.backend.dao.log.AuditLogDAOImpl;
 import hospital.management.backend.model.enums.RoleName;
+import hospital.management.backend.service.auth.AuthServiceImpl;
+import hospital.management.backend.service.auth.interfaces.AuthService;
 import hospital.management.enums.PageRoute;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -8,10 +16,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -21,6 +31,10 @@ import java.util.List;
 import java.util.Map;
 
 public class SidebarController {
+
+    private final AuthService authService = new AuthServiceImpl(
+        new UserDAOImpl(), new UserSessionDAOImpl(), new UserRoleDAOImpl(),
+        new RoleDAOImpl(), new AuditLogDAOImpl());
 
     // ── Section containers ────────────────────────────────────────────────
     @FXML private VBox sidebarRoot;
@@ -74,6 +88,7 @@ public class SidebarController {
     @FXML private Button analyticsBtn;
     @FXML private Button feedbackBtn;
     @FXML private Button usersBtn;
+    @FXML private Button rolesBtn;
     @FXML private Button departmentsBtn;
     @FXML private Button systemLogsBtn;
     @FXML private Button auditLogsBtn;
@@ -162,6 +177,7 @@ public class SidebarController {
             case PHARMACY        -> inventoryBtn;
             case ANALYTICS, FEEDBACK -> analyticsBtn;
             case USERS           -> usersBtn;
+            case ROLES            -> rolesBtn;
             case DEPARTMENTS     -> departmentsBtn;
             case SYSTEM_LOGS     -> systemLogsBtn;
             case AUDIT_LOGS      -> auditLogsBtn;
@@ -174,10 +190,25 @@ public class SidebarController {
 
     // ── Sidebar collapse / expand ─────────────────────────────────────────
 
+    private static final double COLLAPSED_WIDTH = 56;
+
     @FXML
     private void handleToggleCollapse() {
         collapsed = !collapsed;
-        sidebarRoot.setPrefWidth(collapsed ? 52 : 220);
+        if (collapsed) {
+            // CSS sets a min/max width for the expanded sidebar (~190-260px);
+            // those constraints win over a smaller setPrefWidth() alone, so
+            // the container never actually shrinks unless min/max are pinned
+            // down too here.
+            sidebarRoot.setMinWidth(COLLAPSED_WIDTH);
+            sidebarRoot.setPrefWidth(COLLAPSED_WIDTH);
+            sidebarRoot.setMaxWidth(COLLAPSED_WIDTH);
+        } else {
+            // Hand control back to sidebar.css's normal min/pref/max-width.
+            sidebarRoot.setMinWidth(Region.USE_COMPUTED_SIZE);
+            sidebarRoot.setPrefWidth(Region.USE_COMPUTED_SIZE);
+            sidebarRoot.setMaxWidth(Region.USE_COMPUTED_SIZE);
+        }
 
         ContentDisplay display = collapsed ? ContentDisplay.GRAPHIC_ONLY : ContentDisplay.LEFT;
         allNavButtons().forEach(btn -> {
@@ -233,12 +264,25 @@ public class SidebarController {
     @FXML private void handleAnalytics()      { navigate(PageRoute.ANALYTICS, analyticsBtn); }
     @FXML private void handleFeedback()       { navigate(PageRoute.FEEDBACK, feedbackBtn); }
     @FXML private void handleUsers()          { navigate(PageRoute.USERS, usersBtn); }
+    @FXML private void handleRoles()          { navigate(PageRoute.ROLES, rolesBtn); }
     @FXML private void handleDepartments()    { navigate(PageRoute.DEPARTMENTS, departmentsBtn); }
     @FXML private void handleSystemLogs()     { navigate(PageRoute.SYSTEM_LOGS, systemLogsBtn); }
     @FXML private void handleAuditLogs()      { navigate(PageRoute.AUDIT_LOGS, auditLogsBtn); }
     @FXML private void handleRetention()      { navigate(PageRoute.RETENTION, retentionBtn); }
     @FXML private void handleProfile()        { navigate(PageRoute.PROFILE, profileBtn); }
-    @FXML private void handleLogout()         { navigate(PageRoute.HOME, logoutBtn); }
+    @FXML
+    private void handleLogout() {
+        try {
+            String sessionId = SessionManager.getCurrentSessionId();
+            if (sessionId != null) authService.logout(sessionId);
+        } catch (Exception e) {
+            System.err.println("Logout cleanup failed: " + e.getMessage());
+            showErrorAlert("You've been signed out locally, but the server-side session couldn't be closed cleanly.");
+        } finally {
+            SessionManager.logout();
+        }
+        navigate(PageRoute.HOME, logoutBtn);
+    }
 
     /** Swaps the clicked button's icon for a spinner until the target page has loaded. */
     private void navigate(PageRoute route, Button sourceBtn) {
@@ -262,10 +306,24 @@ public class SidebarController {
                 ((Stage) scene.getWindow()).setScene(newScene);
             } catch (Exception e) {
                 System.err.println("Navigation to " + route.getFxmlPath() + " failed: " + e.getMessage());
+                showErrorAlert("Couldn't open that page. Please try again.");
                 allNavButtons().forEach(b -> b.setDisable(false));
                 sourceBtn.setGraphic(originalGraphic);
             }
         });
+    }
+
+    /**
+     * SidebarController is a shared component with no reference to whichever page's
+     * toast/BasePageController happens to host it, so navigation-level failures (a
+     * missing FXML, a broken server-side logout call) use a plain JavaFX Alert
+     * instead of the app's custom toast — still real, visible feedback rather than
+     * a console-only System.err that the user never sees.
+     */
+    private void showErrorAlert(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR, message);
+        alert.setHeaderText(null);
+        alert.showAndWait();
     }
 
     // ── Private helpers ───────────────────────────────────────────────────
@@ -274,7 +332,7 @@ public class SidebarController {
         return List.of(dashboardBtn, patientsBtn, appointmentsBtn, billingBtn,
                 doctorsBtn, appointmentsDoctorBtn, medicalRecordsBtn, prescriptionsBtn,
                 labOrdersBtn, referralsBtn, scheduleBtn, prescriptionsQueueBtn,
-                inventoryBtn, analyticsBtn, feedbackBtn, usersBtn, departmentsBtn,
+                inventoryBtn, analyticsBtn, feedbackBtn, usersBtn, rolesBtn, departmentsBtn,
                 systemLogsBtn, auditLogsBtn, retentionBtn, profileBtn, logoutBtn);
     }
 

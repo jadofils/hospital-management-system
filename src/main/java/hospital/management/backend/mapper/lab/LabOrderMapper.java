@@ -2,6 +2,7 @@ package hospital.management.backend.mapper.lab;
 
 import hospital.management.backend.dto.lab.CreateLabOrderDTO;
 import hospital.management.backend.dto.lab.LabOrderDTO;
+import hospital.management.backend.model.enums.LabOrderStatus;
 import hospital.management.backend.model.lab.LabOrder;
 
 public class LabOrderMapper {
@@ -24,7 +25,8 @@ public class LabOrderMapper {
         o.setAppointmentId(dto.getAppointmentId());
         o.setDoctorId(dto.getDoctorId());
         o.setTestName(dto.getTestName());
-        o.setStatus("pending");
+        // DB CHECK constraint on lab_orders.status only allows ordered/in_progress/completed/cancelled.
+        o.setStatus(LabOrderStatus.ORDERED.getDbValue());
         return o;
     }
 }

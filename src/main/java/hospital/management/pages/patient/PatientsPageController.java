@@ -1,9 +1,11 @@
 package hospital.management.pages.patient;
 
 import hospital.management.pages.BasePageController;
+import hospital.management.pages.QuickAddCapable;
 import hospital.management.backend.model.patient.Patient;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.patient.PatientTableController;
+import hospital.management.pages.components.shared.search.AdvancedSearchController;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -12,9 +14,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class PatientsPageController extends BasePageController {
+public class PatientsPageController extends BasePageController implements QuickAddCapable {
 
     @FXML private PatientTableController patientTableController;
+    @FXML private AdvancedSearchController advancedSearchController;
 
     @FXML private TextField searchField;
     @FXML private ComboBox<String> statusFilter;
@@ -35,11 +38,24 @@ public class PatientsPageController extends BasePageController {
         addPatientBtn.setOnAction(e -> openPatientDialog(null));
         patientTableController.setRowActions(this::openPatientDialog, this::confirmDeletePatient);
 
+        if (advancedSearchController != null) {
+            advancedSearchController.setOnSearch(this::applyAdvancedSearch);
+            advancedSearchController.setOnReset(this::refreshTable);
+        }
+
         refreshTable();
     }
 
     private void applyFilter() {
         patientTableController.filter(searchField.getText());
+    }
+
+    /** Only patientId maps onto this page's data — doctor/date/status are Appointment-domain
+     *  fields the shared component also exposes for its Appointments-page usage. */
+    private void applyAdvancedSearch(AdvancedSearchController.Criteria criteria) {
+        String patientId = criteria.patientId() == null ? "" : criteria.patientId().trim();
+        patientTableController.filter(patientId);
+        toastSuccess(patientId.isEmpty() ? "Search cleared." : "Search applied for patient ID \"" + patientId + "\".");
     }
 
     private void refreshTable() {
@@ -55,6 +71,11 @@ public class PatientsPageController extends BasePageController {
                     refreshTable();
                     toastSuccess("Patient deleted.");
                 });
+    }
+
+    @Override
+    public void openAddDialog() {
+        openPatientDialog(null);
     }
 
     /** Opens the shared form dialog in Add mode (patient == null) or Update mode. */

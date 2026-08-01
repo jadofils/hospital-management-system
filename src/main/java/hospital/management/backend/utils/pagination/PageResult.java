@@ -1,7 +1,9 @@
 package hospital.management.backend.utils.pagination;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Output of any paginated query.
@@ -32,4 +34,16 @@ public final class PageResult<T> {
     public int     getPageSize()   { return pageSize; }
     public int     getCount()      { return items.size(); }
     public boolean isEmpty()       { return items.isEmpty(); }
+
+    /**
+     * Converts a page of entities into a page of some other type (typically a DTO),
+     * keeping the same cursor/hasMore/pageSize metadata — this is how a service
+     * layer turns a DAO's {@code PageResult<Entity>} into a {@code PageResult<Dto>}
+     * without needing package-private constructor access.
+     */
+    public <R> PageResult<R> map(Function<T, R> mapper) {
+        List<R> mapped = new ArrayList<>(items.size());
+        for (T item : items) mapped.add(mapper.apply(item));
+        return new PageResult<>(mapped, nextCursor, hasMore, pageSize);
+    }
 }

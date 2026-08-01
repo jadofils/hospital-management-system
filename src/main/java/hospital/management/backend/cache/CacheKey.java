@@ -19,6 +19,10 @@ public final class CacheKey {
     public static String session(String sessionId)         { return "session:" + sessionId; }
     public static String role(String roleId)               { return "role:" + roleId; }
     public static String roleList()                        { return "role:list"; }
+    public static String rolePermissions(String roleId)    { return "role:permissions:" + roleId; }
+    public static String userRoles(String userId)          { return "user:roles:" + userId; }
+    public static String permission(String permissionId)   { return "permission:" + permissionId; }
+    public static String permissionList()                  { return "permission:list"; }
 
     // ── Department ────────────────────────────────────────────────────────
     public static String department(String id)             { return "department:" + id; }
@@ -70,6 +74,7 @@ public final class CacheKey {
     public static final String ALL_USERS        = "user:*";
     public static final String ALL_SESSIONS     = "session:*";
     public static final String ALL_ROLES        = "role:*";
+    public static final String ALL_PERMISSIONS  = "permission:*";
     public static final String ALL_DEPARTMENTS  = "department:*";
     public static final String ALL_DOCTORS      = "doctor:*";
     public static final String ALL_PATIENTS     = "patient:*";
