@@ -75,10 +75,30 @@ public final class AsyncJobRunner {
         return POOL.submit(() -> {
             try {
                 T result = job.call();
-                Platform.runLater(() -> onSuccess.accept(result));
-            } catch (Exception e) {
+                // onSuccess itself touches JavaFX nodes (setOptions, selectById, etc.) — if it
+                // throws, it must still route to onError instead of silently vanishing inside
+                // Platform.runLater's own uncaught-exception handling, which would otherwise
+                // leave a caller's loading spinner/disabled fields stuck forever with no feedback.
+                Platform.runLater(() -> {
+                    try {
+                        onSuccess.accept(result);
+                    } catch (Throwable t) {
+                        logger.error("Async job's onSuccess callback failed: " + t.getMessage(), t);
+                        onError.accept(t);
+                    }
+                });
+            } catch (Throwable e) {
+                // Catches Throwable, not just Exception — an Error (e.g. thrown from a
+                // misbehaving mapper) must still reach onError rather than disappearing into
+                // the executor, which never surfaces exceptions unless something calls Future.get().
                 logger.error("Async job failed: " + e.getMessage(), e);
-                Platform.runLater(() -> onError.accept(e));
+                Platform.runLater(() -> {
+                    try {
+                        onError.accept(e);
+                    } catch (Throwable t) {
+                        logger.error("Async job's onError callback failed: " + t.getMessage(), t);
+                    }
+                });
             }
         });
     }
