@@ -99,14 +99,14 @@ public abstract class PostgresIntegrationTestBase {
      * restart.
      */
     private static void waitUntilReady() {
-        Instant deadline = Instant.now().plusSeconds(60);
+        Instant deadline = Instant.now().plusSeconds(180);
         while (Instant.now().isBefore(deadline)) {
             if (runDocker("exec", CONTAINER_NAME, "psql", "-U", DB_USER, "-d", DB_NAME, "-c", "SELECT 1") == 0) {
                 return;
             }
             sleep(Duration.ofMillis(500));
         }
-        throw new IllegalStateException("Postgres container '" + CONTAINER_NAME + "' never became ready within 60s");
+        throw new IllegalStateException("Postgres container '" + CONTAINER_NAME + "' never became ready within 180s");
     }
 
     private static void sleep(Duration duration) {
