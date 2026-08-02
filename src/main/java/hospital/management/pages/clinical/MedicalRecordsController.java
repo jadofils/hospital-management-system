@@ -9,8 +9,10 @@ import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.clinical.MedicalRecordTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -83,7 +85,8 @@ public class MedicalRecordsController extends BasePageController {
     private void openRecordDialog(MedicalRecord record) {
         boolean addMode = record == null;
 
-        EntityIdComboBox appointmentId = new EntityIdComboBox();
+        LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
         TextField diagnosis     = new TextField();
         TextField symptoms      = new TextField();
         TextArea  notes         = new TextArea();
@@ -93,17 +96,10 @@ public class MedicalRecordsController extends BasePageController {
         appointmentId.getStyleClass().add("form-combo");
         notes.getStyleClass().add("form-input");
 
-        try {
-            appointmentId.setOptions(appointmentService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
-                    .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
-                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
-                    .toList());
-        } catch (Exception ex) {
-            toastError("Failed to load appointments: " + ex.getMessage());
-        }
+        List<Control> otherFields = List.of(diagnosis, symptoms, notes);
+        otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
-            appointmentId.selectById(record.getAppointmentId());
             diagnosis.setText(record.getDiagnosis());
             symptoms.setText(record.getSymptoms());
             notes.setText(record.getNotes());
@@ -136,9 +132,39 @@ public class MedicalRecordsController extends BasePageController {
             toastSuccess(addMode ? "Medical record added." : "Medical record updated.");
         });
 
-        formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
         formDialogController.addField("Diagnosis", "fas-stethoscope", diagnosis);
         formDialogController.addField("Symptoms", "fas-head-side-cough", symptoms);
         formDialogController.addField("Notes", "fas-sticky-note", notes);
+
+        loadRecordDropdown(appointmentIdField, otherFields, addMode ? null : record);
+    }
+
+    /** Loads the appointment dropdown options asynchronously, showing its own spinner while
+     *  data is in flight and keeping the rest of the form disabled until it finishes loading. */
+    private void loadRecordDropdown(LoadingIdComboBox appointmentIdField, List<Control> otherFields, MedicalRecord existing) {
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+
+        appointmentIdField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AsyncJobRunner.submit(
+            () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                appointmentId.setOptions(items.stream()
+                        .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
+                                a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
+                        .toList());
+                if (existing != null) appointmentId.selectById(existing.getAppointmentId());
+                appointmentIdField.setLoading(false);
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            },
+            ex -> {
+                appointmentIdField.setLoading(false);
+                toastError("Failed to load appointments: " + ex.getMessage());
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            });
     }
 }

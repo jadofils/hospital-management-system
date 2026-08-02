@@ -15,9 +15,12 @@ import hospital.management.backend.service.auth.UserServiceImpl;
 import hospital.management.backend.service.auth.interfaces.RoleService;
 import hospital.management.backend.service.auth.interfaces.UserService;
 import hospital.management.backend.utils.pagination.CursorPagination;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.BasePageController;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.auth.UserTableController;
+import hospital.management.pages.components.shared.search.EntityIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -156,22 +159,23 @@ public class UsersPageController extends BasePageController {
     /** Opens the shared form dialog in Add mode (user == null) or Update mode. */
     private void openUserDialog(UserDTO user) {
         boolean addMode = user == null;
-        String currentRoleName = addMode ? null : roleNameByUserId.get(user.getUserId());
 
         TextField username = new TextField();
         TextField email    = new TextField();
         PasswordField password = new PasswordField();
-        ComboBox<String> role = new ComboBox<>();
+        LoadingIdComboBox roleField = new LoadingIdComboBox();
+        EntityIdComboBox role = roleField.getComboBox();
 
         List.of(username, email, password).forEach(f -> f.getStyleClass().add("form-input"));
         role.getStyleClass().add("form-combo");
-        allRoles.forEach(r -> role.getItems().add(r.getRoleName()));
+
+        List<Control> otherFields = List.of(username, email, password);
+        otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
             username.setText(user.getUsername());
             username.setDisable(true); // renaming a username isn't supported by the backend yet
             email.setText(user.getEmail());
-            role.setValue(currentRoleName);
         }
 
         formDialogController.open(addMode ? "Add User" : "Update User", "fas-user", addMode, v -> {
@@ -189,7 +193,7 @@ public class UsersPageController extends BasePageController {
             }
 
             try {
-                String selectedRoleName = role.getValue();
+                String selectedRoleId = role.getSelectedId();
                 UserDTO saved;
 
                 if (addMode) {
@@ -198,18 +202,14 @@ public class UsersPageController extends BasePageController {
                     saved = userService.update(new UpdateUserDTO(user.getUserId(), em, user.getIsActive()));
                 }
 
-                if (selectedRoleName != null && !selectedRoleName.equals(currentRoleName)) {
-                    RoleDTO newRole = allRoles.stream()
-                            .filter(r -> r.getRoleName().equals(selectedRoleName))
-                            .findFirst().orElse(null);
-                    if (newRole != null) {
-                        if (currentRoleName != null) {
-                            RoleDTO oldRole = allRoles.stream()
-                                    .filter(r -> r.getRoleName().equals(currentRoleName))
-                                    .findFirst().orElse(null);
-                            if (oldRole != null) roleService.revokeFromUser(saved.getUserId(), oldRole.getRoleId());
+                if (selectedRoleId != null) {
+                    List<RoleDTO> currentRoles = roleService.findRolesForUser(saved.getUserId());
+                    boolean alreadyAssigned = currentRoles.stream().anyMatch(r -> r.getRoleId().equals(selectedRoleId));
+                    if (!alreadyAssigned) {
+                        for (RoleDTO oldRole : currentRoles) {
+                            roleService.revokeFromUser(saved.getUserId(), oldRole.getRoleId());
                         }
-                        roleService.assignToUser(saved.getUserId(), newRole.getRoleId());
+                        roleService.assignToUser(saved.getUserId(), selectedRoleId);
                     }
                 }
 
@@ -228,6 +228,41 @@ public class UsersPageController extends BasePageController {
         formDialogController.addField("Username", "fas-user", username);
         if (addMode) formDialogController.addField("Password", "fas-lock", password);
         formDialogController.addField("Email", "fas-envelope", email);
-        formDialogController.addField("Role", "fas-user-tag", role);
+        formDialogController.addField("Role", "fas-user-tag", roleField);
+
+        loadRoleDropdown(roleField, otherFields, addMode ? null : user.getUserId());
+    }
+
+    /** Loads the role dropdown fresh from the DB every time the dialog opens — not from the
+     *  page-level allRoles cache — so a custom role just created on the Roles page is
+     *  immediately assignable here without needing to reload the Users page. */
+    private void loadRoleDropdown(LoadingIdComboBox roleField, List<Control> otherFields, String userIdForCurrentRole) {
+        EntityIdComboBox role = roleField.getComboBox();
+
+        roleField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AsyncJobRunner.submit(
+            roleService::findAll,
+            roles -> {
+                role.setOptions(roles.stream()
+                        .map(r -> new EntityIdComboBox.Option(r.getRoleId(), r.getRoleName())).toList());
+                if (userIdForCurrentRole != null) {
+                    String currentRoleName = roleNameByUserId.get(userIdForCurrentRole);
+                    roles.stream()
+                            .filter(r -> r.getRoleName().equals(currentRoleName))
+                            .findFirst()
+                            .ifPresent(r -> role.selectById(r.getRoleId()));
+                }
+                roleField.setLoading(false);
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            },
+            ex -> {
+                roleField.setLoading(false);
+                toastError("Failed to load roles: " + ex.getMessage());
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            });
     }
 }

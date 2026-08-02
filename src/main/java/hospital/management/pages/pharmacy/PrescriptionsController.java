@@ -9,8 +9,10 @@ import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.pharmacy.PrescriptionTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -79,23 +81,17 @@ public class PrescriptionsController extends BasePageController {
     private void openPrescriptionDialog(Prescription prescription) {
         boolean addMode = prescription == null;
 
-        EntityIdComboBox appointmentId = new EntityIdComboBox();
+        LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
         DatePicker dateIssued = new DatePicker();
 
         appointmentId.getStyleClass().add("form-combo");
         dateIssued.getStyleClass().add("form-date-picker");
 
-        try {
-            appointmentId.setOptions(appointmentService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
-                    .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
-                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
-                    .toList());
-        } catch (Exception ex) {
-            toastError("Failed to load appointments: " + ex.getMessage());
-        }
+        List<Control> otherFields = List.of(dateIssued);
+        otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
-            appointmentId.selectById(prescription.getAppointmentId());
             dateIssued.setValue(prescription.getDateIssued());
         }
 
@@ -118,7 +114,37 @@ public class PrescriptionsController extends BasePageController {
             toastSuccess(addMode ? "Prescription added." : "Prescription updated.");
         });
 
-        formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
         formDialogController.addField("Date Issued", "fas-calendar", dateIssued);
+
+        loadPrescriptionDropdown(appointmentIdField, otherFields, addMode ? null : prescription);
+    }
+
+    /** Loads the appointment dropdown options asynchronously, showing its own spinner while
+     *  data is in flight and keeping the rest of the form disabled until it finishes loading. */
+    private void loadPrescriptionDropdown(LoadingIdComboBox appointmentIdField, List<Control> otherFields, Prescription existing) {
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+
+        appointmentIdField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AsyncJobRunner.submit(
+            () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                appointmentId.setOptions(items.stream()
+                        .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
+                                a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
+                        .toList());
+                if (existing != null) appointmentId.selectById(existing.getAppointmentId());
+                appointmentIdField.setLoading(false);
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            },
+            ex -> {
+                appointmentIdField.setLoading(false);
+                toastError("Failed to load appointments: " + ex.getMessage());
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            });
     }
 }

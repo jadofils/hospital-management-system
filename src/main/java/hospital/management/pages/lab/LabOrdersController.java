@@ -11,8 +11,10 @@ import hospital.management.backend.service.department.DoctorServiceImpl;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.lab.LabOrderTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -21,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class LabOrdersController extends BasePageController {
 
@@ -89,27 +92,19 @@ public class LabOrdersController extends BasePageController {
     private void openLabOrderDialog(LabOrder labOrder) {
         boolean addMode = labOrder == null;
 
-        EntityIdComboBox appointmentId = new EntityIdComboBox();
-        EntityIdComboBox doctorId      = new EntityIdComboBox();
+        LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
+        LoadingIdComboBox doctorIdField      = new LoadingIdComboBox();
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+        EntityIdComboBox doctorId      = doctorIdField.getComboBox();
         TextField testName      = new TextField();
 
         testName.getStyleClass().add("form-input");
         List.of(appointmentId, doctorId).forEach(f -> f.getStyleClass().add("form-combo"));
 
-        try {
-            appointmentId.setOptions(appointmentService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
-                    .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
-                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
-                    .toList());
-            doctorId.setOptions(doctorService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
-                    .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName())).toList());
-        } catch (Exception ex) {
-            toastError("Failed to load appointments/doctors: " + ex.getMessage());
-        }
+        List<Control> otherFields = List.of(testName);
+        otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
-            appointmentId.selectById(labOrder.getAppointmentId());
-            doctorId.selectById(labOrder.getDoctorId());
             testName.setText(labOrder.getTestName());
         }
 
@@ -138,9 +133,64 @@ public class LabOrdersController extends BasePageController {
             toastSuccess(addMode ? "Lab order added." : "Lab order updated.");
         });
 
-        formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
-        formDialogController.addField("Doctor", "fas-user-md", doctorId);
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
+        formDialogController.addField("Doctor", "fas-user-md", doctorIdField);
         formDialogController.addField("Test Name", "fas-vial", testName);
+
+        loadLabOrderDropdowns(appointmentIdField, doctorIdField, otherFields, addMode ? null : labOrder);
+    }
+
+    /** Loads the appointment/doctor dropdown options asynchronously, showing each dropdown's own
+     *  spinner while its data is in flight and keeping the rest of the form disabled until
+     *  both have finished loading. */
+    private void loadLabOrderDropdowns(LoadingIdComboBox appointmentIdField, LoadingIdComboBox doctorIdField,
+                                        List<Control> otherFields, LabOrder existing) {
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+        EntityIdComboBox doctorId = doctorIdField.getComboBox();
+
+        appointmentIdField.setLoading(true);
+        doctorIdField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AtomicInteger pending = new AtomicInteger(2);
+        Runnable onOneLoaded = () -> {
+            if (pending.decrementAndGet() == 0) {
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            }
+        };
+
+        AsyncJobRunner.submit(
+            () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                appointmentId.setOptions(items.stream()
+                        .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
+                                a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
+                        .toList());
+                if (existing != null) appointmentId.selectById(existing.getAppointmentId());
+                appointmentIdField.setLoading(false);
+                onOneLoaded.run();
+            },
+            ex -> {
+                appointmentIdField.setLoading(false);
+                toastError("Failed to load appointments: " + ex.getMessage());
+                onOneLoaded.run();
+            });
+
+        AsyncJobRunner.submit(
+            () -> doctorService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                doctorId.setOptions(items.stream()
+                        .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName())).toList());
+                if (existing != null) doctorId.selectById(existing.getDoctorId());
+                doctorIdField.setLoading(false);
+                onOneLoaded.run();
+            },
+            ex -> {
+                doctorIdField.setLoading(false);
+                toastError("Failed to load doctors: " + ex.getMessage());
+                onOneLoaded.run();
+            });
     }
 
     /** Minimal single-field dialog for changing an existing lab order's status, kept out of the main Add/Edit form. */

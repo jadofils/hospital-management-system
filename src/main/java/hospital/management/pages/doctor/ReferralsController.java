@@ -11,8 +11,10 @@ import hospital.management.backend.service.department.DoctorServiceImpl;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.doctor.ReferralTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -22,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReferralsController extends BasePageController {
 
@@ -94,35 +97,21 @@ public class ReferralsController extends BasePageController {
     private void openReferralDialog(Referral referral) {
         boolean addMode = referral == null;
 
-        EntityIdComboBox appointmentId       = new EntityIdComboBox();
-        EntityIdComboBox referringDoctorId   = new EntityIdComboBox();
-        EntityIdComboBox referredToDoctorId  = new EntityIdComboBox();
+        LoadingIdComboBox appointmentIdField      = new LoadingIdComboBox();
+        LoadingIdComboBox referringDoctorIdField  = new LoadingIdComboBox();
+        LoadingIdComboBox referredToDoctorIdField = new LoadingIdComboBox();
+        EntityIdComboBox appointmentId       = appointmentIdField.getComboBox();
+        EntityIdComboBox referringDoctorId   = referringDoctorIdField.getComboBox();
+        EntityIdComboBox referredToDoctorId  = referredToDoctorIdField.getComboBox();
         TextField reason              = new TextField();
 
         reason.getStyleClass().add("form-input");
         List.of(appointmentId, referringDoctorId, referredToDoctorId).forEach(f -> f.getStyleClass().add("form-combo"));
 
-        try {
-            List<EntityIdComboBox.Option> appointmentOptions = appointmentService.findAll(CursorPagination.firstPage(1000))
-                    .getItems().stream()
-                    .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
-                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
-                    .toList();
-            List<EntityIdComboBox.Option> doctorOptions = doctorService.findAll(CursorPagination.firstPage(1000))
-                    .getItems().stream()
-                    .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName()))
-                    .toList();
-            appointmentId.setOptions(appointmentOptions);
-            referringDoctorId.setOptions(doctorOptions);
-            referredToDoctorId.setOptions(doctorOptions);
-        } catch (Exception ex) {
-            toastError("Failed to load appointments/doctors: " + ex.getMessage());
-        }
+        List<Control> otherFields = List.of(reason);
+        otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
-            appointmentId.selectById(referral.getAppointmentId());
-            referringDoctorId.selectById(referral.getReferringDoctorId());
-            referredToDoctorId.selectById(referral.getReferredToDoctorId());
             reason.setText(referral.getReason());
         }
 
@@ -161,10 +150,75 @@ public class ReferralsController extends BasePageController {
             toastSuccess(addMode ? "Referral added." : "Referral updated.");
         });
 
-        formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
-        formDialogController.addField("Referring Doctor", "fas-user-md", referringDoctorId);
-        formDialogController.addField("Referred-To Doctor", "fas-user-md", referredToDoctorId);
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
+        formDialogController.addField("Referring Doctor", "fas-user-md", referringDoctorIdField);
+        formDialogController.addField("Referred-To Doctor", "fas-user-md", referredToDoctorIdField);
         formDialogController.addField("Reason", "fas-notes-medical", reason);
+
+        loadReferralDropdowns(appointmentIdField, referringDoctorIdField, referredToDoctorIdField,
+                otherFields, addMode ? null : referral);
+    }
+
+    /** Loads the appointment/doctor dropdown options asynchronously, showing each dropdown's own
+     *  spinner while its data is in flight and keeping the rest of the form disabled until
+     *  both the appointment list and the (shared) doctor list have finished loading. */
+    private void loadReferralDropdowns(LoadingIdComboBox appointmentIdField, LoadingIdComboBox referringDoctorIdField,
+                                        LoadingIdComboBox referredToDoctorIdField, List<Control> otherFields, Referral existing) {
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+        EntityIdComboBox referringDoctorId = referringDoctorIdField.getComboBox();
+        EntityIdComboBox referredToDoctorId = referredToDoctorIdField.getComboBox();
+
+        appointmentIdField.setLoading(true);
+        referringDoctorIdField.setLoading(true);
+        referredToDoctorIdField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AtomicInteger pending = new AtomicInteger(2);
+        Runnable onOneLoaded = () -> {
+            if (pending.decrementAndGet() == 0) {
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            }
+        };
+
+        AsyncJobRunner.submit(
+            () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                appointmentId.setOptions(items.stream()
+                        .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
+                                a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
+                        .toList());
+                if (existing != null) appointmentId.selectById(existing.getAppointmentId());
+                appointmentIdField.setLoading(false);
+                onOneLoaded.run();
+            },
+            ex -> {
+                appointmentIdField.setLoading(false);
+                toastError("Failed to load appointments: " + ex.getMessage());
+                onOneLoaded.run();
+            });
+
+        AsyncJobRunner.submit(
+            () -> doctorService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                List<EntityIdComboBox.Option> doctorOptions = items.stream()
+                        .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName())).toList();
+                referringDoctorId.setOptions(doctorOptions);
+                referredToDoctorId.setOptions(doctorOptions);
+                if (existing != null) {
+                    referringDoctorId.selectById(existing.getReferringDoctorId());
+                    referredToDoctorId.selectById(existing.getReferredToDoctorId());
+                }
+                referringDoctorIdField.setLoading(false);
+                referredToDoctorIdField.setLoading(false);
+                onOneLoaded.run();
+            },
+            ex -> {
+                referringDoctorIdField.setLoading(false);
+                referredToDoctorIdField.setLoading(false);
+                toastError("Failed to load doctors: " + ex.getMessage());
+                onOneLoaded.run();
+            });
     }
 
     /** Minimal single-field dialog for changing an existing referral's status, kept out of the main Add/Edit form. */

@@ -7,9 +7,11 @@ import hospital.management.backend.model.pharmacy.MedicalInventory;
 import hospital.management.backend.model.pharmacy.Prescription;
 import hospital.management.backend.service.pharmacy.PharmacyServiceImpl;
 import hospital.management.enums.PageRoute;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.pharmacy.MedicalInventoryTableController;
 import hospital.management.pages.components.pharmacy.PrescriptionTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -99,7 +101,8 @@ public class PharmacyController extends BasePageController {
     private void openInventoryDialog(MedicalInventory item) {
         boolean addMode = item == null;
 
-        EntityIdComboBox medicationId = new EntityIdComboBox();
+        LoadingIdComboBox medicationIdField = new LoadingIdComboBox();
+        EntityIdComboBox medicationId = medicationIdField.getComboBox();
         TextField batchNumber     = new TextField();
         DatePicker expiryDate     = new DatePicker();
         TextField quantityInStock = new TextField();
@@ -111,16 +114,10 @@ public class PharmacyController extends BasePageController {
         medicationId.getStyleClass().add("form-combo");
         expiryDate.getStyleClass().add("form-date-picker");
 
-        try {
-            medicationId.setOptions(pharmacyService.findAllMedications().stream()
-                    .map(m -> new EntityIdComboBox.Option(m.getMedicationId(), m.getName()))
-                    .toList());
-        } catch (Exception ex) {
-            toastError("Failed to load medications: " + ex.getMessage());
-        }
+        List<Control> otherFields = List.of(batchNumber, expiryDate, quantityInStock, reorderLevel, supplier);
+        otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
-            medicationId.selectById(item.getMedicationId());
             batchNumber.setText(item.getBatchNumber());
             expiryDate.setValue(item.getExpiryDate());
             quantityInStock.setText(item.getQuantityInStock() != null ? String.valueOf(item.getQuantityInStock()) : "");
@@ -170,11 +167,40 @@ public class PharmacyController extends BasePageController {
             toastSuccess(addMode ? "Medication added." : "Medication updated.");
         });
 
-        formDialogController.addField("Medication", "fas-pills", medicationId);
+        formDialogController.addField("Medication", "fas-pills", medicationIdField);
         formDialogController.addField("Batch Number", "fas-barcode", batchNumber);
         formDialogController.addField("Expiry Date", "fas-calendar", expiryDate);
         formDialogController.addField("Quantity In Stock", "fas-boxes", quantityInStock);
         formDialogController.addField("Reorder Level", "fas-exclamation-triangle", reorderLevel);
         formDialogController.addField("Supplier", "fas-truck", supplier);
+
+        loadMedicationDropdown(medicationIdField, otherFields, addMode ? null : item);
+    }
+
+    /** Loads the medication dropdown options asynchronously, showing its own spinner while
+     *  data is in flight and keeping the rest of the form disabled until it finishes loading. */
+    private void loadMedicationDropdown(LoadingIdComboBox medicationIdField, List<Control> otherFields, MedicalInventory existing) {
+        EntityIdComboBox medicationId = medicationIdField.getComboBox();
+
+        medicationIdField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AsyncJobRunner.submit(
+            pharmacyService::findAllMedications,
+            items -> {
+                medicationId.setOptions(items.stream()
+                        .map(m -> new EntityIdComboBox.Option(m.getMedicationId(), m.getName()))
+                        .toList());
+                if (existing != null) medicationId.selectById(existing.getMedicationId());
+                medicationIdField.setLoading(false);
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            },
+            ex -> {
+                medicationIdField.setLoading(false);
+                toastError("Failed to load medications: " + ex.getMessage());
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            });
     }
 }

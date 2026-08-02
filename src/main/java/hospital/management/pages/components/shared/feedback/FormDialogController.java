@@ -4,7 +4,6 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.layout.HBox;
@@ -19,7 +18,7 @@ import java.util.function.Consumer;
  *
  * Each page opens it in "Add" mode (empty fields) or "Update" mode (fields
  * pre-filled from the selected row) and populates it with labeled fields via
- * {@link #addField(String, String, Control)}.
+ * {@link #addField(String, String, Node)}.
  */
 public class FormDialogController {
 
@@ -75,8 +74,10 @@ public class FormDialogController {
         });
     }
 
-    /** Appends a labeled field row (label + icon above the control), home-form style. */
-    public void addField(String label, String iconLiteral, Control control) {
+    /** Appends a labeled field row (label + icon above the control), home-form style.
+     *  Accepts any Node (not just Control) so a composite field — e.g. a dropdown
+     *  paired with its own loading spinner — can be passed as a single unit. */
+    public void addField(String label, String iconLiteral, Node control) {
         HBox labelRow = new HBox(6);
         labelRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         if (iconLiteral != null && !iconLiteral.isBlank()) {

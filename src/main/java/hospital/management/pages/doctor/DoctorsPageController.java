@@ -6,8 +6,10 @@ import hospital.management.backend.model.doctor.Doctor;
 import hospital.management.backend.service.department.DepartmentServiceImpl;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.enums.PageRoute;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.doctor.DoctorTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -83,7 +85,8 @@ public class DoctorsPageController extends BasePageController {
         TextField firstName = new TextField();
         TextField lastName = new TextField();
         TextField specialization = new TextField();
-        EntityIdComboBox departmentId = new EntityIdComboBox();
+        LoadingIdComboBox departmentIdField = new LoadingIdComboBox();
+        EntityIdComboBox departmentId = departmentIdField.getComboBox();
         TextField phone = new TextField();
         TextField email = new TextField();
 
@@ -91,19 +94,13 @@ public class DoctorsPageController extends BasePageController {
                 .forEach(f -> f.getStyleClass().add("form-input"));
         departmentId.getStyleClass().add("form-combo");
 
-        try {
-            departmentId.setOptions(departmentService.findAll().stream()
-                    .map(d -> new EntityIdComboBox.Option(d.getDepartmentId(), d.getName()))
-                    .toList());
-        } catch (Exception ex) {
-            toastError("Failed to load departments: " + ex.getMessage());
-        }
+        List<Control> otherFields = List.of(firstName, lastName, specialization, phone, email);
+        otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
             firstName.setText(doctor.getFirstName());
             lastName.setText(doctor.getLastName());
             specialization.setText(doctor.getSpecialization());
-            departmentId.selectById(doctor.getDepartmentId());
             phone.setText(doctor.getPhone());
             email.setText(doctor.getEmail());
         }
@@ -135,8 +132,37 @@ public class DoctorsPageController extends BasePageController {
         formDialogController.addField("First Name", "fas-user", firstName);
         formDialogController.addField("Last Name", "fas-user", lastName);
         formDialogController.addField("Specialization", "fas-stethoscope", specialization);
-        formDialogController.addField("Department", "fas-hospital", departmentId);
+        formDialogController.addField("Department", "fas-hospital", departmentIdField);
         formDialogController.addField("Phone", "fas-phone", phone);
         formDialogController.addField("Email", "fas-envelope", email);
+
+        loadDepartmentDropdown(departmentIdField, otherFields, addMode ? null : doctor);
+    }
+
+    /** Loads the department dropdown options asynchronously, showing its own spinner while
+     *  data is in flight and keeping the rest of the form disabled until it finishes loading. */
+    private void loadDepartmentDropdown(LoadingIdComboBox departmentIdField, List<Control> otherFields, Doctor existing) {
+        EntityIdComboBox departmentId = departmentIdField.getComboBox();
+
+        departmentIdField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AsyncJobRunner.submit(
+            departmentService::findAll,
+            items -> {
+                departmentId.setOptions(items.stream()
+                        .map(d -> new EntityIdComboBox.Option(d.getDepartmentId(), d.getName()))
+                        .toList());
+                if (existing != null) departmentId.selectById(existing.getDepartmentId());
+                departmentIdField.setLoading(false);
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            },
+            ex -> {
+                departmentIdField.setLoading(false);
+                toastError("Failed to load departments: " + ex.getMessage());
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            });
     }
 }

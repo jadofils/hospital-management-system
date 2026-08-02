@@ -11,8 +11,10 @@ import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.clinical.AppointmentTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import hospital.management.pages.components.shared.widgets.CalendarController;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -27,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class AppointmentsPageController extends BasePageController implements QuickAddCapable {
 
@@ -100,8 +103,10 @@ public class AppointmentsPageController extends BasePageController implements Qu
     private void openAppointmentDialog(Appointment appointment) {
         boolean addMode = appointment == null;
 
-        EntityIdComboBox patientId = new EntityIdComboBox();
-        EntityIdComboBox doctorId  = new EntityIdComboBox();
+        LoadingIdComboBox patientIdField = new LoadingIdComboBox();
+        LoadingIdComboBox doctorIdField  = new LoadingIdComboBox();
+        EntityIdComboBox patientId = patientIdField.getComboBox();
+        EntityIdComboBox doctorId  = doctorIdField.getComboBox();
         DatePicker appointmentDate = new DatePicker();
         TextField appointmentTime  = new TextField();
         appointmentTime.setPromptText("HH:mm");
@@ -111,18 +116,10 @@ public class AppointmentsPageController extends BasePageController implements Qu
         List.of(patientId, doctorId).forEach(f -> f.getStyleClass().add("form-combo"));
         appointmentDate.getStyleClass().add("form-date-picker");
 
-        try {
-            patientId.setOptions(patientService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
-                    .map(p -> new EntityIdComboBox.Option(p.getPatientId(), p.getFullName())).toList());
-            doctorId.setOptions(doctorService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
-                    .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName())).toList());
-        } catch (Exception ex) {
-            toastError("Failed to load patients/doctors: " + ex.getMessage());
-        }
+        List<Control> otherFields = List.of(appointmentDate, appointmentTime, reason);
+        otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
-            patientId.selectById(appointment.getPatientId());
-            doctorId.selectById(appointment.getDoctorId());
             LocalDateTime existing = appointment.getAppointmentDate();
             if (existing != null) {
                 appointmentDate.setValue(existing.toLocalDate());
@@ -167,11 +164,64 @@ public class AppointmentsPageController extends BasePageController implements Qu
             toastSuccess(addMode ? "Appointment added." : "Appointment updated.");
         });
 
-        formDialogController.addField("Patient", "fas-user-injured", patientId);
-        formDialogController.addField("Doctor", "fas-user-md", doctorId);
+        formDialogController.addField("Patient", "fas-user-injured", patientIdField);
+        formDialogController.addField("Doctor", "fas-user-md", doctorIdField);
         formDialogController.addField("Appointment Date", "fas-calendar", appointmentDate);
         formDialogController.addField("Appointment Time", "fas-clock", appointmentTime);
         formDialogController.addField("Reason", "fas-notes-medical", reason);
+
+        loadAppointmentDropdowns(patientIdField, doctorIdField, otherFields, addMode ? null : appointment);
+    }
+
+    /** Loads the patient/doctor dropdown options asynchronously, showing each dropdown's own
+     *  spinner while its data is in flight and keeping the rest of the form disabled until
+     *  both have finished loading. */
+    private void loadAppointmentDropdowns(LoadingIdComboBox patientIdField, LoadingIdComboBox doctorIdField,
+                                           List<Control> otherFields, Appointment existing) {
+        EntityIdComboBox patientId = patientIdField.getComboBox();
+        EntityIdComboBox doctorId = doctorIdField.getComboBox();
+
+        patientIdField.setLoading(true);
+        doctorIdField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AtomicInteger pending = new AtomicInteger(2);
+        Runnable onOneLoaded = () -> {
+            if (pending.decrementAndGet() == 0) {
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            }
+        };
+
+        AsyncJobRunner.submit(
+            () -> patientService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                patientId.setOptions(items.stream()
+                        .map(p -> new EntityIdComboBox.Option(p.getPatientId(), p.getFullName())).toList());
+                if (existing != null) patientId.selectById(existing.getPatientId());
+                patientIdField.setLoading(false);
+                onOneLoaded.run();
+            },
+            ex -> {
+                patientIdField.setLoading(false);
+                toastError("Failed to load patients: " + ex.getMessage());
+                onOneLoaded.run();
+            });
+
+        AsyncJobRunner.submit(
+            () -> doctorService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                doctorId.setOptions(items.stream()
+                        .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName())).toList());
+                if (existing != null) doctorId.selectById(existing.getDoctorId());
+                doctorIdField.setLoading(false);
+                onOneLoaded.run();
+            },
+            ex -> {
+                doctorIdField.setLoading(false);
+                toastError("Failed to load doctors: " + ex.getMessage());
+                onOneLoaded.run();
+            });
     }
 
     /** Minimal single-field dialog for changing an existing appointment's status, kept out of the main Add/Edit form. */

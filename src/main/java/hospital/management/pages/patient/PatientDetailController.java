@@ -14,6 +14,7 @@ import hospital.management.backend.model.patient.VitalSign;
 import hospital.management.backend.model.pharmacy.Prescription;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.utils.pagination.CursorPagination;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.clinical.AppointmentTableController;
 import hospital.management.pages.components.finance.InvoiceTableController;
@@ -23,6 +24,7 @@ import hospital.management.pages.components.patient.PatientAllergyTableControlle
 import hospital.management.pages.components.pharmacy.PrescriptionTableController;
 import hospital.management.pages.components.patient.VitalSignTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -285,7 +287,8 @@ public class PatientDetailController extends BasePageController {
     private void openRecordDialog(MedicalRecord record) {
         boolean addMode = record == null;
 
-        EntityIdComboBox appointmentId = new EntityIdComboBox();
+        LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
         TextField diagnosis     = new TextField();
         TextField symptoms      = new TextField();
         TextArea  notes         = new TextArea();
@@ -294,17 +297,10 @@ public class PatientDetailController extends BasePageController {
         appointmentId.getStyleClass().add("form-combo");
         notes.getStyleClass().add("form-input");
 
-        try {
-            appointmentId.setOptions(appointmentService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
-                    .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
-                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
-                    .toList());
-        } catch (Exception ex) {
-            toastError("Failed to load appointments: " + ex.getMessage());
-        }
+        List<Control> recordOtherFields = List.of(diagnosis, symptoms, notes);
+        recordOtherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
-            appointmentId.selectById(record.getAppointmentId());
             diagnosis.setText(record.getDiagnosis());
             symptoms.setText(record.getSymptoms());
             notes.setText(record.getNotes());
@@ -337,10 +333,12 @@ public class PatientDetailController extends BasePageController {
             toastSuccess(addMode ? "Medical record added." : "Medical record updated.");
         });
 
-        formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
         formDialogController.addField("Diagnosis", "fas-stethoscope", diagnosis);
         formDialogController.addField("Symptoms", "fas-head-side-cough", symptoms);
         formDialogController.addField("Notes", "fas-sticky-note", notes);
+
+        loadAppointmentDropdown(appointmentIdField, recordOtherFields, addMode ? null : record.getAppointmentId());
     }
 
     // ── Prescriptions ─────────────────────────────────────────────────────
@@ -349,22 +347,16 @@ public class PatientDetailController extends BasePageController {
     private void openPrescriptionDialog(Prescription prescription) {
         boolean addMode = prescription == null;
 
-        EntityIdComboBox appointmentId = new EntityIdComboBox();
+        LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
         DatePicker dateIssued   = new DatePicker();
         appointmentId.getStyleClass().add("form-combo");
         dateIssued.getStyleClass().add("form-date-picker");
 
-        try {
-            appointmentId.setOptions(appointmentService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
-                    .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
-                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
-                    .toList());
-        } catch (Exception ex) {
-            toastError("Failed to load appointments: " + ex.getMessage());
-        }
+        List<Control> prescriptionOtherFields = List.of(dateIssued);
+        prescriptionOtherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
-            appointmentId.selectById(prescription.getAppointmentId());
             dateIssued.setValue(prescription.getDateIssued());
         }
 
@@ -387,8 +379,39 @@ public class PatientDetailController extends BasePageController {
             toastSuccess(addMode ? "Prescription added." : "Prescription updated.");
         });
 
-        formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
         formDialogController.addField("Date Issued", "fas-calendar", dateIssued);
+
+        loadAppointmentDropdown(appointmentIdField, prescriptionOtherFields, addMode ? null : prescription.getAppointmentId());
+    }
+
+    /** Loads the appointment dropdown options asynchronously (shared by the Medical Record and
+     *  Prescription dialogs), showing its own spinner while data is in flight and keeping the
+     *  rest of the calling form disabled until it finishes loading. */
+    private void loadAppointmentDropdown(LoadingIdComboBox appointmentIdField, List<Control> otherFields, String existingAppointmentId) {
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+
+        appointmentIdField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AsyncJobRunner.submit(
+            () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                appointmentId.setOptions(items.stream()
+                        .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
+                                a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
+                        .toList());
+                if (existingAppointmentId != null) appointmentId.selectById(existingAppointmentId);
+                appointmentIdField.setLoading(false);
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            },
+            ex -> {
+                appointmentIdField.setLoading(false);
+                toastError("Failed to load appointments: " + ex.getMessage());
+                otherFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            });
     }
 
     // ── Allergies ─────────────────────────────────────────────────────────
