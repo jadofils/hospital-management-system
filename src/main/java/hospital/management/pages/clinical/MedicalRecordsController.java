@@ -6,6 +6,7 @@ import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.patient.MedicalRecord;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.clinical.MedicalRecordTableController;
@@ -15,13 +16,16 @@ import javafx.scene.control.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class MedicalRecordsController extends BasePageController {
 
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private MedicalRecordTableController medicalRecordTableController;
 
@@ -38,7 +42,7 @@ public class MedicalRecordsController extends BasePageController {
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
         addRecordBtn.setOnAction(e -> openRecordDialog(null));
-        medicalRecordTableController.setRowActions(this::openRecordDialog, this::confirmDeleteRecord);
+        medicalRecordTableController.setRowActions(this::openRecordDialog, this::confirmDeleteRecord, this::viewRecordDetail);
 
         refreshTable();
     }
@@ -49,6 +53,20 @@ public class MedicalRecordsController extends BasePageController {
 
     private void refreshTable() {
         medicalRecordTableController.setItems(records);
+    }
+
+    private void viewRecordDetail(MedicalRecord record) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        try {
+            fields.put("Appointment", entityLookupService.appointmentLabel(record.getAppointmentId()));
+        } catch (Exception ex) {
+            toastError("Failed to resolve appointment: " + ex.getMessage());
+        }
+        fields.put("Diagnosis", record.getDiagnosis());
+        fields.put("Symptoms", record.getSymptoms());
+        fields.put("Notes", record.getNotes());
+        fields.put("Created At", record.getCreatedAt() == null ? null : record.getCreatedAt().toString());
+        detailViewController.show("Medical Record Details", "fas-notes-medical", fields);
     }
 
     private void confirmDeleteRecord(MedicalRecord record) {

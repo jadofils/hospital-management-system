@@ -13,7 +13,9 @@ import javafx.scene.layout.VBox;
 import java.time.LocalTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ScheduleController extends BasePageController {
@@ -37,13 +39,22 @@ public class ScheduleController extends BasePageController {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.MY_SCHEDULE);
 
         addSlotBtn.setOnAction(e -> openScheduleDialog(null));
-        scheduleTableController.setRowActions(this::openScheduleDialog, this::confirmDeleteSchedule);
+        scheduleTableController.setRowActions(this::openScheduleDialog, this::confirmDeleteSchedule, this::viewScheduleDetail);
 
         refreshTable();
     }
 
     private void refreshTable() {
         scheduleTableController.setItems(schedules);
+    }
+
+    private void viewScheduleDetail(DoctorSchedule schedule) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("Day of Week", schedule.getDayOfWeek());
+        fields.put("Start Time", schedule.getStartTime() == null ? null : schedule.getStartTime().toString());
+        fields.put("End Time", schedule.getEndTime() == null ? null : schedule.getEndTime().toString());
+        fields.put("Available", Boolean.TRUE.equals(schedule.isIsAvailable()) ? "Yes" : "No");
+        detailViewController.show("Schedule Slot Details", "fas-calendar-alt", fields);
     }
 
     private void confirmDeleteSchedule(DoctorSchedule schedule) {

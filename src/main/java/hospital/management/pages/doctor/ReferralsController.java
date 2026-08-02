@@ -8,6 +8,7 @@ import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.doctor.Referral;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.doctor.ReferralTableController;
@@ -17,7 +18,9 @@ import javafx.scene.control.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class ReferralsController extends BasePageController {
@@ -25,6 +28,7 @@ public class ReferralsController extends BasePageController {
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
     private final DoctorServiceImpl doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private ReferralTableController referralTableController;
 
@@ -47,7 +51,7 @@ public class ReferralsController extends BasePageController {
         statusFilter.setOnAction(e -> applyFilter());
 
         newReferralBtn.setOnAction(e -> openReferralDialog(null));
-        referralTableController.setRowActions(this::openReferralDialog, this::confirmDeleteReferral);
+        referralTableController.setRowActions(this::openReferralDialog, this::confirmDeleteReferral, this::viewReferralDetail);
         referralTableController.setOnChangeStatus(this::openReferralStatusDialog);
 
         refreshTable();
@@ -59,6 +63,21 @@ public class ReferralsController extends BasePageController {
 
     private void refreshTable() {
         referralTableController.setItems(referrals);
+    }
+
+    private void viewReferralDetail(Referral referral) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        try {
+            fields.put("Appointment", entityLookupService.appointmentLabel(referral.getAppointmentId()));
+            fields.put("Referring Doctor", entityLookupService.doctorLabel(referral.getReferringDoctorId()));
+            fields.put("Referred-To Doctor", entityLookupService.doctorLabel(referral.getReferredToDoctorId()));
+        } catch (Exception ex) {
+            toastError("Failed to resolve referral details: " + ex.getMessage());
+        }
+        fields.put("Reason", referral.getReason());
+        fields.put("Status", referral.getStatus());
+        fields.put("Created At", referral.getCreatedAt() == null ? null : referral.getCreatedAt().toString());
+        detailViewController.show("Referral Details", "fas-exchange-alt", fields);
     }
 
     private void confirmDeleteReferral(Referral referral) {

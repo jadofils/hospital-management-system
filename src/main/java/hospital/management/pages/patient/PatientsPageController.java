@@ -7,7 +7,11 @@ import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.patient.PatientTableController;
 import hospital.management.pages.components.shared.search.AdvancedSearchController;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.stage.Stage;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -36,7 +40,7 @@ public class PatientsPageController extends BasePageController implements QuickA
         statusFilter.setOnAction(e -> applyFilter());
 
         addPatientBtn.setOnAction(e -> openPatientDialog(null));
-        patientTableController.setRowActions(this::openPatientDialog, this::confirmDeletePatient);
+        patientTableController.setRowActions(this::openPatientDialog, this::confirmDeletePatient, this::viewPatientDetail);
 
         if (advancedSearchController != null) {
             advancedSearchController.setOnSearch(this::applyAdvancedSearch);
@@ -61,6 +65,24 @@ public class PatientsPageController extends BasePageController implements QuickA
     private void refreshTable() {
         patientTableController.setItems(patients);
         totalLabel.setText("Total: " + patients.size() + " patients");
+    }
+
+    /** Navigates to the full PatientDetailController drill-down page for this patient. */
+    private void viewPatientDetail(Patient patient) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(PageRoute.PATIENT_DETAIL.getFxmlPath()));
+            Parent root = loader.load();
+            PatientDetailController controller = loader.getController();
+            controller.loadPatient(patient);
+            Scene scene = addPatientBtn.getScene();
+            Scene newScene = new Scene(root, scene.getWidth(), scene.getHeight());
+            newScene.getStylesheets().add(
+                getClass().getResource("/hospital/management/css/global.css").toExternalForm()
+            );
+            ((Stage) scene.getWindow()).setScene(newScene);
+        } catch (Exception e) {
+            toastError("Couldn't open patient details: " + e.getMessage());
+        }
     }
 
     private void confirmDeletePatient(Patient patient) {

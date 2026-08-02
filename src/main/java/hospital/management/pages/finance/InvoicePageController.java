@@ -7,6 +7,7 @@ import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.finance.Invoice;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.NotificationType;
@@ -22,7 +23,9 @@ import javafx.scene.control.TextField;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class InvoicePageController extends BasePageController implements QuickAddCapable {
@@ -30,6 +33,7 @@ public class InvoicePageController extends BasePageController implements QuickAd
     private final PatientServiceImpl patientService = new PatientServiceImpl(new PatientDAOImpl());
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private InvoiceTableController invoiceTableController;
 
@@ -54,7 +58,7 @@ public class InvoicePageController extends BasePageController implements QuickAd
         exportCsvBtn.setOnAction(e -> toast("Export not yet implemented.", NotificationType.INFO));
         printReportBtn.setOnAction(e -> toast("Print not yet implemented.", NotificationType.INFO));
 
-        invoiceTableController.setRowActions(this::openInvoiceDialog, this::confirmDeleteInvoice);
+        invoiceTableController.setRowActions(this::openInvoiceDialog, this::confirmDeleteInvoice, this::viewInvoiceDetail);
         invoiceTableController.setOnChangeStatus(this::openInvoiceStatusDialog);
 
         refreshTable();
@@ -62,6 +66,20 @@ public class InvoicePageController extends BasePageController implements QuickAd
 
     private void refreshTable() {
         invoiceTableController.setItems(invoices);
+    }
+
+    private void viewInvoiceDetail(Invoice invoice) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        try {
+            fields.put("Patient", entityLookupService.patientLabel(invoice.getPatientId()));
+            fields.put("Appointment", entityLookupService.appointmentLabel(invoice.getAppointmentId()));
+        } catch (Exception ex) {
+            toastError("Failed to resolve invoice details: " + ex.getMessage());
+        }
+        fields.put("Total Amount", invoice.getTotalAmount() == null ? null : invoice.getTotalAmount().toPlainString());
+        fields.put("Payment Status", invoice.getPaymentStatus());
+        fields.put("Issued At", invoice.getIssuedAt() == null ? null : invoice.getIssuedAt().toString());
+        detailViewController.show("Invoice Details", "fas-file-invoice-dollar", fields);
     }
 
     private void confirmDeleteInvoice(Invoice invoice) {

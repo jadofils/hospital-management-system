@@ -4,6 +4,7 @@ import hospital.management.pages.BasePageController;
 import hospital.management.backend.dao.department.DepartmentDAOImpl;
 import hospital.management.backend.model.doctor.Doctor;
 import hospital.management.backend.service.department.DepartmentServiceImpl;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.doctor.DoctorTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
@@ -11,12 +12,15 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class DoctorsPageController extends BasePageController {
 
     private final DepartmentServiceImpl departmentService = new DepartmentServiceImpl(new DepartmentDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private DoctorTableController doctorTableController;
 
@@ -34,7 +38,7 @@ public class DoctorsPageController extends BasePageController {
         departmentFilter.setOnAction(e -> applyFilter());
 
         addDoctorBtn.setOnAction(e -> openDoctorDialog(null));
-        doctorTableController.setRowActions(this::openDoctorDialog, this::confirmDeleteDoctor);
+        doctorTableController.setRowActions(this::openDoctorDialog, this::confirmDeleteDoctor, this::viewDoctorDetail);
 
         refreshTable();
     }
@@ -46,6 +50,20 @@ public class DoctorsPageController extends BasePageController {
     private void refreshTable() {
         doctorTableController.setItems(doctors);
         totalLabel.setText("Total: " + doctors.size() + " doctors");
+    }
+
+    private void viewDoctorDetail(Doctor doctor) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("Full Name", doctor.getFullName());
+        fields.put("Specialization", doctor.getSpecialization());
+        try {
+            fields.put("Department", entityLookupService.departmentLabel(doctor.getDepartmentId()));
+        } catch (Exception ex) {
+            fields.put("Department", "Unknown");
+        }
+        fields.put("Phone", doctor.getPhone());
+        fields.put("Email", doctor.getEmail());
+        detailViewController.show("Doctor Details", "fas-user-md", fields);
     }
 
     private void confirmDeleteDoctor(Doctor doctor) {

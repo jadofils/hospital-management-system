@@ -8,7 +8,9 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class DepartmentsPageController extends BasePageController {
@@ -27,7 +29,7 @@ public class DepartmentsPageController extends BasePageController {
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
         addDeptBtn.setOnAction(e -> openDepartmentDialog(null));
-        departmentTableController.setRowActions(this::openDepartmentDialog, this::confirmDeleteDepartment);
+        departmentTableController.setRowActions(this::openDepartmentDialog, this::confirmDeleteDepartment, this::viewDepartmentDetail);
 
         refreshTable();
     }
@@ -39,6 +41,14 @@ public class DepartmentsPageController extends BasePageController {
     private void refreshTable() {
         departmentTableController.setItems(departments);
         totalLabel.setText("Total: " + departments.size() + " departments");
+    }
+
+    private void viewDepartmentDetail(Department department) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("Name", department.getName());
+        fields.put("Location", department.getLocation());
+        fields.put("Phone", department.getPhone());
+        detailViewController.show("Department Details", "fas-hospital", fields);
     }
 
     private void confirmDeleteDepartment(Department department) {

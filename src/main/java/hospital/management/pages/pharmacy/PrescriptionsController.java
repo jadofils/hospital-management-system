@@ -6,6 +6,7 @@ import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.pharmacy.Prescription;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.pharmacy.PrescriptionTableController;
@@ -14,13 +15,16 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class PrescriptionsController extends BasePageController {
 
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private PrescriptionTableController prescriptionTableController;
 
@@ -37,7 +41,7 @@ public class PrescriptionsController extends BasePageController {
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
         newPrescriptionBtn.setOnAction(e -> openPrescriptionDialog(null));
-        prescriptionTableController.setRowActions(this::openPrescriptionDialog, this::confirmDeletePrescription);
+        prescriptionTableController.setRowActions(this::openPrescriptionDialog, this::confirmDeletePrescription, this::viewPrescriptionDetail);
 
         refreshTable();
     }
@@ -48,6 +52,17 @@ public class PrescriptionsController extends BasePageController {
 
     private void refreshTable() {
         prescriptionTableController.setItems(prescriptions);
+    }
+
+    private void viewPrescriptionDetail(Prescription prescription) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        try {
+            fields.put("Appointment", entityLookupService.appointmentLabel(prescription.getAppointmentId()));
+        } catch (Exception ex) {
+            toastError("Failed to resolve appointment: " + ex.getMessage());
+        }
+        fields.put("Date Issued", prescription.getDateIssued() == null ? null : prescription.getDateIssued().toString());
+        detailViewController.show("Prescription Details", "fas-prescription", fields);
     }
 
     private void confirmDeletePrescription(Prescription prescription) {

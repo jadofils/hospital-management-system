@@ -2,6 +2,7 @@ package hospital.management.pages;
 
 import hospital.management.enums.NotificationType;
 import hospital.management.pages.components.shared.feedback.ButtonSpinner;
+import hospital.management.pages.components.shared.feedback.DetailViewController;
 import hospital.management.pages.components.shared.feedback.FormDialogController;
 import hospital.management.pages.components.shared.feedback.ModalController;
 import hospital.management.pages.components.shared.layout.RightSidebarController;
@@ -24,6 +25,7 @@ public abstract class BasePageController {
     @FXML protected ToastController toastController;
     @FXML protected ModalController confirmModalController;
     @FXML protected FormDialogController formDialogController;
+    @FXML protected DetailViewController detailViewController;
 
     protected void toast(String message, NotificationType type) {
         if (toastController != null) toastController.show(message, type);

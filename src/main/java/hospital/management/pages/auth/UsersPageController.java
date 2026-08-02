@@ -23,6 +23,7 @@ import javafx.scene.control.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -61,7 +62,7 @@ public class UsersPageController extends BasePageController {
 
         userTableController.setRoleNameResolver(u -> roleNameByUserId.getOrDefault(u.getUserId(), "—"));
         addUserBtn.setOnAction(e -> openUserDialog(null));
-        userTableController.setRowActions(this::openUserDialog, this::confirmDeleteUser);
+        userTableController.setRowActions(this::openUserDialog, this::confirmDeleteUser, this::viewUserDetail);
         userTableController.setOnChangeStatus(this::confirmToggleActive);
 
         loadRolesAndUsers();
@@ -109,6 +110,16 @@ public class UsersPageController extends BasePageController {
 
         userTableController.setItems(visible);
         userTableController.filter(searchField.getText());
+    }
+
+    private void viewUserDetail(UserDTO user) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("Username", user.getUsername());
+        fields.put("Email", user.getEmail());
+        fields.put("Role", roleNameByUserId.getOrDefault(user.getUserId(), "—"));
+        fields.put("Status", Boolean.TRUE.equals(user.getIsActive()) ? "Active" : "Inactive");
+        fields.put("Created At", user.getCreatedAt() == null ? null : user.getCreatedAt().toString());
+        detailViewController.show("User Details", "fas-user", fields);
     }
 
     private void confirmDeleteUser(UserDTO user) {

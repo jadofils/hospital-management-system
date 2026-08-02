@@ -14,7 +14,9 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class PharmacyController extends BasePageController {
@@ -44,8 +46,8 @@ public class PharmacyController extends BasePageController {
         addMedBtn.setOnAction(e -> openInventoryDialog(null));
         inventorySearchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
-        inventoryTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory);
-        lowStockTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory);
+        inventoryTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory, this::viewInventoryDetail);
+        lowStockTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory, this::viewInventoryDetail);
 
         pendingPrescriptionsTableController.setItems(pendingPrescriptions);
 
@@ -66,6 +68,21 @@ public class PharmacyController extends BasePageController {
     private void refreshInventoryTables() {
         inventoryTableController.setItems(inventory);
         lowStockTableController.setItems(computeLowStock());
+    }
+
+    private void viewInventoryDetail(MedicalInventory item) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        try {
+            fields.put("Medication", pharmacyService.findMedicationById(item.getMedicationId()).getName());
+        } catch (Exception ex) {
+            fields.put("Medication", "Unknown");
+        }
+        fields.put("Batch Number", item.getBatchNumber());
+        fields.put("Expiry Date", item.getExpiryDate() == null ? null : item.getExpiryDate().toString());
+        fields.put("Quantity In Stock", item.getQuantityInStock() == null ? null : String.valueOf(item.getQuantityInStock()));
+        fields.put("Reorder Level", item.getReorderLevel() == null ? null : String.valueOf(item.getReorderLevel()));
+        fields.put("Supplier", item.getSupplier());
+        detailViewController.show("Medication Details", "fas-pills", fields);
     }
 
     private void confirmDeleteInventory(MedicalInventory item) {

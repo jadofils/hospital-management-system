@@ -59,7 +59,7 @@ public class RolesPageController extends BasePageController {
 
         roleTableController.setPermissionCountResolver(
             r -> permissionCountByRoleId.getOrDefault(r.getRoleId(), "0"));
-        roleTableController.setRowActions(this::openRoleDialog, this::confirmDeleteRole);
+        roleTableController.setRowActions(this::openRoleDialog, this::confirmDeleteRole, this::viewRoleDetail);
         roleSearchField.textProperty().addListener((obs, o, n) -> roleTableController.filter(n));
         addRoleBtn.setOnAction(e -> openRoleDialog(null));
 
@@ -92,6 +92,23 @@ public class RolesPageController extends BasePageController {
         } catch (Exception e) {
             toastError("Failed to load permissions: " + e.getMessage());
         }
+    }
+
+    private void viewRoleDetail(RoleDTO role) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("Role Name", role.getRoleName());
+        fields.put("Permission Count", permissionCountByRoleId.getOrDefault(role.getRoleId(), "0"));
+        try {
+            String assigned = roleService.findPermissionsForRole(role.getRoleId()).stream()
+                    .map(p -> p.getResource() + ":" + p.getAction())
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("None");
+            fields.put("Permissions", assigned);
+        } catch (Exception ex) {
+            toastError("Failed to load permissions: " + ex.getMessage());
+        }
+        fields.put("Created At", role.getCreatedAt() == null ? null : role.getCreatedAt().toString());
+        detailViewController.show("Role Details", "fas-user-shield", fields);
     }
 
     private void confirmDeleteRole(RoleDTO role) {

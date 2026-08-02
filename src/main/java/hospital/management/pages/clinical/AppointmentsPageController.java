@@ -7,6 +7,7 @@ import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.patient.Appointment;
 import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
@@ -22,7 +23,9 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class AppointmentsPageController extends BasePageController implements QuickAddCapable {
@@ -31,6 +34,7 @@ public class AppointmentsPageController extends BasePageController implements Qu
 
     private final PatientServiceImpl patientService = new PatientServiceImpl(new PatientDAOImpl());
     private final DoctorServiceImpl doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private CalendarController calendarController;
     @FXML private AppointmentTableController appointmentTableController;
@@ -43,7 +47,7 @@ public class AppointmentsPageController extends BasePageController implements Qu
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.APPOINTMENTS);
 
         addAppointmentBtn.setOnAction(e -> openAppointmentDialog(null));
-        appointmentTableController.setRowActions(this::openAppointmentDialog, this::confirmDeleteAppointment);
+        appointmentTableController.setRowActions(this::openAppointmentDialog, this::confirmDeleteAppointment, this::viewAppointmentDetail);
         appointmentTableController.setOnChangeStatus(this::openAppointmentStatusDialog);
 
         if (calendarController != null) {
@@ -61,6 +65,20 @@ public class AppointmentsPageController extends BasePageController implements Qu
 
     private void refreshTable() {
         appointmentTableController.setItems(appointments);
+    }
+
+    private void viewAppointmentDetail(Appointment appointment) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        try {
+            fields.put("Patient", entityLookupService.patientLabel(appointment.getPatientId()));
+            fields.put("Doctor", entityLookupService.doctorLabel(appointment.getDoctorId()));
+        } catch (Exception ex) {
+            toastError("Failed to resolve appointment details: " + ex.getMessage());
+        }
+        fields.put("Date/Time", appointment.getAppointmentDate() == null ? null : appointment.getAppointmentDate().toString());
+        fields.put("Status", appointment.getStatus());
+        fields.put("Reason", appointment.getReason());
+        detailViewController.show("Appointment Details", "fas-calendar-check", fields);
     }
 
     private void confirmDeleteAppointment(Appointment appointment) {

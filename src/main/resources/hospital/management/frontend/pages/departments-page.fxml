@@ -56,6 +56,7 @@
 
     <fx:include fx:id="formDialog" source="/hospital/management/frontend/components/formdialog/form-dialog.fxml"/>
     <fx:include fx:id="confirmModal" source="/hospital/management/frontend/components/modal/modal.fxml"/>
+    <fx:include fx:id="detailView" source="/hospital/management/frontend/components/detailview/detail-view.fxml"/>
 
     <StackPane StackPane.alignment="BOTTOM_RIGHT" styleClass="toast-anchor" pickOnBounds="false">
         <fx:include fx:id="toast" source="/hospital/management/frontend/components/toast/toast.fxml"/>

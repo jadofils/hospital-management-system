@@ -8,6 +8,7 @@ import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.lab.LabOrder;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.lab.LabOrderTableController;
@@ -16,7 +17,9 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class LabOrdersController extends BasePageController {
@@ -24,6 +27,7 @@ public class LabOrdersController extends BasePageController {
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
     private final DoctorServiceImpl doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private LabOrderTableController labOrderTableController;
 
@@ -43,7 +47,7 @@ public class LabOrdersController extends BasePageController {
         statusFilter.setOnAction(e -> applyFilter());
 
         newOrderBtn.setOnAction(e -> openLabOrderDialog(null));
-        labOrderTableController.setRowActions(this::openLabOrderDialog, this::confirmDeleteLabOrder);
+        labOrderTableController.setRowActions(this::openLabOrderDialog, this::confirmDeleteLabOrder, this::viewLabOrderDetail);
         labOrderTableController.setOnChangeStatus(this::openLabOrderStatusDialog);
 
         refreshTable();
@@ -55,6 +59,20 @@ public class LabOrdersController extends BasePageController {
 
     private void refreshTable() {
         labOrderTableController.setItems(labOrders);
+    }
+
+    private void viewLabOrderDetail(LabOrder labOrder) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        try {
+            fields.put("Appointment", entityLookupService.appointmentLabel(labOrder.getAppointmentId()));
+            fields.put("Doctor", entityLookupService.doctorLabel(labOrder.getDoctorId()));
+        } catch (Exception ex) {
+            toastError("Failed to resolve lab order details: " + ex.getMessage());
+        }
+        fields.put("Test Name", labOrder.getTestName());
+        fields.put("Status", labOrder.getStatus());
+        fields.put("Ordered At", labOrder.getOrderedAt() == null ? null : labOrder.getOrderedAt().toString());
+        detailViewController.show("Lab Order Details", "fas-flask", fields);
     }
 
     private void confirmDeleteLabOrder(LabOrder labOrder) {

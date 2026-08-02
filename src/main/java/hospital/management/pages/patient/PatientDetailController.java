@@ -35,7 +35,9 @@ import javafx.stage.Stage;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -108,13 +110,13 @@ public class PatientDetailController extends BasePageController {
         editPatientBtn.setOnAction(e -> openEditPatientDialog());
 
         addVitalBtn.setOnAction(e -> openVitalDialog(null));
-        vitalSignTableController.setRowActions(this::openVitalDialog, this::confirmDeleteVital);
+        vitalSignTableController.setRowActions(this::openVitalDialog, this::confirmDeleteVital, this::viewVitalDetail);
 
         addRecordBtn.setOnAction(e -> openRecordDialog(null));
         addPrescriptionBtn.setOnAction(e -> openPrescriptionDialog(null));
 
         addAllergyBtn.setOnAction(e -> openAllergyDialog(null));
-        patientAllergyTableController.setRowActions(this::openAllergyDialog, this::confirmDeleteAllergy);
+        patientAllergyTableController.setRowActions(this::openAllergyDialog, this::confirmDeleteAllergy, this::viewAllergyDetail);
 
         // Medical Records, Appointments, Prescriptions, Lab Results and Billing are read-only
         // in this drill-down (full CRUD lives on their own pages) — hide their Actions column
@@ -201,6 +203,18 @@ public class PatientDetailController extends BasePageController {
     }
 
     // ── Vitals ────────────────────────────────────────────────────────────
+
+    private void viewVitalDetail(VitalSign vital) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("Heart Rate (bpm)", vital.getHeartRate() == null ? null : String.valueOf(vital.getHeartRate()));
+        fields.put("Blood Pressure", (vital.getBloodPressureSystolic() == null || vital.getBloodPressureDiastolic() == null)
+                ? null : vital.getBloodPressureSystolic() + "/" + vital.getBloodPressureDiastolic());
+        fields.put("Temperature (°C)", vital.getTemperatureCelsius() == null ? null : vital.getTemperatureCelsius().toPlainString());
+        fields.put("Weight (kg)", vital.getWeightKg() == null ? null : vital.getWeightKg().toPlainString());
+        fields.put("Height (cm)", vital.getHeightCm() == null ? null : vital.getHeightCm().toPlainString());
+        fields.put("Recorded At", vital.getRecordedAt() == null ? null : vital.getRecordedAt().toString());
+        detailViewController.show("Vital Record Details", "fas-heartbeat", fields);
+    }
 
     private void confirmDeleteVital(VitalSign vital) {
         confirm("Delete Vital Record",
@@ -378,6 +392,15 @@ public class PatientDetailController extends BasePageController {
     }
 
     // ── Allergies ─────────────────────────────────────────────────────────
+
+    private void viewAllergyDetail(PatientAllergy allergy) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("Allergen", allergy.getAllergen());
+        fields.put("Reaction", allergy.getReaction());
+        fields.put("Severity", allergy.getSeverity());
+        fields.put("Recorded At", allergy.getCreatedAt() == null ? null : allergy.getCreatedAt().toString());
+        detailViewController.show("Allergy Details", "fas-allergies", fields);
+    }
 
     private void confirmDeleteAllergy(PatientAllergy allergy) {
         confirm("Delete Allergy",

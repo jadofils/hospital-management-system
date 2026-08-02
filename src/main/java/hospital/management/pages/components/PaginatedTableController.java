@@ -35,6 +35,7 @@ public abstract class PaginatedTableController<T> {
 
     private Consumer<T> onEdit;
     private Consumer<T> onDelete;
+    private Consumer<T> onViewDetails;
     private TableColumn<T, Void> actionsColumn;
 
     public void initialize() {
@@ -71,14 +72,20 @@ public abstract class PaginatedTableController<T> {
         return table;
     }
 
-    /** Registers the row-level edit/delete callbacks used by {@link #wireActionsColumn}. */
+    /** Registers the row-level edit/delete callbacks used by {@link #wireActionsColumn}, with no view-details action. */
     public void setRowActions(Consumer<T> onEdit, Consumer<T> onDelete) {
+        setRowActions(onEdit, onDelete, null);
+    }
+
+    /** Registers the row-level view/edit/delete callbacks used by {@link #wireActionsColumn}. */
+    public void setRowActions(Consumer<T> onEdit, Consumer<T> onDelete, Consumer<T> onViewDetails) {
         this.onEdit = onEdit;
         this.onDelete = onDelete;
+        this.onViewDetails = onViewDetails;
     }
 
     /**
-     * Renders a compact edit/delete button pair in the given column, driven by
+     * Renders a compact view/edit/delete button trio in the given column, driven by
      * whatever callbacks were registered via {@link #setRowActions}. Every
      * entity table declares one "Actions" TableColumn and wires it with this
      * from its {@link #configureColumns()} instead of hand-rolling cell factories.
@@ -86,12 +93,17 @@ public abstract class PaginatedTableController<T> {
     protected void wireActionsColumn(TableColumn<T, Void> actionsColumn) {
         this.actionsColumn = actionsColumn;
         actionsColumn.setCellFactory(col -> new TableCell<>() {
+            private final Button viewBtn = new Button("", new FontIcon("fas-eye"));
             private final Button editBtn = new Button("", new FontIcon("fas-edit"));
             private final Button deleteBtn = new Button("", new FontIcon("fas-trash"));
-            private final HBox box = new HBox(4, editBtn, deleteBtn);
+            private final HBox box = new HBox(4, viewBtn, editBtn, deleteBtn);
             {
+                viewBtn.getStyleClass().add("row-action-btn");
                 editBtn.getStyleClass().add("row-action-btn");
                 deleteBtn.getStyleClass().addAll("row-action-btn", "danger");
+                viewBtn.setOnAction(e -> {
+                    if (onViewDetails != null) onViewDetails.accept(getTableView().getItems().get(getIndex()));
+                });
                 editBtn.setOnAction(e -> {
                     if (onEdit != null) onEdit.accept(getTableView().getItems().get(getIndex()));
                 });
