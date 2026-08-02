@@ -4,7 +4,7 @@
 <?import javafx.scene.control.*?>
 <HBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      fx:controller="hospital.management.pages.components.StatsWidgetController"
+      fx:controller="hospital.management.pages.components.shared.widgets.StatsWidgetController"
       styleClass="stats-row"
       spacing="16">
 

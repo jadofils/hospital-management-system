@@ -1,54 +1,224 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?import java.net.URL?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 <VBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      fx:controller="hospital.management.pages.components.SidebarController"
+      fx:controller="hospital.management.pages.components.shared.layout.SidebarController"
       fx:id="sidebarRoot"
       styleClass="sidebar"
       spacing="2">
 
     <stylesheets>
         <URL value="@../../../css/sidebar.css"/>
+        <URL value="@../../../css/buttons.css"/>
     </stylesheets>
 
-    <Label text="MENU" styleClass="sidebar-section-label"/>
+    <!-- Collapse toggle — always visible at top -->
+    <HBox styleClass="sidebar-toggle-row" alignment="CENTER_RIGHT">
+        <Button fx:id="collapseBtn" onAction="#handleToggleCollapse"
+                styleClass="sidebar-collapse-btn" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon fx:id="collapseIcon" iconLiteral="fas-chevron-left" iconSize="12"/></graphic>
+            <tooltip><Tooltip text="Collapse sidebar"/></tooltip>
+        </Button>
+    </HBox>
 
-    <Button fx:id="dashboardBtn" text="Dashboard" styleClass="sidebar-item"
-            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleDashboard">
-        <graphic><FontIcon iconLiteral="fas-th-large" iconSize="14"/></graphic>
-    </Button>
-    <Button fx:id="patientsBtn" text="Patients" styleClass="sidebar-item"
-            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handlePatients">
-        <graphic><FontIcon iconLiteral="fas-user-injured" iconSize="14"/></graphic>
-    </Button>
-    <Button fx:id="appointmentsBtn" text="Appointments" styleClass="sidebar-item"
-            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleAppointments">
-        <graphic><FontIcon iconLiteral="fas-calendar-check" iconSize="14"/></graphic>
-    </Button>
-    <Button fx:id="billingBtn" text="Billing" styleClass="sidebar-item"
-            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleBilling">
-        <graphic><FontIcon iconLiteral="fas-file-invoice-dollar" iconSize="14"/></graphic>
-    </Button>
+    <!-- Scrollable nav area -->
+    <ScrollPane styleClass="sidebar-scroll" fitToWidth="true" VBox.vgrow="ALWAYS"
+                hbarPolicy="NEVER" vbarPolicy="AS_NEEDED">
+        <VBox spacing="2">
 
-    <Label text="REPORTS" styleClass="sidebar-section-label"/>
-    <Button text="Analytics" styleClass="sidebar-item" maxWidth="Infinity" contentDisplay="LEFT">
-        <graphic><FontIcon iconLiteral="fas-chart-bar" iconSize="14"/></graphic>
-    </Button>
-    <Button text="Reports" styleClass="sidebar-item" maxWidth="Infinity" contentDisplay="LEFT">
-        <graphic><FontIcon iconLiteral="fas-file-alt" iconSize="14"/></graphic>
-    </Button>
+            <!-- ── MAIN (non-collapsible) ──────────────────────────────────── -->
+            <VBox fx:id="mainSection" spacing="2">
+                <Label text="MAIN" styleClass="sidebar-section-label"/>
+                <Button fx:id="dashboardBtn" text="Dashboard" styleClass="sidebar-item"
+                        maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleDashboard">
+                    <graphic><FontIcon iconLiteral="fas-th-large" iconSize="14"/></graphic>
+                </Button>
+            </VBox>
 
-    <Region VBox.vgrow="ALWAYS"/>
+            <!-- ── PATIENTS (collapsible) ──────────────────────────────────── -->
+            <VBox fx:id="patientSection" spacing="0">
+                <Button fx:id="patientHeaderBtn" styleClass="sidebar-section-header"
+                        maxWidth="Infinity" contentDisplay="GRAPHIC_ONLY"
+                        onAction="#togglePatientSection">
+                    <graphic>
+                        <HBox styleClass="section-header-content" alignment="CENTER_LEFT" spacing="8">
+                            <FontIcon iconLiteral="fas-user-injured" iconSize="13" styleClass="section-header-icon"/>
+                            <Label text="PATIENTS" styleClass="sidebar-section-header-label" HBox.hgrow="ALWAYS"/>
+                            <FontIcon fx:id="patientChevron" iconLiteral="fas-chevron-down" iconSize="10" styleClass="section-chevron"/>
+                        </HBox>
+                    </graphic>
+                </Button>
+                <VBox fx:id="patientItems" spacing="2" styleClass="section-items">
+                    <Button fx:id="patientsBtn" text="Patients" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handlePatients">
+                        <graphic><FontIcon iconLiteral="fas-user-injured" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="appointmentsBtn" text="Appointments" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleAppointments">
+                        <graphic><FontIcon iconLiteral="fas-calendar-check" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="billingBtn" text="Billing" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleBilling">
+                        <graphic><FontIcon iconLiteral="fas-file-invoice-dollar" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="doctorsBtn" text="Doctors" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleDoctors">
+                        <graphic><FontIcon iconLiteral="fas-user-md" iconSize="14"/></graphic>
+                    </Button>
+                </VBox>
+            </VBox>
 
-    <Label text="ACCOUNT" styleClass="sidebar-section-label"/>
-    <Button text="Settings" styleClass="sidebar-item" maxWidth="Infinity" contentDisplay="LEFT">
-        <graphic><FontIcon iconLiteral="fas-cog" iconSize="14"/></graphic>
-    </Button>
-    <Button text="Logout" styleClass="sidebar-item danger-item"
-            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleLogout">
-        <graphic><FontIcon iconLiteral="fas-sign-out-alt" iconSize="14"/></graphic>
-    </Button>
+            <!-- ── CLINICAL (collapsible) ──────────────────────────────────── -->
+            <VBox fx:id="clinicalSection" spacing="0">
+                <Button fx:id="clinicalHeaderBtn" styleClass="sidebar-section-header"
+                        maxWidth="Infinity" contentDisplay="GRAPHIC_ONLY"
+                        onAction="#toggleClinicalSection">
+                    <graphic>
+                        <HBox styleClass="section-header-content" alignment="CENTER_LEFT" spacing="8">
+                            <FontIcon iconLiteral="fas-stethoscope" iconSize="13" styleClass="section-header-icon"/>
+                            <Label text="CLINICAL" styleClass="sidebar-section-header-label" HBox.hgrow="ALWAYS"/>
+                            <FontIcon fx:id="clinicalChevron" iconLiteral="fas-chevron-down" iconSize="10" styleClass="section-chevron"/>
+                        </HBox>
+                    </graphic>
+                </Button>
+                <VBox fx:id="clinicalItems" spacing="2" styleClass="section-items">
+                    <Button fx:id="appointmentsDoctorBtn" text="My Appointments" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleAppointments">
+                        <graphic><FontIcon iconLiteral="fas-calendar-check" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="medicalRecordsBtn" text="Medical Records" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleMedicalRecords">
+                        <graphic><FontIcon iconLiteral="fas-notes-medical" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="prescriptionsBtn" text="Prescriptions" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handlePrescriptions">
+                        <graphic><FontIcon iconLiteral="fas-prescription" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="labOrdersBtn" text="Lab Orders" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleLabOrders">
+                        <graphic><FontIcon iconLiteral="fas-flask" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="referralsBtn" text="Referrals" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleReferrals">
+                        <graphic><FontIcon iconLiteral="fas-exchange-alt" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="scheduleBtn" text="My Schedule" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleSchedule">
+                        <graphic><FontIcon iconLiteral="fas-calendar-alt" iconSize="14"/></graphic>
+                    </Button>
+                </VBox>
+            </VBox>
+
+            <!-- ── PHARMACY (collapsible) ──────────────────────────────────── -->
+            <VBox fx:id="pharmacySection" spacing="0">
+                <Button fx:id="pharmacyHeaderBtn" styleClass="sidebar-section-header"
+                        maxWidth="Infinity" contentDisplay="GRAPHIC_ONLY"
+                        onAction="#togglePharmacySection">
+                    <graphic>
+                        <HBox styleClass="section-header-content" alignment="CENTER_LEFT" spacing="8">
+                            <FontIcon iconLiteral="fas-pills" iconSize="13" styleClass="section-header-icon"/>
+                            <Label text="PHARMACY" styleClass="sidebar-section-header-label" HBox.hgrow="ALWAYS"/>
+                            <FontIcon fx:id="pharmacyChevron" iconLiteral="fas-chevron-down" iconSize="10" styleClass="section-chevron"/>
+                        </HBox>
+                    </graphic>
+                </Button>
+                <VBox fx:id="pharmacyItems" spacing="2" styleClass="section-items">
+                    <Button fx:id="prescriptionsQueueBtn" text="Prescriptions" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handlePrescriptions">
+                        <graphic><FontIcon iconLiteral="fas-prescription" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="inventoryBtn" text="Inventory" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handlePharmacy">
+                        <graphic><FontIcon iconLiteral="fas-pills" iconSize="14"/></graphic>
+                    </Button>
+                </VBox>
+            </VBox>
+
+            <!-- ── ANALYTICS (collapsible) ────────────────────────────────── -->
+            <VBox fx:id="analyticsSection" spacing="0">
+                <Button fx:id="analyticsHeaderBtn" styleClass="sidebar-section-header"
+                        maxWidth="Infinity" contentDisplay="GRAPHIC_ONLY"
+                        onAction="#toggleAnalyticsSection">
+                    <graphic>
+                        <HBox styleClass="section-header-content" alignment="CENTER_LEFT" spacing="8">
+                            <FontIcon iconLiteral="fas-chart-bar" iconSize="13" styleClass="section-header-icon"/>
+                            <Label text="ANALYTICS" styleClass="sidebar-section-header-label" HBox.hgrow="ALWAYS"/>
+                            <FontIcon fx:id="analyticsChevron" iconLiteral="fas-chevron-down" iconSize="10" styleClass="section-chevron"/>
+                        </HBox>
+                    </graphic>
+                </Button>
+                <VBox fx:id="analyticsItems" spacing="2" styleClass="section-items">
+                    <Button fx:id="analyticsBtn" text="Analytics" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleAnalytics">
+                        <graphic><FontIcon iconLiteral="fas-chart-bar" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="feedbackBtn" text="Patient Feedback" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleFeedback">
+                        <graphic><FontIcon iconLiteral="fas-star" iconSize="14"/></graphic>
+                    </Button>
+                </VBox>
+            </VBox>
+
+            <!-- ── ADMIN (collapsible) ────────────────────────────────────── -->
+            <VBox fx:id="adminSection" spacing="0">
+                <Button fx:id="adminHeaderBtn" styleClass="sidebar-section-header"
+                        maxWidth="Infinity" contentDisplay="GRAPHIC_ONLY"
+                        onAction="#toggleAdminSection">
+                    <graphic>
+                        <HBox styleClass="section-header-content" alignment="CENTER_LEFT" spacing="8">
+                            <FontIcon iconLiteral="fas-shield-alt" iconSize="13" styleClass="section-header-icon"/>
+                            <Label text="ADMIN" styleClass="sidebar-section-header-label" HBox.hgrow="ALWAYS"/>
+                            <FontIcon fx:id="adminChevron" iconLiteral="fas-chevron-down" iconSize="10" styleClass="section-chevron"/>
+                        </HBox>
+                    </graphic>
+                </Button>
+                <VBox fx:id="adminItems" spacing="2" styleClass="section-items">
+                    <Button fx:id="usersBtn" text="Users" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleUsers">
+                        <graphic><FontIcon iconLiteral="fas-users" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="rolesBtn" text="Roles &amp; Permissions" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleRoles">
+                        <graphic><FontIcon iconLiteral="fas-user-shield" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="departmentsBtn" text="Departments" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleDepartments">
+                        <graphic><FontIcon iconLiteral="fas-hospital" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="systemLogsBtn" text="System Logs" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleSystemLogs">
+                        <graphic><FontIcon iconLiteral="fas-server" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="auditLogsBtn" text="Audit Logs" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleAuditLogs">
+                        <graphic><FontIcon iconLiteral="fas-clipboard-list" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="retentionBtn" text="Data Retention" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleRetention">
+                        <graphic><FontIcon iconLiteral="fas-database" iconSize="14"/></graphic>
+                    </Button>
+                </VBox>
+            </VBox>
+
+        </VBox>
+    </ScrollPane>
+
+    <!-- Account — pinned at bottom, non-collapsible -->
+    <VBox fx:id="accountSection" spacing="2">
+        <Label text="ACCOUNT" styleClass="sidebar-section-label"/>
+        <Button fx:id="profileBtn" text="My Profile" styleClass="sidebar-item"
+                maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleProfile">
+            <graphic><FontIcon iconLiteral="fas-user-circle" iconSize="14"/></graphic>
+        </Button>
+        <Button fx:id="logoutBtn" text="Logout" styleClass="danger-button,sidebar-logout-btn"
+                maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleLogout">
+            <graphic><FontIcon iconLiteral="fas-sign-out-alt" iconSize="14"/></graphic>
+            <VBox.margin><Insets top="8"/></VBox.margin>
+        </Button>
+    </VBox>
+
 </VBox>

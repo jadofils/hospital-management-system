@@ -56,19 +56,156 @@
     -fx-icon-color: #3498DB;
 }
 
-/* Danger item (Logout) */
-.danger-item {
-    -fx-text-fill: #E74C3C;
+/* Logout — a real (danger-button) button rather than a plain nav link */
+.sidebar-logout-btn {
+    -fx-padding: 0.714em 0.857em;
 }
-.danger-item .ikonli-font-icon {
-    -fx-fill: #E74C3C;
-    -fx-icon-color: #E74C3C;
+
+/* ─── Collapsible section headers ───────────────────────────────────────── */
+
+.sidebar-section-header {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-padding: 0.857em 0.571em 0.286em 0.571em;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent;
+    -fx-alignment: CENTER_LEFT;
+    -fx-max-width: Infinity;
 }
-.danger-item:hover {
-    -fx-background-color: #FADBD8;
-    -fx-text-fill: #C0392B;
+
+.sidebar-section-header:hover {
+    -fx-background-color: #EBF5FB;
 }
-.danger-item:hover .ikonli-font-icon {
-    -fx-fill: #C0392B;
-    -fx-icon-color: #C0392B;
+
+/* The HBox inside the header button's graphic */
+.section-header-content {
+    -fx-min-width: 160px;
+    -fx-pref-width: 180px;
+}
+
+.sidebar-section-header-label {
+    -fx-text-fill: #95A5A6;
+    -fx-font-size: 0.786em;
+    -fx-font-weight: bold;
+}
+
+.sidebar-section-header:hover .sidebar-section-header-label {
+    -fx-text-fill: #3498DB;
+}
+
+.section-header-icon {
+    -fx-fill: #95A5A6;
+    -fx-icon-color: #95A5A6;
+}
+
+.sidebar-section-header:hover .section-header-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.section-chevron {
+    -fx-fill: #95A5A6;
+    -fx-icon-color: #95A5A6;
+}
+
+.sidebar-section-header:hover .section-chevron {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+/* Indent the items inside a collapsible section */
+.section-items {
+    -fx-padding: 0 0 4px 8px;
+}
+
+/* ─── Scrollable nav area ────────────────────────────────────────────────── */
+
+.sidebar-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+/* Remove the viewport background so sidebar background shows through */
+.sidebar-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+/* Hide scrollbar by default; show on sidebar hover */
+.sidebar-scroll .scroll-bar:vertical {
+    -fx-pref-width: 5px;
+    -fx-background-color: transparent;
+    -fx-opacity: 0;
+    -fx-transition: opacity 0.2s ease;
+}
+
+.sidebar-scroll:hover .scroll-bar:vertical {
+    -fx-opacity: 1;
+}
+
+/* Thumb — primary blue */
+.sidebar-scroll .scroll-bar:vertical .thumb {
+    -fx-background-color: #3498DB;
+    -fx-background-radius: 3px;
+    -fx-background-insets: 2 1 2 1;
+}
+
+.sidebar-scroll .scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #2C3E50;
+}
+
+/* Track — light muted */
+.sidebar-scroll .scroll-bar:vertical .track {
+    -fx-background-color: #E5E7E9;
+    -fx-background-radius: 3px;
+    -fx-background-insets: 0;
+}
+
+/* Remove arrow buttons — minimal scrollbar style */
+.sidebar-scroll .scroll-bar:vertical .increment-button,
+.sidebar-scroll .scroll-bar:vertical .decrement-button {
+    -fx-pref-height: 0;
+    -fx-pref-width: 0;
+    -fx-background-color: transparent;
+    -fx-opacity: 0;
+}
+
+/* ─── Collapse toggle button ─────────────────────────────────────────────── */
+
+.sidebar-toggle-row {
+    -fx-padding: 0 0.286em 0.571em 0;
+}
+
+.sidebar-collapse-btn {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-padding: 0.357em 0.571em;
+    -fx-background-radius: 4px;
+    -fx-border-color: transparent;
+}
+.sidebar-collapse-btn:hover {
+    -fx-background-color: #EBF5FB;
+}
+.sidebar-collapse-btn .ikonli-font-icon {
+    -fx-fill: #95A5A6;
+    -fx-icon-color: #95A5A6;
+}
+.sidebar-collapse-btn:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+/* ─── Collapsed state (icon-only, 52 px) ────────────────────────────────── */
+
+.sidebar-collapsed {
+    -fx-pref-width: 3.714em;
+    -fx-min-width:  3.714em;
+    -fx-max-width:  3.714em;
+}
+
+.sidebar-section-label {
+    -fx-text-fill: #95A5A6;
+    -fx-font-size: 0.786em;
+    -fx-font-weight: bold;
+    -fx-padding: 0.857em 0.571em 0.286em 0.571em;
 }

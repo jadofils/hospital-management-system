@@ -192,8 +192,6 @@ BEGIN
     v_medication_id := (v_item->>'medication_id')::UUID;
     v_quantity      := (v_item->>'quantity')::INT;
 
-    SAVEPOINT before_item;
-
     SELECT inventory_id, quantity_in_stock
       INTO v_inventory_id, v_available
       FROM medical_inventory
@@ -202,9 +200,11 @@ BEGIN
       ORDER BY expiry_date ASC
       LIMIT 1;
 
+    -- No write has happened yet for this item, so skipping it on insufficient
+    -- stock needs no SAVEPOINT/ROLLBACK — plain CONTINUE moves on cleanly and
+    -- everything already inserted for prior items in this loop still commits.
     IF v_available IS NULL OR v_available < v_quantity THEN
       RAISE NOTICE 'Insufficient stock for medication %, skipping', v_medication_id;
-      ROLLBACK TO SAVEPOINT before_item;
       CONTINUE;
     END IF;
 
@@ -217,8 +217,6 @@ BEGIN
     UPDATE medical_inventory
       SET quantity_in_stock = quantity_in_stock - v_quantity
       WHERE inventory_id = v_inventory_id;
-
-    RELEASE SAVEPOINT before_item;
   END LOOP;
 
   COMMIT;

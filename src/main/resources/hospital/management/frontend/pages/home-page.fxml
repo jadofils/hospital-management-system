@@ -5,7 +5,7 @@
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 <BorderPane xmlns="http://javafx.com/javafx"
             xmlns:fx="http://javafx.com/fxml"
-            fx:controller="hospital.management.pages.AuthPageController"
+            fx:controller="hospital.management.pages.auth.AuthPageController"
             styleClass="home-root">
 
     <stylesheets>
@@ -127,7 +127,7 @@
                                                    styleClass="home-input"/>
                                 </VBox>
                                 <Label fx:id="loginError" text="" styleClass="validation-error"/>
-                                <Button styleClass="home-primary-btn" maxWidth="Infinity"
+                                <Button fx:id="loginBtn" styleClass="home-primary-btn" maxWidth="Infinity"
                                         onAction="#handleLogin" contentDisplay="LEFT" text="Sign In">
                                     <graphic><FontIcon iconLiteral="fas-sign-in-alt" iconSize="14"/></graphic>
                                 </Button>

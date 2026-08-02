@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+<?import java.net.URL?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.admin.RetentionSettingsController">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/retention-settings.css"/>
+        <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/modal.css"/>
+        <URL value="@../../css/alerts.css"/>
+        <URL value="@../../css/spinner.css"/>
+    </stylesheets>
+
+    <BorderPane styleClass="page-root">
+
+    <top>
+        <fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/>
+    </top>
+
+    <left>
+        <fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/>
+    </left>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+            <VBox styleClass="page-content" spacing="20">
+                <padding><Insets top="24" right="28" bottom="24" left="28"/></padding>
+
+                <!-- ── Page header ───────────────────────────────────────── -->
+                <HBox alignment="CENTER_LEFT" spacing="0">
+                    <HBox alignment="CENTER_LEFT" spacing="10" HBox.hgrow="ALWAYS">
+                        <FontIcon iconLiteral="fas-tools" iconSize="20" styleClass="page-title-icon"/>
+                        <VBox spacing="2">
+                            <Label text="Retention &amp; Cleanup Settings" styleClass="page-title"/>
+                            <Label text="Configure automatic database and log cleanup schedules."
+                                   styleClass="page-subtitle"/>
+                        </VBox>
+                    </HBox>
+                    <HBox spacing="10" alignment="CENTER_RIGHT">
+                        <Button fx:id="resetDefaultsBtn" text="Reset Defaults"
+                                styleClass="btn-outline"
+                                onAction="#onResetDefaults">
+                            <graphic><FontIcon iconLiteral="fas-undo" iconSize="13"/></graphic>
+                        </Button>
+                        <Button fx:id="runNowBtn" text="Run Now"
+                                styleClass="primary-button"
+                                onAction="#onRunNow">
+                            <graphic><FontIcon iconLiteral="fas-play" iconSize="13"/></graphic>
+                        </Button>
+                        <Button fx:id="saveBtn" text="Save Settings"
+                                styleClass="primary-button"
+                                onAction="#onSave">
+                            <graphic><FontIcon iconLiteral="fas-save" iconSize="13"/></graphic>
+                        </Button>
+                    </HBox>
+                </HBox>
+
+                <!-- ── Status banner ─────────────────────────────────────── -->
+                <HBox fx:id="statusBanner" styleClass="status-banner" spacing="10" alignment="CENTER_LEFT">
+                    <padding><Insets top="10" right="16" bottom="10" left="16"/></padding>
+                    <FontIcon fx:id="statusIcon" iconLiteral="fas-info-circle" iconSize="15"/>
+                    <Label fx:id="statusLabel" text="Daemon is running. Next scheduled run: —"
+                           styleClass="status-text"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="lastRunLabel" text="Last run: never" styleClass="status-muted"/>
+                </HBox>
+
+                <!-- ── Main two-column layout ─────────────────────────────── -->
+                <HBox spacing="20" VBox.vgrow="ALWAYS">
+
+                    <!-- LEFT: Settings cards -->
+                    <VBox spacing="16" prefWidth="520">
+
+                        <!-- Card: User Inactivity -->
+                        <VBox styleClass="settings-card" spacing="14">
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-user-times" iconSize="16" styleClass="card-icon card-icon-warning"/>
+                                <VBox spacing="2">
+                                    <Label text="User Inactivity" styleClass="card-title"/>
+                                    <Label text="Mark users inactive when they have not logged in for the set period."
+                                           styleClass="card-desc" wrapText="true"/>
+                                </VBox>
+                            </HBox>
+                            <Separator/>
+                            <HBox spacing="16" alignment="CENTER_LEFT">
+                                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                    <Label text="Days without login before deactivation" styleClass="field-label"/>
+                                    <HBox spacing="10" alignment="CENTER_LEFT">
+                                        <Spinner fx:id="inactiveUserDaysSpinner"
+                                                 prefWidth="110"
+                                                 styleClass="settings-spinner"
+                                                 editable="true"/>
+                                        <Label text="days" styleClass="unit-label"/>
+                                    </HBox>
+                                </VBox>
+                                <VBox spacing="4" alignment="CENTER" styleClass="impact-chip">
+                                    <Label text="Will deactivate" styleClass="impact-chip-title"/>
+                                    <Label fx:id="inactiveUserCount" text="—" styleClass="impact-chip-value"/>
+                                    <Label text="users" styleClass="impact-chip-unit"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+
+                        <!-- Card: Database Logs -->
+                        <VBox styleClass="settings-card" spacing="14">
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-database" iconSize="16" styleClass="card-icon card-icon-danger"/>
+                                <VBox spacing="2">
+                                    <Label text="Database Log Retention" styleClass="card-title"/>
+                                    <Label text="Hard-delete rows from system_logs and audit_log older than this period."
+                                           styleClass="card-desc" wrapText="true"/>
+                                </VBox>
+                            </HBox>
+                            <Separator/>
+                            <HBox spacing="16" alignment="CENTER_LEFT">
+                                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                    <Label text="Delete log records older than" styleClass="field-label"/>
+                                    <HBox spacing="10" alignment="CENTER_LEFT">
+                                        <Spinner fx:id="dbLogRetentionSpinner"
+                                                 prefWidth="110"
+                                                 styleClass="settings-spinner"
+                                                 editable="true"/>
+                                        <Label text="days" styleClass="unit-label"/>
+                                    </HBox>
+                                </VBox>
+                                <VBox spacing="4" alignment="CENTER" styleClass="impact-chip">
+                                    <Label text="Will delete" styleClass="impact-chip-title"/>
+                                    <Label fx:id="dbLogCount" text="—" styleClass="impact-chip-value impact-chip-danger"/>
+                                    <Label text="log rows" styleClass="impact-chip-unit"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+
+                        <!-- Card: File Log Archiving -->
+                        <VBox styleClass="settings-card" spacing="14">
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-archive" iconSize="16" styleClass="card-icon card-icon-info"/>
+                                <VBox spacing="2">
+                                    <Label text="File Log Archiving" styleClass="card-title"/>
+                                    <Label text="Compress log files that exceed the size limit. Delete archives not accessed within the retention window."
+                                           styleClass="card-desc" wrapText="true"/>
+                                </VBox>
+                            </HBox>
+                            <Separator/>
+                            <HBox spacing="24">
+                                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                    <Label text="Archive log files larger than" styleClass="field-label"/>
+                                    <HBox spacing="10" alignment="CENTER_LEFT">
+                                        <Spinner fx:id="fileLogMaxSizeSpinner"
+                                                 prefWidth="110"
+                                                 styleClass="settings-spinner"
+                                                 editable="true"/>
+                                        <Label text="MB" styleClass="unit-label"/>
+                                    </HBox>
+                                </VBox>
+                                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                    <Label text="Delete archives not accessed for" styleClass="field-label"/>
+                                    <HBox spacing="10" alignment="CENTER_LEFT">
+                                        <Spinner fx:id="archiveRetentionSpinner"
+                                                 prefWidth="110"
+                                                 styleClass="settings-spinner"
+                                                 editable="true"/>
+                                        <Label text="days" styleClass="unit-label"/>
+                                    </HBox>
+                                </VBox>
+                            </HBox>
+                            <HBox spacing="10" alignment="CENTER_LEFT" styleClass="info-row">
+                                <FontIcon iconLiteral="fas-info-circle" iconSize="12" styleClass="info-row-icon"/>
+                                <Label fx:id="logDirLabel" text="Log directory: ~/.hms/logs/"
+                                       styleClass="info-row-text"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Label fx:id="archiveCount" text="— archives on disk" styleClass="impact-muted"/>
+                            </HBox>
+                        </VBox>
+
+                        <!-- Card: Schedule -->
+                        <VBox styleClass="settings-card" spacing="14">
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-clock" iconSize="16" styleClass="card-icon card-icon-success"/>
+                                <VBox spacing="2">
+                                    <Label text="Cleanup Schedule" styleClass="card-title"/>
+                                    <Label text="How often the daemon wakes up and runs all cleanup tasks."
+                                           styleClass="card-desc" wrapText="true"/>
+                                </VBox>
+                            </HBox>
+                            <Separator/>
+                            <HBox spacing="16" alignment="CENTER_LEFT">
+                                <VBox spacing="4">
+                                    <Label text="Run cleanup every" styleClass="field-label"/>
+                                    <HBox spacing="10" alignment="CENTER_LEFT">
+                                        <Spinner fx:id="intervalHoursSpinner"
+                                                 prefWidth="110"
+                                                 styleClass="settings-spinner"
+                                                 editable="true"/>
+                                        <Label text="hours" styleClass="unit-label"/>
+                                    </HBox>
+                                </VBox>
+                                <VBox spacing="4" styleClass="schedule-next">
+                                    <Label text="Next scheduled run" styleClass="field-label"/>
+                                    <Label fx:id="nextRunLabel" text="—" styleClass="schedule-next-value"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+
+                    </VBox>
+
+                    <!-- RIGHT: Preview + Last run -->
+                    <VBox spacing="16" HBox.hgrow="ALWAYS">
+
+                        <!-- Preview Impact Panel -->
+                        <VBox styleClass="settings-card preview-card" spacing="14">
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-eye" iconSize="16" styleClass="card-icon card-icon-info"/>
+                                <Label text="Preview Impact" styleClass="card-title"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button fx:id="previewBtn" text="Refresh Preview"
+                                        styleClass="secondary-button"
+                                        onAction="#onPreview">
+                                    <graphic><FontIcon iconLiteral="fas-sync-alt" iconSize="11"/></graphic>
+                                </Button>
+                            </HBox>
+                            <Separator/>
+                            <Label text="Estimated effect of current settings on the next run:"
+                                   styleClass="card-desc"/>
+
+                            <!-- Impact rows -->
+                            <VBox spacing="8" styleClass="impact-list">
+                                <HBox styleClass="impact-row" alignment="CENTER_LEFT" spacing="10">
+                                    <FontIcon iconLiteral="fas-user-times" iconSize="13" styleClass="impact-row-icon warning"/>
+                                    <Label text="Users to deactivate" styleClass="impact-row-label" HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="previewUserCount" text="—" styleClass="impact-row-value"/>
+                                </HBox>
+                                <HBox styleClass="impact-row" alignment="CENTER_LEFT" spacing="10">
+                                    <FontIcon iconLiteral="fas-trash-alt" iconSize="13" styleClass="impact-row-icon danger"/>
+                                    <Label text="System log rows to delete" styleClass="impact-row-label" HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="previewSysLogCount" text="—" styleClass="impact-row-value"/>
+                                </HBox>
+                                <HBox styleClass="impact-row" alignment="CENTER_LEFT" spacing="10">
+                                    <FontIcon iconLiteral="fas-trash-alt" iconSize="13" styleClass="impact-row-icon danger"/>
+                                    <Label text="Audit log rows to delete" styleClass="impact-row-label" HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="previewAuditLogCount" text="—" styleClass="impact-row-value"/>
+                                </HBox>
+                                <HBox styleClass="impact-row" alignment="CENTER_LEFT" spacing="10">
+                                    <FontIcon iconLiteral="fas-file-archive" iconSize="13" styleClass="impact-row-icon info"/>
+                                    <Label text="Log files to archive" styleClass="impact-row-label" HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="previewArchiveCount" text="—" styleClass="impact-row-value"/>
+                                </HBox>
+                                <HBox styleClass="impact-row" alignment="CENTER_LEFT" spacing="10">
+                                    <FontIcon iconLiteral="fas-times-circle" iconSize="13" styleClass="impact-row-icon danger"/>
+                                    <Label text="Stale archives to delete" styleClass="impact-row-label" HBox.hgrow="ALWAYS"/>
+                                    <Label fx:id="previewDeleteCount" text="—" styleClass="impact-row-value"/>
+                                </HBox>
+                            </VBox>
+
+                            <Label fx:id="previewNote" text="Click Refresh Preview to load live counts."
+                                   styleClass="preview-note"/>
+                        </VBox>
+
+                        <!-- Last Run Results -->
+                        <VBox styleClass="settings-card" spacing="14" VBox.vgrow="ALWAYS">
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-history" iconSize="16" styleClass="card-icon card-icon-muted"/>
+                                <Label text="Last Run Results" styleClass="card-title"/>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <Button fx:id="clearLogBtn" text="Clear"
+                                        styleClass="btn-ghost-sm"
+                                        onAction="#onClearLog">
+                                    <graphic><FontIcon iconLiteral="fas-times" iconSize="11"/></graphic>
+                                </Button>
+                            </HBox>
+                            <Separator/>
+                            <TextArea fx:id="lastRunLog"
+                                      editable="false"
+                                      wrapText="true"
+                                      styleClass="log-area"
+                                      promptText="No cleanup has run yet in this session."
+                                      VBox.vgrow="ALWAYS"
+                                      prefHeight="240"/>
+                        </VBox>
+
+                    </VBox>
+                </HBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom>
+        <fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/>
+    </bottom>
+
+    </BorderPane>
+
+    <fx:include fx:id="confirmModal" source="/hospital/management/frontend/components/modal/modal.fxml"/>
+
+    <StackPane StackPane.alignment="BOTTOM_RIGHT" styleClass="toast-anchor" pickOnBounds="false">
+        <fx:include fx:id="toast" source="/hospital/management/frontend/components/toast/toast.fxml"/>
+    </StackPane>
+</StackPane>

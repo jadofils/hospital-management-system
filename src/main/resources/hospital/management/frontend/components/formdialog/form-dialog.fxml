@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.components.shared.feedback.FormDialogController"
+           fx:id="dialogOverlay"
+           styleClass="modal-overlay"
+           visible="false"
+           managed="false">
+
+    <stylesheets>
+        <URL value="@../../../css/modal.css"/>
+        <URL value="@../../../css/buttons.css"/>
+        <URL value="@../../../css/form.css"/>
+        <URL value="@../../../css/spinner.css"/>
+    </stylesheets>
+
+    <VBox fx:id="dialogBox" styleClass="modal-box,form-dialog-box" StackPane.alignment="CENTER">
+        <!-- Header -->
+        <HBox alignment="CENTER_LEFT" spacing="10">
+            <FontIcon fx:id="dialogIcon" iconLiteral="fas-pen" iconSize="16" styleClass="page-title-icon"/>
+            <Label fx:id="dialogTitle" text="Add Record" styleClass="modal-title"
+                   HBox.hgrow="ALWAYS"/>
+            <Button text="x" styleClass="modal-close-btn" onAction="#handleClose"/>
+        </HBox>
+
+        <!-- Fields (populated by the page controller) -->
+        <ScrollPane fitToWidth="true" styleClass="scroll-pane" VBox.vgrow="ALWAYS">
+            <VBox fx:id="fieldsBox" styleClass="form-dialog-fields"/>
+        </ScrollPane>
+
+        <!-- Validation / error feedback -->
+        <Label fx:id="dialogError" text="" styleClass="validation-error,form-dialog-error" wrapText="true"/>
+
+        <!-- Footer -->
+        <HBox styleClass="modal-footer" spacing="10">
+            <Button fx:id="cancelBtn" text="Cancel" styleClass="secondary-button" onAction="#handleClose"/>
+            <Button fx:id="submitBtn" text="Add" styleClass="primary-button" contentDisplay="LEFT">
+                <graphic>
+                    <ProgressIndicator fx:id="submitSpinner" prefWidth="14" prefHeight="14"
+                                       visible="false" managed="false"/>
+                </graphic>
+            </Button>
+        </HBox>
+    </VBox>
+</StackPane>

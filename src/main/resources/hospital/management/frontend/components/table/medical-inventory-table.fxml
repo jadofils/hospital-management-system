@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.pharmacy.MedicalInventoryTableController"
+      spacing="0"
+      VBox.vgrow="ALWAYS">
+
+    <stylesheets>
+        <URL value="@../../../css/table.css"/>
+    </stylesheets>
+
+    <TableView fx:id="table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="inventoryIdColumn"      text="ID"            prefWidth="90"/>
+            <TableColumn fx:id="medicationIdColumn"     text="Medication ID" prefWidth="120"/>
+            <TableColumn fx:id="batchNumberColumn"      text="Batch #"       prefWidth="110"/>
+            <TableColumn fx:id="expiryDateColumn"       text="Expiry"        prefWidth="110"/>
+            <TableColumn fx:id="quantityInStockColumn"  text="In Stock"      prefWidth="90"/>
+            <TableColumn fx:id="reorderLevelColumn"     text="Reorder Level" prefWidth="110"/>
+            <TableColumn fx:id="supplierColumn"         text="Supplier"      prefWidth="160"/>
+            <TableColumn fx:id="actionsColumn"          text="Actions"       prefWidth="90"/>
+        </columns>
+    </TableView>
+
+    <Pagination fx:id="pagination" pageCount="1" maxPageIndicatorCount="5"/>
+</VBox>

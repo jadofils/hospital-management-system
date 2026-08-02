@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.clinical.MedicalRecordTableController"
+      spacing="0"
+      VBox.vgrow="ALWAYS">
+
+    <stylesheets>
+        <URL value="@../../../css/table.css"/>
+    </stylesheets>
+
+    <TableView fx:id="table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="recordIdColumn"    text="Record #"  prefWidth="100"/>
+            <TableColumn fx:id="diagnosisColumn"   text="Diagnosis" prefWidth="220"/>
+            <TableColumn fx:id="symptomsColumn"    text="Symptoms"  prefWidth="180"/>
+            <TableColumn fx:id="notesColumn"       text="Notes"     prefWidth="180"/>
+            <TableColumn fx:id="recordDateColumn"  text="Recorded"  prefWidth="130"/>
+            <TableColumn fx:id="actionsColumn"     text="Actions"   prefWidth="100"/>
+        </columns>
+    </TableView>
+
+    <Pagination fx:id="pagination" pageCount="1" maxPageIndicatorCount="5"/>
+</VBox>

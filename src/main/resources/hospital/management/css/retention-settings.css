@@ -1,0 +1,249 @@
+/* ── Retention Settings Page ─────────────────────────────────────────────── */
+
+.page-content {
+    -fx-padding: 0;
+}
+
+.page-title {
+    -fx-font-size: 1.3em;
+    -fx-font-weight: bold;
+    -fx-text-fill: -fx-secondary;
+}
+
+.page-subtitle {
+    -fx-font-size: 0.85em;
+    -fx-text-fill: -fx-muted;
+}
+
+/* ── Status Banner ───────────────────────────────────────────────────────── */
+
+.status-banner {
+    -fx-background-color: derive(#3498DB, 90%);
+    -fx-background-radius: 6;
+    -fx-border-color: derive(#3498DB, 40%);
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+}
+
+.status-banner .status-text {
+    -fx-text-fill: derive(#3498DB, -40%);
+    -fx-font-size: 0.88em;
+}
+
+.status-banner .status-muted {
+    -fx-text-fill: derive(#3498DB, -20%);
+    -fx-font-size: 0.82em;
+}
+
+/* ── Settings Card ───────────────────────────────────────────────────────── */
+
+.settings-card {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: #E5E7E9;
+    -fx-border-width: 1;
+    -fx-border-radius: 8;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 4, 0, 0, 2);
+    -fx-padding: 18 20 18 20;
+}
+
+.settings-card:hover {
+    -fx-border-color: derive(#3498DB, 40%);
+}
+
+.card-title {
+    -fx-font-size: 1em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.card-desc {
+    -fx-font-size: 0.82em;
+    -fx-text-fill: #7F8C8D;
+    -fx-wrap-text: true;
+}
+
+/* ── Card Icons ──────────────────────────────────────────────────────────── */
+
+.card-icon { -fx-icon-color: #7F8C8D; }
+.card-icon-warning { -fx-icon-color: #F39C12; }
+.card-icon-danger  { -fx-icon-color: #E74C3C; }
+.card-icon-info    { -fx-icon-color: #3498DB; }
+.card-icon-success { -fx-icon-color: #27AE60; }
+.card-icon-muted   { -fx-icon-color: #BDC3C7; }
+
+/* ── Form Fields ─────────────────────────────────────────────────────────── */
+
+.field-label {
+    -fx-font-size: 0.83em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #5D6D7E;
+}
+
+.unit-label {
+    -fx-font-size: 0.88em;
+    -fx-text-fill: #7F8C8D;
+}
+
+.settings-spinner {
+    -fx-pref-height: 34;
+}
+
+.settings-spinner .text-field {
+    -fx-font-size: 0.95em;
+    -fx-alignment: CENTER;
+}
+
+/* ── Impact Chip (beside each spinner) ───────────────────────────────────── */
+
+.impact-chip {
+    -fx-background-color: #F8F9F9;
+    -fx-background-radius: 6;
+    -fx-border-color: #E5E7E9;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-padding: 8 14 8 14;
+    -fx-min-width: 100;
+}
+
+.impact-chip-title {
+    -fx-font-size: 0.76em;
+    -fx-text-fill: #7F8C8D;
+}
+
+.impact-chip-value {
+    -fx-font-size: 1.4em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #F39C12;
+}
+
+.impact-chip-danger {
+    -fx-text-fill: #E74C3C;
+}
+
+.impact-chip-unit {
+    -fx-font-size: 0.76em;
+    -fx-text-fill: #7F8C8D;
+}
+
+/* ── Info Row ────────────────────────────────────────────────────────────── */
+
+.info-row {
+    -fx-background-color: #F8F9F9;
+    -fx-background-radius: 4;
+    -fx-padding: 6 10 6 10;
+}
+
+.info-row-icon { -fx-icon-color: #3498DB; }
+
+.info-row-text {
+    -fx-font-size: 0.8em;
+    -fx-text-fill: #5D6D7E;
+}
+
+.impact-muted {
+    -fx-font-size: 0.8em;
+    -fx-text-fill: #BDC3C7;
+}
+
+/* ── Schedule card ───────────────────────────────────────────────────────── */
+
+.schedule-next {
+    -fx-padding: 6 14 6 14;
+    -fx-background-color: derive(#27AE60, 90%);
+    -fx-background-radius: 6;
+}
+
+.schedule-next-value {
+    -fx-font-size: 1.05em;
+    -fx-font-weight: bold;
+    -fx-text-fill: derive(#27AE60, -30%);
+}
+
+/* ── Preview Panel ───────────────────────────────────────────────────────── */
+
+.preview-card {
+    -fx-border-color: derive(#3498DB, 50%);
+}
+
+.impact-list {
+    -fx-padding: 4 0 4 0;
+}
+
+.impact-row {
+    -fx-background-color: #F8F9F9;
+    -fx-background-radius: 5;
+    -fx-padding: 8 12 8 12;
+}
+
+.impact-row-label {
+    -fx-font-size: 0.85em;
+    -fx-text-fill: #5D6D7E;
+}
+
+.impact-row-value {
+    -fx-font-size: 0.95em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+    -fx-min-width: 40;
+    -fx-alignment: CENTER_RIGHT;
+}
+
+.impact-row-icon.warning { -fx-icon-color: #F39C12; }
+.impact-row-icon.danger  { -fx-icon-color: #E74C3C; }
+.impact-row-icon.info    { -fx-icon-color: #3498DB; }
+
+.preview-note {
+    -fx-font-size: 0.78em;
+    -fx-text-fill: #BDC3C7;
+    -fx-font-style: italic;
+}
+
+/* ── Last Run Log ────────────────────────────────────────────────────────── */
+
+.log-area {
+    -fx-font-family: "Courier New", monospace;
+    -fx-font-size: 0.82em;
+    -fx-background-color: #1E1E2E;
+    -fx-text-fill: #CDD6F4;
+    -fx-background-radius: 6;
+    -fx-border-color: #313244;
+    -fx-border-radius: 6;
+    -fx-control-inner-background: #1E1E2E;
+    -fx-highlight-fill: derive(#3498DB, 20%);
+}
+
+.log-area .content {
+    -fx-background-color: #1E1E2E;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+/* Save/Run Now use the shared .primary-button class (buttons.css) for consistency. */
+
+.btn-outline {
+    -fx-background-color: transparent;
+    -fx-text-fill: #5D6D7E;
+    -fx-background-radius: 6;
+    -fx-border-color: #BDC3C7;
+    -fx-border-width: 1;
+    -fx-border-radius: 6;
+    -fx-padding: 8 18 8 18;
+    -fx-cursor: hand;
+}
+.btn-outline:hover {
+    -fx-background-color: #F8F9F9;
+    -fx-border-color: #7F8C8D;
+}
+
+.btn-ghost-sm {
+    -fx-background-color: transparent;
+    -fx-text-fill: #7F8C8D;
+    -fx-background-radius: 4;
+    -fx-padding: 4 10 4 10;
+    -fx-font-size: 0.82em;
+    -fx-cursor: hand;
+}
+.btn-ghost-sm:hover {
+    -fx-background-color: #F8F9F9;
+    -fx-text-fill: #2C3E50;
+}

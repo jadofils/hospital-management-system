@@ -27,7 +27,13 @@ public class EnvConfig {
     public static int    getJwtExpiryHours() { return Integer.parseInt(dotenv.get("JWT_EXPIRY_HOURS")); }
 
     // ── Security ──────────────────────────────────────────────────────────
-    public static int getBcryptRounds() { return Integer.parseInt(dotenv.get("BCRYPT_ROUNDS")); }
+    public static int    getBcryptRounds()   { return Integer.parseInt(dotenv.get("BCRYPT_ROUNDS")); }
+    public static String getEncryptionKey()  { return dotenv.get("ENCRYPTION_KEY"); }
+
+    // ── Redis ─────────────────────────────────────────────────────────────
+    public static String getRedisHost()     { return dotenv.get("REDIS_HOST"); }
+    public static int    getRedisPort()     { return Integer.parseInt(dotenv.get("REDIS_PORT")); }
+    public static String getRedisPassword() { return dotenv.get("REDIS_PASSWORD"); }
 
     // ── Application ───────────────────────────────────────────────────────
     public static int getPageSize()          { return Integer.parseInt(dotenv.get("APP_PAGE_SIZE")); }

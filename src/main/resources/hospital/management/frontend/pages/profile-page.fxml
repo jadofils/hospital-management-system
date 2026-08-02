@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.auth.ProfilePageController">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/form.css"/>
+        <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/profile.css"/>
+        <URL value="@../../css/card.css"/>
+        <URL value="@../../css/table.css"/>
+        <URL value="@../../css/modal.css"/>
+        <URL value="@../../css/alerts.css"/>
+        <URL value="@../../css/spinner.css"/>
+    </stylesheets>
+
+    <BorderPane styleClass="page-root">
+
+    <top><fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/></top>
+    <left><fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/></left>
+    <right><fx:include fx:id="rightSidebar" source="/hospital/management/frontend/components/right-sidebar/right-sidebar.fxml"/></right>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+            <VBox styleClass="page-content" spacing="20">
+
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <FontIcon iconLiteral="fas-user-circle" iconSize="18" styleClass="page-title-icon"/>
+                    <Label text="My Profile" styleClass="section-title"/>
+                </HBox>
+
+                <!-- Profile summary card -->
+                <HBox spacing="20" styleClass="card" alignment="CENTER_LEFT">
+                    <VBox alignment="CENTER" spacing="8" minWidth="100">
+                        <FontIcon iconLiteral="fas-user-circle" iconSize="64" styleClass="profile-avatar-icon"/>
+                        <Button fx:id="changePhotoBtn" styleClass="secondary-button" text="Change Photo"/>
+                    </VBox>
+                    <VBox spacing="4" HBox.hgrow="ALWAYS">
+                        <Label fx:id="displayNameLabel" text="—" styleClass="subheading"/>
+                        <Label fx:id="usernameLabel"    text="@—" styleClass="label-tag"/>
+                        <Label fx:id="roleLabel"        text="Role: —" styleClass="body-text"/>
+                        <Label fx:id="emailLabel"       text="Email: —" styleClass="body-text"/>
+                        <Label fx:id="memberSinceLabel" text="Member since: —" styleClass="label-tag"/>
+                    </VBox>
+                </HBox>
+
+                <!-- Edit form -->
+                <HBox spacing="20">
+
+                    <!-- Personal info -->
+                    <VBox styleClass="card" spacing="14" HBox.hgrow="ALWAYS">
+                        <Label text="Personal Information" styleClass="subheading"/>
+                        <VBox spacing="10">
+                            <HBox spacing="10">
+                                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                    <Label text="Username" styleClass="form-field-label"/>
+                                    <TextField fx:id="usernameField" promptText="Username" styleClass="form-input"/>
+                                </VBox>
+                                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                                    <Label text="Email" styleClass="form-field-label"/>
+                                    <TextField fx:id="emailField" promptText="Email" styleClass="form-input"/>
+                                </VBox>
+                            </HBox>
+                        </VBox>
+                        <HBox alignment="CENTER_RIGHT">
+                            <Button fx:id="saveProfileBtn" styleClass="primary-button" contentDisplay="LEFT" text="Save Changes">
+                                <graphic><FontIcon iconLiteral="fas-save" iconSize="13"/></graphic>
+                            </Button>
+                        </HBox>
+                    </VBox>
+
+                    <!-- Password change -->
+                    <VBox styleClass="card" spacing="14" prefWidth="320">
+                        <Label text="Change Password" styleClass="subheading"/>
+                        <VBox spacing="10">
+                            <VBox spacing="4">
+                                <Label text="Current Password" styleClass="form-field-label"/>
+                                <PasswordField fx:id="currentPassField" promptText="Current password" styleClass="form-input"/>
+                            </VBox>
+                            <VBox spacing="4">
+                                <Label text="New Password" styleClass="form-field-label"/>
+                                <PasswordField fx:id="newPassField" promptText="New password" styleClass="form-input"/>
+                            </VBox>
+                            <VBox spacing="4">
+                                <Label text="Confirm New Password" styleClass="form-field-label"/>
+                                <PasswordField fx:id="confirmPassField" promptText="Confirm password" styleClass="form-input"/>
+                            </VBox>
+                        </VBox>
+                        <Label fx:id="passValidationMsg" text="" styleClass="text-danger"/>
+                        <HBox alignment="CENTER_RIGHT">
+                            <Button fx:id="changePassBtn" styleClass="primary-button" contentDisplay="LEFT" text="Change Password">
+                                <graphic><FontIcon iconLiteral="fas-lock" iconSize="13"/></graphic>
+                            </Button>
+                        </HBox>
+                    </VBox>
+
+                </HBox>
+
+                <!-- Active sessions -->
+                <VBox styleClass="card" spacing="12">
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-desktop" iconSize="14" styleClass="page-title-icon"/>
+                        <Label text="Active Sessions" styleClass="subheading" HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="revokeAllBtn" styleClass="danger-button" text="Revoke All"/>
+                    </HBox>
+                    <fx:include fx:id="sessionsTable"
+                                source="/hospital/management/frontend/components/table/user-session-table.fxml"
+                                VBox.vgrow="ALWAYS"/>
+                </VBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom><fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/></bottom>
+    </BorderPane>
+
+    <fx:include fx:id="confirmModal" source="/hospital/management/frontend/components/modal/modal.fxml"/>
+
+    <StackPane StackPane.alignment="BOTTOM_RIGHT" styleClass="toast-anchor" pickOnBounds="false">
+        <fx:include fx:id="toast" source="/hospital/management/frontend/components/toast/toast.fxml"/>
+    </StackPane>
+</StackPane>

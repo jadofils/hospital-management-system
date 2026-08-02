@@ -4,7 +4,7 @@
 <?import javafx.scene.control.*?>
 <StackPane xmlns="http://javafx.com/javafx"
            xmlns:fx="http://javafx.com/fxml"
-           fx:controller="hospital.management.pages.components.ModalController"
+           fx:controller="hospital.management.pages.components.shared.feedback.ModalController"
            fx:id="modalOverlay"
            styleClass="modal-overlay"
            visible="false"
@@ -13,6 +13,7 @@
     <stylesheets>
         <URL value="@../../../css/modal.css"/>
         <URL value="@../../../css/buttons.css"/>
+        <URL value="@../../../css/spinner.css"/>
     </stylesheets>
 
     <VBox fx:id="modalBox" styleClass="modal-box" StackPane.alignment="CENTER">

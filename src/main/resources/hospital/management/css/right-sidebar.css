@@ -1,0 +1,140 @@
+/* ─── Right Sidebar ───────────────────────────────────────────────────────── */
+
+.right-sidebar-outer {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #E5E7E9 transparent transparent transparent;
+    -fx-border-width: 0 0 0 1px;
+}
+
+/* Always-visible toggle strip */
+.right-sidebar-strip {
+    -fx-background-color: #F8F9F9;
+    -fx-pref-width: 28px;
+    -fx-min-width: 28px;
+    -fx-max-width: 28px;
+    -fx-border-color: transparent #E5E7E9 transparent transparent;
+    -fx-border-width: 0 1px 0 0;
+    -fx-padding: 0.571em 0;
+}
+
+.right-sidebar-toggle-btn {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-padding: 0.429em;
+    -fx-background-radius: 4px;
+    -fx-border-color: transparent;
+}
+.right-sidebar-toggle-btn:hover {
+    -fx-background-color: #EBF5FB;
+}
+.right-sidebar-toggle-btn .ikonli-font-icon {
+    -fx-fill: #7F8C8D;
+    -fx-icon-color: #7F8C8D;
+}
+.right-sidebar-toggle-btn:hover .ikonli-font-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+/* Expanded content area */
+.right-sidebar-content {
+    -fx-pref-width: 272px;
+    -fx-min-width: 272px;
+    -fx-max-width: 272px;
+    -fx-background-color: #FFFFFF;
+}
+
+/* ─── Panel shells ────────────────────────────────────────────────────────── */
+
+.rs-panel {
+    -fx-padding: 1em 0.857em;
+}
+
+.rs-panel-header {
+    -fx-padding: 0 0 0.429em 0;
+}
+
+.rs-panel-title {
+    -fx-font-size: 0.857em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+
+.rs-panel-icon {
+    -fx-fill: #3498DB;
+    -fx-icon-color: #3498DB;
+}
+
+.rs-badge {
+    -fx-background-color: #E74C3C;
+    -fx-text-fill: white;
+    -fx-font-size: 0.714em;
+    -fx-font-weight: bold;
+    -fx-background-radius: 10px;
+    -fx-padding: 0.1em 0.5em;
+    -fx-min-width: 1.4em;
+    -fx-alignment: CENTER;
+}
+
+.rs-divider {
+    -fx-background-color: #E5E7E9;
+    -fx-pref-height: 1px;
+    -fx-min-height: 1px;
+    -fx-max-height: 1px;
+    -fx-padding: 0;
+}
+
+/* ─── Notifications ───────────────────────────────────────────────────────── */
+
+.rs-notification-list {
+    -fx-padding: 0;
+}
+
+.rs-notification-item {
+    -fx-font-size: 0.857em;
+    -fx-text-fill: #2C3E50;
+    -fx-padding: 0.429em 0.571em;
+    -fx-background-color: #F8F9F9;
+    -fx-background-radius: 4px;
+    -fx-wrap-text: true;
+}
+
+.rs-empty-label {
+    -fx-font-size: 0.857em;
+    -fx-text-fill: #95A5A6;
+    -fx-font-style: italic;
+}
+
+/* ─── Quick info ──────────────────────────────────────────────────────────── */
+
+.rs-quick-info {
+    -fx-padding: 0;
+}
+
+/* ─── Activity feed ───────────────────────────────────────────────────────── */
+
+.rs-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.rs-activity-feed {
+    -fx-padding: 0;
+}
+
+.rs-activity-row {
+    -fx-alignment: TOP_LEFT;
+    -fx-padding: 0.286em 0;
+}
+
+.rs-activity-time {
+    -fx-font-size: 0.786em;
+    -fx-text-fill: #95A5A6;
+    -fx-min-width: 3em;
+}
+
+.rs-activity-text {
+    -fx-font-size: 0.857em;
+    -fx-text-fill: #2C3E50;
+    -fx-wrap-text: true;
+}

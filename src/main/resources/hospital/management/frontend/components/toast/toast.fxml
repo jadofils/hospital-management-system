@@ -4,11 +4,13 @@
 <?import javafx.scene.control.*?>
 <HBox xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
-      fx:controller="hospital.management.pages.components.ToastController"
+      fx:controller="hospital.management.pages.components.shared.feedback.ToastController"
       fx:id="toastContainer"
       styleClass="toast"
       spacing="12"
       alignment="CENTER_LEFT"
+      maxWidth="360.0"
+      maxHeight="-Infinity"
       visible="false"
       managed="false">
 
@@ -16,5 +18,5 @@
         <URL value="@../../../css/alerts.css"/>
     </stylesheets>
 
-    <Label fx:id="toastMessage" text="" styleClass="text-white"/>
+    <Label fx:id="toastMessage" text="" styleClass="text-white" wrapText="true" maxWidth="300.0"/>
 </HBox>

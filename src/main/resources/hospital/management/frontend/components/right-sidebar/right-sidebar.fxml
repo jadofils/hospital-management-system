@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<HBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.shared.layout.RightSidebarController"
+      fx:id="rightSidebarRoot"
+      styleClass="right-sidebar-outer">
+
+    <stylesheets>
+        <URL value="@../../../css/right-sidebar.css"/>
+    </stylesheets>
+
+    <!-- Collapse/expand strip (always visible) -->
+    <VBox styleClass="right-sidebar-strip" alignment="TOP_CENTER">
+        <Button fx:id="toggleBtn" onAction="#handleToggle"
+                styleClass="right-sidebar-toggle-btn" contentDisplay="GRAPHIC_ONLY">
+            <graphic><FontIcon fx:id="toggleIcon" iconLiteral="fas-chevron-right" iconSize="11"/></graphic>
+        </Button>
+    </VBox>
+
+    <!-- Main panel content (collapsible) -->
+    <VBox fx:id="rightSidebarContent" styleClass="right-sidebar-content" spacing="0">
+
+        <!-- Notifications panel -->
+        <VBox styleClass="rs-panel" spacing="10">
+            <HBox styleClass="rs-panel-header" alignment="CENTER_LEFT" spacing="8">
+                <FontIcon iconLiteral="fas-bell" iconSize="13" styleClass="rs-panel-icon"/>
+                <Label text="Notifications" styleClass="rs-panel-title" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="unreadBadge" text="0" styleClass="rs-badge"/>
+            </HBox>
+            <VBox fx:id="notificationList" styleClass="rs-notification-list" spacing="4"/>
+            <Label text="No new notifications" fx:id="emptyNotifLabel"
+                   styleClass="rs-empty-label"/>
+        </VBox>
+
+        <Separator styleClass="rs-divider"/>
+
+        <!-- Quick info panel (context-sensitive, replaced per page) -->
+        <VBox fx:id="quickInfoPanel" styleClass="rs-panel" spacing="10">
+            <HBox styleClass="rs-panel-header" alignment="CENTER_LEFT" spacing="8">
+                <FontIcon iconLiteral="fas-info-circle" iconSize="13" styleClass="rs-panel-icon"/>
+                <Label text="Quick Info" styleClass="rs-panel-title"/>
+            </HBox>
+            <VBox fx:id="quickInfoContent" styleClass="rs-quick-info" spacing="6"/>
+        </VBox>
+
+        <Separator styleClass="rs-divider"/>
+
+        <!-- Recent activity feed -->
+        <VBox styleClass="rs-panel" spacing="10" VBox.vgrow="ALWAYS">
+            <HBox styleClass="rs-panel-header" alignment="CENTER_LEFT" spacing="8">
+                <FontIcon iconLiteral="fas-history" iconSize="13" styleClass="rs-panel-icon"/>
+                <Label text="Recent Activity" styleClass="rs-panel-title"/>
+            </HBox>
+            <ScrollPane fitToWidth="true" styleClass="rs-scroll" VBox.vgrow="ALWAYS">
+                <VBox fx:id="activityFeed" styleClass="rs-activity-feed" spacing="6"/>
+            </ScrollPane>
+        </VBox>
+
+    </VBox>
+</HBox>

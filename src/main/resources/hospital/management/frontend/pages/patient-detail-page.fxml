@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.patient.PatientDetailController">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/table.css"/>
+        <URL value="@../../css/tabs.css"/>
+        <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/card.css"/>
+        <URL value="@../../css/form.css"/>
+        <URL value="@../../css/modal.css"/>
+        <URL value="@../../css/alerts.css"/>
+        <URL value="@../../css/spinner.css"/>
+    </stylesheets>
+
+    <BorderPane styleClass="page-root">
+
+        <top><fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/></top>
+        <left><fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/></left>
+        <right><fx:include fx:id="rightSidebar" source="/hospital/management/frontend/components/right-sidebar/right-sidebar.fxml"/></right>
+
+        <center>
+            <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+                <VBox styleClass="page-content" spacing="16">
+
+                    <!-- Breadcrumb + back -->
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button fx:id="backBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Back">
+                            <graphic><FontIcon iconLiteral="fas-arrow-left" iconSize="12"/></graphic>
+                        </Button>
+                        <FontIcon iconLiteral="fas-user-injured" iconSize="18" styleClass="page-title-icon"/>
+                        <Label fx:id="patientNameLabel" text="Patient Detail" styleClass="section-title"/>
+                    </HBox>
+
+                    <!-- Patient summary card -->
+                    <HBox spacing="16" styleClass="card">
+                        <VBox spacing="4" HBox.hgrow="ALWAYS">
+                            <Label fx:id="fullNameLabel"  text="—" styleClass="subheading"/>
+                            <Label fx:id="patientIdLabel" text="ID: —" styleClass="label-tag"/>
+                            <HBox spacing="16">
+                                <Label fx:id="dobLabel"    text="DOB: —"    styleClass="body-text"/>
+                                <Label fx:id="genderLabel" text="Gender: —" styleClass="body-text"/>
+                                <Label fx:id="phoneLabel"  text="Phone: —"  styleClass="body-text"/>
+                                <Label fx:id="emailLabel"  text="Email: —"  styleClass="body-text"/>
+                            </HBox>
+                            <Label fx:id="addressLabel" text="Address: —" styleClass="body-text"/>
+                        </VBox>
+                        <VBox spacing="6" alignment="CENTER_RIGHT">
+                            <Button fx:id="editPatientBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Edit">
+                                <graphic><FontIcon iconLiteral="fas-edit" iconSize="12"/></graphic>
+                            </Button>
+                        </VBox>
+                    </HBox>
+
+                    <!-- Tabbed detail view -->
+                    <TabPane fx:id="detailTabs" styleClass="detail-tabs" VBox.vgrow="ALWAYS" tabClosingPolicy="UNAVAILABLE">
+
+                        <!-- Vitals tab -->
+                        <Tab text="Vitals">
+                            <VBox spacing="12" styleClass="tab-content">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Vital Signs History" styleClass="subheading" HBox.hgrow="ALWAYS"/>
+                                    <Button fx:id="addVitalBtn" styleClass="primary-button" contentDisplay="LEFT" text="Record Vital">
+                                        <graphic><FontIcon iconLiteral="fas-heartbeat" iconSize="12"/></graphic>
+                                    </Button>
+                                </HBox>
+                                <fx:include fx:id="vitalSignTable"
+                                            source="/hospital/management/frontend/components/table/vital-sign-table.fxml"
+                                            VBox.vgrow="ALWAYS"/>
+                            </VBox>
+                        </Tab>
+
+                        <!-- Medical Records tab -->
+                        <Tab text="Medical Records">
+                            <VBox spacing="12" styleClass="tab-content">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Medical History" styleClass="subheading" HBox.hgrow="ALWAYS"/>
+                                    <Button fx:id="addRecordBtn" styleClass="primary-button" contentDisplay="LEFT" text="New Record">
+                                        <graphic><FontIcon iconLiteral="fas-plus" iconSize="12"/></graphic>
+                                    </Button>
+                                </HBox>
+                                <fx:include fx:id="detailMedicalRecordTable"
+                                            source="/hospital/management/frontend/components/table/medical-record-table.fxml"
+                                            VBox.vgrow="ALWAYS"/>
+                            </VBox>
+                        </Tab>
+
+                        <!-- Appointments tab -->
+                        <Tab text="Appointments">
+                            <VBox spacing="12" styleClass="tab-content">
+                                <Label text="Appointment History" styleClass="subheading"/>
+                                <fx:include fx:id="detailAppointmentTable"
+                                            source="/hospital/management/frontend/components/table/appointment-table.fxml"
+                                            VBox.vgrow="ALWAYS"/>
+                            </VBox>
+                        </Tab>
+
+                        <!-- Prescriptions tab -->
+                        <Tab text="Prescriptions">
+                            <VBox spacing="12" styleClass="tab-content">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Prescriptions" styleClass="subheading" HBox.hgrow="ALWAYS"/>
+                                    <Button fx:id="addPrescriptionBtn" styleClass="primary-button" contentDisplay="LEFT" text="New Prescription">
+                                        <graphic><FontIcon iconLiteral="fas-plus" iconSize="12"/></graphic>
+                                    </Button>
+                                </HBox>
+                                <fx:include fx:id="detailPrescriptionTable"
+                                            source="/hospital/management/frontend/components/table/prescription-table.fxml"
+                                            VBox.vgrow="ALWAYS"/>
+                            </VBox>
+                        </Tab>
+
+                        <!-- Lab Results tab -->
+                        <Tab text="Lab Results">
+                            <VBox spacing="12" styleClass="tab-content">
+                                <Label text="Lab Orders &amp; Results" styleClass="subheading"/>
+                                <fx:include fx:id="detailLabOrderTable"
+                                            source="/hospital/management/frontend/components/table/lab-order-table.fxml"
+                                            VBox.vgrow="ALWAYS"/>
+                            </VBox>
+                        </Tab>
+
+                        <!-- Allergies tab -->
+                        <Tab text="Allergies">
+                            <VBox spacing="12" styleClass="tab-content">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Known Allergies" styleClass="subheading" HBox.hgrow="ALWAYS"/>
+                                    <Button fx:id="addAllergyBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Allergy">
+                                        <graphic><FontIcon iconLiteral="fas-plus" iconSize="12"/></graphic>
+                                    </Button>
+                                </HBox>
+                                <fx:include fx:id="patientAllergyTable"
+                                            source="/hospital/management/frontend/components/table/patient-allergy-table.fxml"
+                                            VBox.vgrow="ALWAYS"/>
+                            </VBox>
+                        </Tab>
+
+                        <!-- Billing tab -->
+                        <Tab text="Billing">
+                            <VBox spacing="12" styleClass="tab-content">
+                                <Label text="Invoice History" styleClass="subheading"/>
+                                <fx:include fx:id="detailInvoiceTable"
+                                            source="/hospital/management/frontend/components/table/invoice-table.fxml"
+                                            VBox.vgrow="ALWAYS"/>
+                            </VBox>
+                        </Tab>
+
+                    </TabPane>
+                </VBox>
+            </ScrollPane>
+        </center>
+
+        <bottom><fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/></bottom>
+    </BorderPane>
+
+    <fx:include fx:id="formDialog" source="/hospital/management/frontend/components/formdialog/form-dialog.fxml"/>
+    <fx:include fx:id="confirmModal" source="/hospital/management/frontend/components/modal/modal.fxml"/>
+    <fx:include fx:id="detailView" source="/hospital/management/frontend/components/detailview/detail-view.fxml"/>
+
+    <StackPane StackPane.alignment="BOTTOM_RIGHT" styleClass="toast-anchor" pickOnBounds="false">
+        <fx:include fx:id="toast" source="/hospital/management/frontend/components/toast/toast.fxml"/>
+    </StackPane>
+</StackPane>

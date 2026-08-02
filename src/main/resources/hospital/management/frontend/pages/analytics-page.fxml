@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.chart.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.analytics.AnalyticsController">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/dashboard.css"/>
+        <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/stats.css"/>
+        <URL value="@../../css/alerts.css"/>
+        <URL value="@../../css/spinner.css"/>
+    </stylesheets>
+
+    <BorderPane styleClass="page-root">
+
+    <top><fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/></top>
+    <left><fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/></left>
+    <right><fx:include fx:id="rightSidebar" source="/hospital/management/frontend/components/right-sidebar/right-sidebar.fxml"/></right>
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+            <VBox styleClass="page-content" spacing="20">
+
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <FontIcon iconLiteral="fas-chart-bar" iconSize="18" styleClass="page-title-icon"/>
+                    <Label text="Analytics" styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                    <ComboBox fx:id="periodFilter" promptText="Last 12 months" prefWidth="160" styleClass="filter-combo"/>
+                    <Button fx:id="exportBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Export">
+                        <graphic><FontIcon iconLiteral="fas-file-export" iconSize="13"/></graphic>
+                    </Button>
+                </HBox>
+
+                <!-- Row 1: Admissions + Revenue -->
+                <HBox spacing="16">
+                    <VBox styleClass="chart-panel" HBox.hgrow="ALWAYS" spacing="8">
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-chart-bar" iconSize="13" styleClass="chart-title-icon"/>
+                            <Label text="Monthly Admissions" styleClass="chart-title"/>
+                        </HBox>
+                        <BarChart fx:id="admissionsChart" prefHeight="240" animated="false">
+                            <xAxis><CategoryAxis fx:id="admXAxis" label="Month"/></xAxis>
+                            <yAxis><NumberAxis   fx:id="admYAxis" label="Patients"/></yAxis>
+                        </BarChart>
+                    </VBox>
+                    <VBox styleClass="chart-panel" HBox.hgrow="ALWAYS" spacing="8">
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-dollar-sign" iconSize="13" styleClass="chart-title-icon"/>
+                            <Label text="Monthly Revenue ($)" styleClass="chart-title"/>
+                        </HBox>
+                        <BarChart fx:id="revenueChart" prefHeight="240" animated="false">
+                            <xAxis><CategoryAxis fx:id="revXAxis" label="Month"/></xAxis>
+                            <yAxis><NumberAxis   fx:id="revYAxis" label="Revenue ($)"/></yAxis>
+                        </BarChart>
+                    </VBox>
+                </HBox>
+
+                <!-- Row 2: Appointment status + Patient feedback -->
+                <HBox spacing="16">
+                    <VBox styleClass="chart-panel" prefWidth="300" spacing="8">
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-chart-pie" iconSize="13" styleClass="chart-title-icon"/>
+                            <Label text="Appointment Status" styleClass="chart-title"/>
+                        </HBox>
+                        <PieChart fx:id="apptStatusChart" prefHeight="240" animated="false"/>
+                    </VBox>
+                    <VBox styleClass="chart-panel" HBox.hgrow="ALWAYS" spacing="8">
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-star" iconSize="13" styleClass="chart-title-icon"/>
+                            <Label text="Patient Feedback Ratings" styleClass="chart-title"/>
+                        </HBox>
+                        <BarChart fx:id="feedbackChart" prefHeight="240" animated="false">
+                            <xAxis><CategoryAxis fx:id="fbXAxis" label="Rating"/></xAxis>
+                            <yAxis><NumberAxis   fx:id="fbYAxis" label="Count"/></yAxis>
+                        </BarChart>
+                    </VBox>
+                </HBox>
+
+                <!-- Row 3: Lab turnaround -->
+                <VBox styleClass="chart-panel" spacing="8">
+                    <HBox spacing="6" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-flask" iconSize="13" styleClass="chart-title-icon"/>
+                        <Label text="Lab Order Status Distribution" styleClass="chart-title"/>
+                    </HBox>
+                    <BarChart fx:id="labStatusChart" prefHeight="200" animated="false">
+                        <xAxis><CategoryAxis fx:id="labXAxis" label="Status"/></xAxis>
+                        <yAxis><NumberAxis   fx:id="labYAxis" label="Orders"/></yAxis>
+                    </BarChart>
+                </VBox>
+
+            </VBox>
+        </ScrollPane>
+    </center>
+
+    <bottom><fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/></bottom>
+    </BorderPane>
+
+    <StackPane StackPane.alignment="BOTTOM_RIGHT" styleClass="toast-anchor" pickOnBounds="false">
+        <fx:include fx:id="toast" source="/hospital/management/frontend/components/toast/toast.fxml"/>
+    </StackPane>
+</StackPane>

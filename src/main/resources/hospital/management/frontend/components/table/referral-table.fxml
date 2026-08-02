@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.doctor.ReferralTableController"
+      spacing="0"
+      VBox.vgrow="ALWAYS">
+
+    <stylesheets>
+        <URL value="@../../../css/table.css"/>
+    </stylesheets>
+
+    <TableView fx:id="table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="referralIdCol" text="ID"              prefWidth="90"/>
+            <TableColumn fx:id="fromDoctorCol" text="From Doctor ID"  prefWidth="150"/>
+            <TableColumn fx:id="toDoctorCol"   text="To Doctor ID"    prefWidth="150"/>
+            <TableColumn fx:id="reasonCol"     text="Reason"          prefWidth="180"/>
+            <TableColumn fx:id="statusCol"     text="Status"          prefWidth="110"/>
+            <TableColumn fx:id="changeStatusCol" text=""              prefWidth="40"/>
+            <TableColumn fx:id="dateCol"       text="Date"            prefWidth="140"/>
+            <TableColumn fx:id="actionsCol"    text="Actions"         prefWidth="90"/>
+        </columns>
+    </TableView>
+
+    <Pagination fx:id="pagination" pageCount="1" maxPageIndicatorCount="5"/>
+</VBox>

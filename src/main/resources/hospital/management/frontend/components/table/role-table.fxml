@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="hospital.management.pages.components.auth.RoleTableController"
+      spacing="0"
+      VBox.vgrow="ALWAYS">
+
+    <stylesheets>
+        <URL value="@../../../css/table.css"/>
+    </stylesheets>
+
+    <TableView fx:id="table" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="roleIdColumn"            text="ID"          prefWidth="80"/>
+            <TableColumn fx:id="roleNameColumn"           text="Role Name"   prefWidth="200"/>
+            <TableColumn fx:id="permissionCountColumn"    text="Permissions" prefWidth="120"/>
+            <TableColumn fx:id="actionsColumn"            text="Actions"     prefWidth="90"/>
+        </columns>
+    </TableView>
+
+    <Pagination fx:id="pagination" pageCount="1" maxPageIndicatorCount="5"/>
+</VBox>

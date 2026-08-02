@@ -13,7 +13,7 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         FXMLLoader loader = new FXMLLoader(
-            getClass().getResource(AppConfig.AUTH_FXML_PATH)
+            getClass().getResource(AppConfig.HOME_FXML_PATH)
         );
         Scene scene = new Scene(loader.load(), AppConfig.WINDOW_WIDTH, AppConfig.WINDOW_HEIGHT);
         scene.getStylesheets().add(
