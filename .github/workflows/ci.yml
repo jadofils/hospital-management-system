@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+  checks: write
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # No real Postgres/Redis service containers are needed: every test in this
+      # suite is a pure-unit or Mockito-mocked test — DAOs are mocked directly,
+      # and TransactionManager (the only place that opens a real JDBC Connection)
+      # is intercepted via Mockito.mockStatic in every Service test that uses it.
+      # CacheService/RedisConnection failures are caught and logged as warnings,
+      # never thrown, so an unreachable Redis is also safe. These dummy values
+      # only need to satisfy EnvConfig's format checks (e.g. ENCRYPTION_KEY's
+      # 32-char minimum) at class-load time — they are never used to open a
+      # real connection during this test suite.
+      - name: Generate dummy .env for tests
+        run: |
+          cat > .env <<'EOF'
+          DB_URL=jdbc:postgresql://localhost:5432/hospital_ci
+          DB_USER=ci_user
+          DB_PASSWORD=ci_password
+          CLOUDINARY_CLOUD_NAME=ci-cloud
+          CLOUDINARY_API_KEY=000000000000000
+          CLOUDINARY_API_SECRET=ci-api-secret
+          GMAIL_HOST=smtp.gmail.com
+          GMAIL_PORT=587
+          GMAIL_USERNAME=ci@example.com
+          GMAIL_PASSWORD=ci-app-password
+          GMAIL_FROM_NAME=Hospital Management System
+          JWT_SECRET=ci-jwt-secret-not-for-production-use-only-in-ci
+          JWT_EXPIRY_HOURS=24
+          BCRYPT_ROUNDS=10
+          ENCRYPTION_KEY=ci-encryption-key-at-least-32-characters-long
+          REDIS_HOST=localhost
+          REDIS_PORT=6379
+          REDIS_PASSWORD=
+          APP_PAGE_SIZE=20
+          APP_MAX_UPLOAD_SIZE_MB=10
+          EOF
+
+      - name: Make mvnw executable
+        run: chmod +x mvnw
+
+      - name: Run tests
+        run: ./mvnw -B test
+
+      - name: Publish test results
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: JUnit Results
+          path: target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: false
