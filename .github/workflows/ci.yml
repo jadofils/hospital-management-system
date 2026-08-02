@@ -26,15 +26,16 @@ jobs:
           java-version: '25'
           cache: maven
 
-      # No real Postgres/Redis service containers are needed: every test in this
-      # suite is a pure-unit or Mockito-mocked test — DAOs are mocked directly,
-      # and TransactionManager (the only place that opens a real JDBC Connection)
-      # is intercepted via Mockito.mockStatic in every Service test that uses it.
-      # CacheService/RedisConnection failures are caught and logged as warnings,
-      # never thrown, so an unreachable Redis is also safe. These dummy values
-      # only need to satisfy EnvConfig's format checks (e.g. ENCRYPTION_KEY's
-      # 32-char minimum) at class-load time — they are never used to open a
-      # real connection during this test suite.
+      # No Redis service container is needed: CacheService/RedisConnection failures
+      # are caught and logged as warnings, never thrown, so an unreachable Redis is
+      # safe. DAO integration tests DO need a real Postgres — they start one
+      # themselves via the `docker` CLI directly (see PostgresIntegrationTestBase),
+      # which works out of the box on GitHub-hosted runners (Docker is preinstalled
+      # and the runner user already has daemon access). Mockito-mocked Service
+      # tests don't touch a real DB at all; TransactionManager (the only place a
+      # Service opens a real JDBC Connection) is intercepted via Mockito.mockStatic.
+      # These dummy .env values only need to satisfy EnvConfig's format checks
+      # (e.g. ENCRYPTION_KEY's 32-char minimum) at class-load time.
       - name: Generate dummy .env for tests
         run: |
           cat > .env <<'EOF'
@@ -63,8 +64,14 @@ jobs:
       - name: Make mvnw executable
         run: chmod +x mvnw
 
+      - name: Install Xvfb for JavaFX toolkit init
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      # EventBusTest starts the real JavaFX toolkit (Platform.startup) to test
+      # EventBus's Platform.runLater dispatch path, which needs a display —
+      # ubuntu-latest is headless, so this runs under a virtual framebuffer.
       - name: Run tests
-        run: ./mvnw -B test
+        run: xvfb-run --auto-servernum ./mvnw -B test
 
       - name: Publish test results
         if: always()
