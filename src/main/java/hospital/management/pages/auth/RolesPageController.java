@@ -18,11 +18,15 @@ import hospital.management.pages.BasePageController;
 import hospital.management.pages.components.auth.PermissionTableController;
 import hospital.management.pages.components.auth.RoleTableController;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.FlowPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.ArrayList;
@@ -170,16 +174,38 @@ public class RolesPageController extends BasePageController {
         Map<String, List<PermissionDTO>> byResource = allPermissions.stream()
                 .collect(Collectors.groupingBy(PermissionDTO::getResource, LinkedHashMap::new, Collectors.toList()));
         for (Map.Entry<String, List<PermissionDTO>> entry : byResource.entrySet()) {
+            List<PermissionDTO> permissions = entry.getValue();
+
             Label resourceLabel = new Label(entry.getKey());
-            resourceLabel.getStyleClass().add("field-label");
+            resourceLabel.getStyleClass().add("permission-resource-label");
+
+            CheckBox selectAll = new CheckBox("All");
+            selectAll.getStyleClass().add("permission-select-all");
+
+            Region spacer = new Region();
+            HBox.setHgrow(spacer, Priority.ALWAYS);
+            HBox header = new HBox(8, resourceLabel, spacer, selectAll);
+            header.setAlignment(Pos.CENTER_LEFT);
+
             FlowPane actionsRow = new FlowPane(12, 6);
-            for (PermissionDTO p : entry.getValue()) {
+            List<CheckBox> permissionCheckboxes = new ArrayList<>();
+            for (PermissionDTO p : permissions) {
                 CheckBox cb = new CheckBox(p.getAction());
                 cb.setSelected(assignedIds.contains(p.getPermissionId()));
                 checkboxByPermissionId.put(p.getPermissionId(), cb);
+                permissionCheckboxes.add(cb);
                 actionsRow.getChildren().add(cb);
             }
-            permissionList.getChildren().add(new VBox(4, resourceLabel, actionsRow));
+
+            permissionCheckboxes.forEach(cb ->
+                cb.selectedProperty().addListener((obs, was, is) -> syncSelectAllState(selectAll, permissionCheckboxes)));
+            syncSelectAllState(selectAll, permissionCheckboxes);
+            selectAll.setOnAction(e ->
+                permissionCheckboxes.forEach(cb -> cb.setSelected(selectAll.isSelected())));
+
+            VBox resourceCard = new VBox(6, header, actionsRow);
+            resourceCard.getStyleClass().add("permission-resource-card");
+            permissionList.getChildren().add(resourceCard);
         }
 
         formDialogController.open(addMode ? "Add Role" : "Update Role", "fas-user-shield", addMode, v -> {
@@ -217,6 +243,21 @@ public class RolesPageController extends BasePageController {
         permLabel.getStyleClass().add("field-label");
         formDialogController.addRow(permLabel);
         formDialogController.addRow(permissionList);
+    }
+
+    /** Reflects a resource category's checkbox states onto its "All" header checkbox: fully checked,
+     *  fully unchecked, or indeterminate when the category is only partially assigned. */
+    private void syncSelectAllState(CheckBox selectAll, List<CheckBox> permissionCheckboxes) {
+        long checkedCount = permissionCheckboxes.stream().filter(CheckBox::isSelected).count();
+        if (checkedCount == 0) {
+            selectAll.setIndeterminate(false);
+            selectAll.setSelected(false);
+        } else if (checkedCount == permissionCheckboxes.size()) {
+            selectAll.setIndeterminate(false);
+            selectAll.setSelected(true);
+        } else {
+            selectAll.setIndeterminate(true);
+        }
     }
 
     private void openPermissionDialog() {

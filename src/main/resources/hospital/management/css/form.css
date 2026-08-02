@@ -145,6 +145,25 @@
     -fx-text-fill: #34495E;
 }
 
+/* Per-resource permission category card inside the Add/Edit Role dialog */
+.permission-resource-card {
+    -fx-background-color: #F8F9F9;
+    -fx-background-radius: 6px;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 6px;
+    -fx-border-width: 1px;
+    -fx-padding: 0.714em 0.857em;
+}
+.permission-resource-label {
+    -fx-font-size: 0.929em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2C3E50;
+}
+.permission-select-all {
+    -fx-font-size: 0.786em;
+    -fx-text-fill: #7F8C8D;
+}
+
 /* Compact row action buttons inside tables */
 .row-action-btn {
     -fx-background-color: transparent;
