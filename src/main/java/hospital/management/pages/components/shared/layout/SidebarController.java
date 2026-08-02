@@ -1,5 +1,6 @@
 package hospital.management.pages.components.shared.layout;
 
+import hospital.management.backend.config.security.PermissionGate;
 import hospital.management.backend.config.security.SessionManager;
 import hospital.management.backend.dao.auth.RoleDAOImpl;
 import hospital.management.backend.dao.auth.UserDAOImpl;
@@ -27,6 +28,7 @@ import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -129,34 +131,52 @@ public class SidebarController {
     // ── Role-based section visibility ─────────────────────────────────────
 
     public void configureForRole(RoleName role) {
-        switch (role) {
-            case ADMIN -> {
-                show(mainSection, patientSection, analyticsSection, adminSection, accountSection);
-                hide(clinicalSection, pharmacySection);
-            }
-            case DOCTOR -> {
-                show(mainSection, patientSection, clinicalSection, accountSection);
-                hide(billingBtn, doctorsBtn);
-                hide(pharmacySection, analyticsSection, adminSection);
-            }
-            case RECEPTIONIST -> {
-                show(mainSection, patientSection, accountSection);
-                hide(billingBtn, doctorsBtn);
-                hide(clinicalSection, pharmacySection, analyticsSection, adminSection);
-            }
-            case ANALYST -> {
-                show(mainSection, analyticsSection, accountSection);
-                hide(patientSection, clinicalSection, pharmacySection, adminSection);
-            }
-            case PHARMACIST -> {
-                show(mainSection, pharmacySection, accountSection);
-                hide(patientSection, clinicalSection, analyticsSection, adminSection);
-            }
-            default -> {
-                show(mainSection, accountSection);
-                hide(patientSection, clinicalSection, pharmacySection, analyticsSection, adminSection);
-            }
-        }
+        Map<Button, PageRoute> buttonRoutes = new LinkedHashMap<>();
+        buttonRoutes.put(dashboardBtn, PageRoute.DASHBOARD);
+        buttonRoutes.put(patientsBtn, PageRoute.PATIENTS);
+        buttonRoutes.put(appointmentsBtn, PageRoute.APPOINTMENTS);
+        buttonRoutes.put(billingBtn, PageRoute.BILLING);
+        buttonRoutes.put(doctorsBtn, PageRoute.DOCTORS);
+        buttonRoutes.put(appointmentsDoctorBtn, PageRoute.APPOINTMENTS);
+        buttonRoutes.put(medicalRecordsBtn, PageRoute.MEDICAL_RECORDS);
+        buttonRoutes.put(prescriptionsBtn, PageRoute.PRESCRIPTIONS);
+        buttonRoutes.put(labOrdersBtn, PageRoute.LAB_ORDERS);
+        buttonRoutes.put(referralsBtn, PageRoute.REFERRALS);
+        buttonRoutes.put(scheduleBtn, PageRoute.MY_SCHEDULE);
+        buttonRoutes.put(prescriptionsQueueBtn, PageRoute.PRESCRIPTIONS);
+        buttonRoutes.put(inventoryBtn, PageRoute.PHARMACY);
+        buttonRoutes.put(analyticsBtn, PageRoute.ANALYTICS);
+        buttonRoutes.put(feedbackBtn, PageRoute.FEEDBACK);
+        buttonRoutes.put(usersBtn, PageRoute.USERS);
+        buttonRoutes.put(rolesBtn, PageRoute.ROLES);
+        buttonRoutes.put(departmentsBtn, PageRoute.DEPARTMENTS);
+        buttonRoutes.put(systemLogsBtn, PageRoute.SYSTEM_LOGS);
+        buttonRoutes.put(auditLogsBtn, PageRoute.AUDIT_LOGS);
+        buttonRoutes.put(retentionBtn, PageRoute.RETENTION);
+        // profileBtn/logoutBtn intentionally excluded: PROFILE has no role restriction
+        // and logout must always stay reachable regardless of role.
+
+        buttonRoutes.forEach((btn, route) -> {
+            boolean allowed = route.isAllowedFor(role);
+            btn.setVisible(allowed);
+            btn.setManaged(allowed);
+        });
+
+        show(mainSection, accountSection);
+        configureSectionVisibility(patientSection, patientItems);
+        configureSectionVisibility(clinicalSection, clinicalItems);
+        configureSectionVisibility(pharmacySection, pharmacyItems);
+        configureSectionVisibility(analyticsSection, analyticsItems);
+        configureSectionVisibility(adminSection, adminItems);
+    }
+
+    /** A collapsible section is shown iff at least one of its own nav buttons is visible for this role. */
+    private void configureSectionVisibility(VBox section, VBox items) {
+        boolean anyVisible = items.getChildren().stream()
+                .filter(n -> n instanceof Button)
+                .anyMatch(Node::isVisible);
+        section.setVisible(anyVisible);
+        section.setManaged(anyVisible);
     }
 
     // ── Active item highlight ─────────────────────────────────────────────
@@ -286,6 +306,11 @@ public class SidebarController {
 
     /** Swaps the clicked button's icon for a spinner until the target page has loaded. */
     private void navigate(PageRoute route, Button sourceBtn) {
+        if (!PermissionGate.isAllowed(route)) {
+            showErrorAlert("You don't have permission to access this page.");
+            return;
+        }
+
         Node originalGraphic = sourceBtn.getGraphic();
         ProgressIndicator spinner = new ProgressIndicator();
         spinner.setPrefSize(14, 14);
@@ -338,13 +363,5 @@ public class SidebarController {
 
     private void show(VBox... sections) {
         for (VBox s : sections) { s.setVisible(true);  s.setManaged(true); }
-    }
-
-    private void hide(VBox... sections) {
-        for (VBox s : sections) { s.setVisible(false); s.setManaged(false); }
-    }
-
-    private void hide(Button... buttons) {
-        for (Button b : buttons) { b.setVisible(false); b.setManaged(false); }
     }
 }

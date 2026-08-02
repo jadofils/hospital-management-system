@@ -1,5 +1,6 @@
 package hospital.management.pages.components.shared.layout;
 
+import hospital.management.backend.config.security.PermissionGate;
 import hospital.management.enums.PageRoute;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -29,6 +30,13 @@ public class NavbarController {
     }
 
     private void navigate(PageRoute route) {
+        if (!PermissionGate.isAllowed(route)) {
+            Alert alert = new Alert(Alert.AlertType.ERROR, "You don't have permission to access this page.");
+            alert.setHeaderText(null);
+            alert.showAndWait();
+            return;
+        }
+
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(route.getFxmlPath()));
             Parent root = loader.load();
