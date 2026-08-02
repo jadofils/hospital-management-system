@@ -8,6 +8,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 
 import java.time.format.DateTimeFormatter;
+import java.util.function.Consumer;
 
 public class LabOrderTableController extends PaginatedTableController<LabOrder> {
 
@@ -17,8 +18,15 @@ public class LabOrderTableController extends PaginatedTableController<LabOrder> 
     @FXML private TableColumn<LabOrder, String> doctorIdColumn;
     @FXML private TableColumn<LabOrder, String> testNameColumn;
     @FXML private TableColumn<LabOrder, String> statusColumn;
+    @FXML private TableColumn<LabOrder, Void>   changeStatusColumn;
     @FXML private TableColumn<LabOrder, String> orderedAtColumn;
     @FXML private TableColumn<LabOrder, Void>   actionsColumn;
+
+    private Consumer<LabOrder> onChangeStatus;
+
+    public void setOnChangeStatus(Consumer<LabOrder> onChangeStatus) {
+        this.onChangeStatus = onChangeStatus;
+    }
 
     @Override
     protected void configureColumns() {
@@ -26,6 +34,8 @@ public class LabOrderTableController extends PaginatedTableController<LabOrder> 
         doctorIdColumn.setCellValueFactory(new PropertyValueFactory<>("doctorId"));
         testNameColumn.setCellValueFactory(new PropertyValueFactory<>("testName"));
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+        wireSingleActionColumn(changeStatusColumn, "fas-flag",
+                item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         orderedAtColumn.setCellValueFactory(cell -> {
             var orderedAt = cell.getValue().getOrderedAt();
             return new SimpleStringProperty(orderedAt == null ? "" : orderedAt.format(ORDERED_AT_FORMAT));

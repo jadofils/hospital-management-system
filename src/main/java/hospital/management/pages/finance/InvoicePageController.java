@@ -55,6 +55,7 @@ public class InvoicePageController extends BasePageController implements QuickAd
         printReportBtn.setOnAction(e -> toast("Print not yet implemented.", NotificationType.INFO));
 
         invoiceTableController.setRowActions(this::openInvoiceDialog, this::confirmDeleteInvoice);
+        invoiceTableController.setOnChangeStatus(this::openInvoiceStatusDialog);
 
         refreshTable();
     }
@@ -85,12 +86,9 @@ public class InvoicePageController extends BasePageController implements QuickAd
         EntityIdComboBox patientId     = new EntityIdComboBox();
         EntityIdComboBox appointmentId = new EntityIdComboBox();
         TextField totalAmount   = new TextField();
-        ComboBox<String> paymentStatus = new ComboBox<>();
 
         totalAmount.getStyleClass().add("form-input");
         List.of(patientId, appointmentId).forEach(f -> f.getStyleClass().add("form-combo"));
-        paymentStatus.getStyleClass().add("form-combo");
-        paymentStatus.getItems().addAll("Pending", "Paid", "Overdue", "Cancelled");
 
         try {
             patientId.setOptions(patientService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
@@ -107,7 +105,6 @@ public class InvoicePageController extends BasePageController implements QuickAd
             patientId.selectById(invoice.getPatientId());
             appointmentId.selectById(invoice.getAppointmentId());
             totalAmount.setText(invoice.getTotalAmount() == null ? "" : invoice.getTotalAmount().toPlainString());
-            paymentStatus.setValue(invoice.getPaymentStatus());
         }
 
         formDialogController.open(addMode ? "Add Invoice" : "Update Invoice", "fas-file-invoice-dollar", addMode, v -> {
@@ -115,8 +112,8 @@ public class InvoicePageController extends BasePageController implements QuickAd
             String aid = appointmentId.getSelectedId();
             String amountText = totalAmount.getText() == null ? "" : totalAmount.getText().trim();
 
-            if (pid == null || aid == null || amountText.isEmpty() || paymentStatus.getValue() == null) {
-                formDialogController.setError("Patient, appointment, total amount and payment status are required.");
+            if (pid == null || aid == null || amountText.isEmpty()) {
+                formDialogController.setError("Patient, appointment and total amount are required.");
                 formDialogController.setLoading(false);
                 return;
             }
@@ -131,11 +128,13 @@ public class InvoicePageController extends BasePageController implements QuickAd
             }
 
             Invoice target = addMode ? new Invoice() : invoice;
-            if (addMode) target.setInvoiceId(UUID.randomUUID().toString());
+            if (addMode) {
+                target.setInvoiceId(UUID.randomUUID().toString());
+                target.setPaymentStatus("Pending");
+            }
             target.setPatientId(pid);
             target.setAppointmentId(aid);
             target.setTotalAmount(amount);
-            target.setPaymentStatus(paymentStatus.getValue());
             if (addMode) {
                 target.setIssuedAt(LocalDateTime.now());
             } else {
@@ -151,6 +150,28 @@ public class InvoicePageController extends BasePageController implements QuickAd
         formDialogController.addField("Patient", "fas-user", patientId);
         formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
         formDialogController.addField("Total Amount", "fas-dollar-sign", totalAmount);
+    }
+
+    /** Minimal single-field dialog for changing an existing invoice's payment status, kept out of the main Add/Edit form. */
+    private void openInvoiceStatusDialog(Invoice invoice) {
+        ComboBox<String> paymentStatus = new ComboBox<>();
+        paymentStatus.getStyleClass().add("form-combo");
+        paymentStatus.getItems().addAll("Pending", "Paid", "Overdue", "Cancelled");
+        paymentStatus.setValue(invoice.getPaymentStatus());
+
+        formDialogController.open("Change Payment Status", "fas-info-circle", false, v -> {
+            if (paymentStatus.getValue() == null) {
+                formDialogController.setError("Payment status is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            invoice.setPaymentStatus(paymentStatus.getValue());
+            invoice.setUpdatedAt(LocalDateTime.now());
+            refreshTable();
+            formDialogController.close();
+            toastSuccess("Invoice payment status updated.");
+        });
+
         formDialogController.addField("Payment Status", "fas-info-circle", paymentStatus);
     }
 }

@@ -19,6 +19,7 @@
             <TableColumn fx:id="appointmentIdColumn" text="Appointment ID"  prefWidth="150"/>
             <TableColumn fx:id="totalAmountColumn"   text="Amount ($)"      prefWidth="110"/>
             <TableColumn fx:id="paymentStatusColumn" text="Status"          prefWidth="100"/>
+            <TableColumn fx:id="changeStatusColumn"  text=""               prefWidth="40"/>
             <TableColumn fx:id="issuedAtColumn"       text="Date"           prefWidth="120"/>
             <TableColumn fx:id="actionsColumn"        text="Actions"        prefWidth="90"/>
         </columns>

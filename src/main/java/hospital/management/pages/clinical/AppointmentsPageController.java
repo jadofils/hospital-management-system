@@ -44,6 +44,7 @@ public class AppointmentsPageController extends BasePageController implements Qu
 
         addAppointmentBtn.setOnAction(e -> openAppointmentDialog(null));
         appointmentTableController.setRowActions(this::openAppointmentDialog, this::confirmDeleteAppointment);
+        appointmentTableController.setOnChangeStatus(this::openAppointmentStatusDialog);
 
         if (calendarController != null) {
             calendarController.setOnDateSelected(this::loadAppointmentsForDate);
@@ -86,14 +87,11 @@ public class AppointmentsPageController extends BasePageController implements Qu
         DatePicker appointmentDate = new DatePicker();
         TextField appointmentTime  = new TextField();
         appointmentTime.setPromptText("HH:mm");
-        ComboBox<String> status = new ComboBox<>();
         TextField reason = new TextField();
 
         List.of(appointmentTime, reason).forEach(f -> f.getStyleClass().add("form-input"));
         List.of(patientId, doctorId).forEach(f -> f.getStyleClass().add("form-combo"));
         appointmentDate.getStyleClass().add("form-date-picker");
-        status.getStyleClass().add("form-combo");
-        status.getItems().addAll("Scheduled", "Completed", "Cancelled", "No-show");
 
         try {
             patientId.setOptions(patientService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
@@ -112,7 +110,6 @@ public class AppointmentsPageController extends BasePageController implements Qu
                 appointmentDate.setValue(existing.toLocalDate());
                 appointmentTime.setText(existing.toLocalTime().format(TIME_FMT));
             }
-            status.setValue(appointment.getStatus());
             reason.setText(appointment.getReason());
         }
 
@@ -121,9 +118,8 @@ public class AppointmentsPageController extends BasePageController implements Qu
             String dId = doctorId.getSelectedId();
             String timeText = appointmentTime.getText() == null ? "" : appointmentTime.getText().trim();
 
-            if (pId == null || dId == null || appointmentDate.getValue() == null
-                    || timeText.isEmpty() || status.getValue() == null) {
-                formDialogController.setError("Patient, doctor, date, time and status are required.");
+            if (pId == null || dId == null || appointmentDate.getValue() == null || timeText.isEmpty()) {
+                formDialogController.setError("Patient, doctor, date and time are required.");
                 formDialogController.setLoading(false);
                 return;
             }
@@ -138,11 +134,13 @@ public class AppointmentsPageController extends BasePageController implements Qu
             }
 
             Appointment target = addMode ? new Appointment() : appointment;
-            if (addMode) target.setAppointmentId(UUID.randomUUID().toString());
+            if (addMode) {
+                target.setAppointmentId(UUID.randomUUID().toString());
+                target.setStatus("Scheduled");
+            }
             target.setPatientId(pId);
             target.setDoctorId(dId);
             target.setAppointmentDate(LocalDateTime.of(appointmentDate.getValue(), time));
-            target.setStatus(status.getValue());
             target.setReason(reason.getText());
 
             if (addMode) appointments.add(target);
@@ -155,7 +153,28 @@ public class AppointmentsPageController extends BasePageController implements Qu
         formDialogController.addField("Doctor", "fas-user-md", doctorId);
         formDialogController.addField("Appointment Date", "fas-calendar", appointmentDate);
         formDialogController.addField("Appointment Time", "fas-clock", appointmentTime);
-        formDialogController.addField("Status", "fas-info-circle", status);
         formDialogController.addField("Reason", "fas-notes-medical", reason);
+    }
+
+    /** Minimal single-field dialog for changing an existing appointment's status, kept out of the main Add/Edit form. */
+    private void openAppointmentStatusDialog(Appointment appointment) {
+        ComboBox<String> status = new ComboBox<>();
+        status.getStyleClass().add("form-combo");
+        status.getItems().addAll("Scheduled", "Completed", "Cancelled", "No-show");
+        status.setValue(appointment.getStatus());
+
+        formDialogController.open("Change Status", "fas-info-circle", false, v -> {
+            if (status.getValue() == null) {
+                formDialogController.setError("Status is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            appointment.setStatus(status.getValue());
+            refreshTable();
+            formDialogController.close();
+            toastSuccess("Appointment status updated.");
+        });
+
+        formDialogController.addField("Status", "fas-info-circle", status);
     }
 }

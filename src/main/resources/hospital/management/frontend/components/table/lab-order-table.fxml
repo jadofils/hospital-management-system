@@ -18,6 +18,7 @@
             <TableColumn fx:id="doctorIdColumn"   text="Doctor ID"  prefWidth="160"/>
             <TableColumn fx:id="testNameColumn"   text="Test"       prefWidth="180"/>
             <TableColumn fx:id="statusColumn"     text="Status"     prefWidth="120"/>
+            <TableColumn fx:id="changeStatusColumn" text=""         prefWidth="40"/>
             <TableColumn fx:id="orderedAtColumn"  text="Ordered"    prefWidth="140"/>
             <TableColumn fx:id="actionsColumn"    text="Actions"    prefWidth="90"/>
         </columns>

@@ -62,6 +62,7 @@ public class UsersPageController extends BasePageController {
         userTableController.setRoleNameResolver(u -> roleNameByUserId.getOrDefault(u.getUserId(), "—"));
         addUserBtn.setOnAction(e -> openUserDialog(null));
         userTableController.setRowActions(this::openUserDialog, this::confirmDeleteUser);
+        userTableController.setOnChangeStatus(this::confirmToggleActive);
 
         loadRolesAndUsers();
     }
@@ -124,6 +125,23 @@ public class UsersPageController extends BasePageController {
                 });
     }
 
+    /** Dedicated activate/deactivate action, kept out of the Add/Edit form (binary, so a confirm suffices — no mini-dialog needed). */
+    private void confirmToggleActive(UserDTO user) {
+        boolean currentlyActive = Boolean.TRUE.equals(user.getIsActive());
+        String action = currentlyActive ? "Deactivate" : "Activate";
+        confirm(action + " User",
+                "Are you sure you want to " + action.toLowerCase() + " " + user.getUsername() + "?",
+                () -> {
+                    try {
+                        userService.update(new UpdateUserDTO(user.getUserId(), user.getEmail(), !currentlyActive));
+                        refreshTable();
+                        toastSuccess("User " + (currentlyActive ? "deactivated." : "activated.") );
+                    } catch (Exception e) {
+                        toastError("Failed to update user status: " + e.getMessage());
+                    }
+                });
+    }
+
     /** Opens the shared form dialog in Add mode (user == null) or Update mode. */
     private void openUserDialog(UserDTO user) {
         boolean addMode = user == null;
@@ -133,29 +151,23 @@ public class UsersPageController extends BasePageController {
         TextField email    = new TextField();
         PasswordField password = new PasswordField();
         ComboBox<String> role = new ComboBox<>();
-        ComboBox<String> active = new ComboBox<>();
 
         List.of(username, email, password).forEach(f -> f.getStyleClass().add("form-input"));
         role.getStyleClass().add("form-combo");
-        active.getStyleClass().add("form-combo");
         allRoles.forEach(r -> role.getItems().add(r.getRoleName()));
-        active.getItems().addAll("Active", "Inactive");
 
         if (!addMode) {
             username.setText(user.getUsername());
             username.setDisable(true); // renaming a username isn't supported by the backend yet
             email.setText(user.getEmail());
             role.setValue(currentRoleName);
-            active.setValue(Boolean.TRUE.equals(user.getIsActive()) ? "Active" : "Inactive");
-        } else {
-            active.setValue("Active");
         }
 
         formDialogController.open(addMode ? "Add User" : "Update User", "fas-user", addMode, v -> {
             String un = username.getText() == null ? "" : username.getText().trim();
             String em = email.getText() == null ? "" : email.getText().trim();
-            if ((addMode && un.isEmpty()) || em.isEmpty() || active.getValue() == null) {
-                formDialogController.setError("Username, email and status are required.");
+            if ((addMode && un.isEmpty()) || em.isEmpty()) {
+                formDialogController.setError("Username and email are required.");
                 formDialogController.setLoading(false);
                 return;
             }
@@ -166,15 +178,13 @@ public class UsersPageController extends BasePageController {
             }
 
             try {
-                boolean isActive = "Active".equals(active.getValue());
                 String selectedRoleName = role.getValue();
                 UserDTO saved;
 
                 if (addMode) {
                     saved = userService.create(new CreateUserDTO(null, un, password.getText(), em));
-                    if (!isActive) saved = userService.update(new UpdateUserDTO(saved.getUserId(), em, false));
                 } else {
-                    saved = userService.update(new UpdateUserDTO(user.getUserId(), em, isActive));
+                    saved = userService.update(new UpdateUserDTO(user.getUserId(), em, user.getIsActive()));
                 }
 
                 if (selectedRoleName != null && !selectedRoleName.equals(currentRoleName)) {
@@ -208,6 +218,5 @@ public class UsersPageController extends BasePageController {
         if (addMode) formDialogController.addField("Password", "fas-lock", password);
         formDialogController.addField("Email", "fas-envelope", email);
         formDialogController.addField("Role", "fas-user-tag", role);
-        formDialogController.addField("Status", "fas-toggle-on", active);
     }
 }

@@ -48,6 +48,7 @@ public class ReferralsController extends BasePageController {
 
         newReferralBtn.setOnAction(e -> openReferralDialog(null));
         referralTableController.setRowActions(this::openReferralDialog, this::confirmDeleteReferral);
+        referralTableController.setOnChangeStatus(this::openReferralStatusDialog);
 
         refreshTable();
     }
@@ -78,12 +79,9 @@ public class ReferralsController extends BasePageController {
         EntityIdComboBox referringDoctorId   = new EntityIdComboBox();
         EntityIdComboBox referredToDoctorId  = new EntityIdComboBox();
         TextField reason              = new TextField();
-        ComboBox<String> status       = new ComboBox<>();
 
         reason.getStyleClass().add("form-input");
         List.of(appointmentId, referringDoctorId, referredToDoctorId).forEach(f -> f.getStyleClass().add("form-combo"));
-        status.getStyleClass().add("form-combo");
-        status.getItems().addAll("Pending", "Accepted", "Completed", "Declined");
 
         try {
             List<EntityIdComboBox.Option> appointmentOptions = appointmentService.findAll(CursorPagination.firstPage(1000))
@@ -107,7 +105,6 @@ public class ReferralsController extends BasePageController {
             referringDoctorId.selectById(referral.getReferringDoctorId());
             referredToDoctorId.selectById(referral.getReferredToDoctorId());
             reason.setText(referral.getReason());
-            status.setValue(referral.getStatus());
         }
 
         formDialogController.open(addMode ? "Add Referral" : "Update Referral", "fas-exchange-alt", addMode, v -> {
@@ -115,8 +112,8 @@ public class ReferralsController extends BasePageController {
             String fromDoc = referringDoctorId.getSelectedId();
             String toDoc = referredToDoctorId.getSelectedId();
             String reasonText = reason.getText() == null ? "" : reason.getText().trim();
-            if (appt == null || fromDoc == null || toDoc == null || reasonText.isEmpty() || status.getValue() == null) {
-                formDialogController.setError("Appointment, referring doctor, referred-to doctor, reason and status are required.");
+            if (appt == null || fromDoc == null || toDoc == null || reasonText.isEmpty()) {
+                formDialogController.setError("Appointment, referring doctor, referred-to doctor and reason are required.");
                 formDialogController.setLoading(false);
                 return;
             }
@@ -130,6 +127,7 @@ public class ReferralsController extends BasePageController {
             if (addMode) {
                 target.setReferralId(UUID.randomUUID().toString());
                 target.setCreatedAt(LocalDateTime.now());
+                target.setStatus("Pending");
             } else {
                 target.setUpdatedAt(LocalDateTime.now());
             }
@@ -137,7 +135,6 @@ public class ReferralsController extends BasePageController {
             target.setReferringDoctorId(fromDoc);
             target.setReferredToDoctorId(toDoc);
             target.setReason(reasonText);
-            target.setStatus(status.getValue());
 
             if (addMode) referrals.add(target);
             refreshTable();
@@ -149,6 +146,28 @@ public class ReferralsController extends BasePageController {
         formDialogController.addField("Referring Doctor", "fas-user-md", referringDoctorId);
         formDialogController.addField("Referred-To Doctor", "fas-user-md", referredToDoctorId);
         formDialogController.addField("Reason", "fas-notes-medical", reason);
+    }
+
+    /** Minimal single-field dialog for changing an existing referral's status, kept out of the main Add/Edit form. */
+    private void openReferralStatusDialog(Referral referral) {
+        ComboBox<String> status = new ComboBox<>();
+        status.getStyleClass().add("form-combo");
+        status.getItems().addAll("Pending", "Accepted", "Completed", "Declined");
+        status.setValue(referral.getStatus());
+
+        formDialogController.open("Change Status", "fas-flag", false, v -> {
+            if (status.getValue() == null) {
+                formDialogController.setError("Status is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            referral.setStatus(status.getValue());
+            referral.setUpdatedAt(LocalDateTime.now());
+            refreshTable();
+            formDialogController.close();
+            toastSuccess("Referral status updated.");
+        });
+
         formDialogController.addField("Status", "fas-flag", status);
     }
 }

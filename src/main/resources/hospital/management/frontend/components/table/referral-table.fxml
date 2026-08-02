@@ -19,6 +19,7 @@
             <TableColumn fx:id="toDoctorCol"   text="To Doctor ID"    prefWidth="150"/>
             <TableColumn fx:id="reasonCol"     text="Reason"          prefWidth="180"/>
             <TableColumn fx:id="statusCol"     text="Status"          prefWidth="110"/>
+            <TableColumn fx:id="changeStatusCol" text=""              prefWidth="40"/>
             <TableColumn fx:id="dateCol"       text="Date"            prefWidth="140"/>
             <TableColumn fx:id="actionsCol"    text="Actions"         prefWidth="90"/>
         </columns>

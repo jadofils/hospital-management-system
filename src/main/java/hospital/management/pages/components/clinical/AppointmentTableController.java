@@ -8,6 +8,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 
 import java.time.format.DateTimeFormatter;
+import java.util.function.Consumer;
 
 public class AppointmentTableController extends PaginatedTableController<Appointment> {
 
@@ -17,8 +18,16 @@ public class AppointmentTableController extends PaginatedTableController<Appoint
     @FXML private TableColumn<Appointment, String> doctorIdColumn;
     @FXML private TableColumn<Appointment, String> dateColumn;
     @FXML private TableColumn<Appointment, String> statusColumn;
+    @FXML private TableColumn<Appointment, Void>   changeStatusColumn;
     @FXML private TableColumn<Appointment, String> reasonColumn;
     @FXML private TableColumn<Appointment, Void>   actionsColumn;
+
+    private Consumer<Appointment> onChangeStatus;
+
+    /** Registers the row-level "change status" callback used by the changeStatusColumn button. */
+    public void setOnChangeStatus(Consumer<Appointment> onChangeStatus) {
+        this.onChangeStatus = onChangeStatus;
+    }
 
     @Override
     protected void configureColumns() {
@@ -29,6 +38,8 @@ public class AppointmentTableController extends PaginatedTableController<Appoint
             return new SimpleStringProperty(date != null ? date.format(DISPLAY_FMT) : "");
         });
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
+        wireSingleActionColumn(changeStatusColumn, "fas-flag",
+                item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         reasonColumn.setCellValueFactory(new PropertyValueFactory<>("reason"));
         wireActionsColumn(actionsColumn);
     }

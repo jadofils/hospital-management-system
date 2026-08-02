@@ -44,6 +44,7 @@ public class LabOrdersController extends BasePageController {
 
         newOrderBtn.setOnAction(e -> openLabOrderDialog(null));
         labOrderTableController.setRowActions(this::openLabOrderDialog, this::confirmDeleteLabOrder);
+        labOrderTableController.setOnChangeStatus(this::openLabOrderStatusDialog);
 
         refreshTable();
     }
@@ -73,12 +74,9 @@ public class LabOrdersController extends BasePageController {
         EntityIdComboBox appointmentId = new EntityIdComboBox();
         EntityIdComboBox doctorId      = new EntityIdComboBox();
         TextField testName      = new TextField();
-        ComboBox<String> status = new ComboBox<>();
 
         testName.getStyleClass().add("form-input");
         List.of(appointmentId, doctorId).forEach(f -> f.getStyleClass().add("form-combo"));
-        status.getStyleClass().add("form-combo");
-        status.getItems().addAll("Pending", "In Progress", "Completed", "Cancelled");
 
         try {
             appointmentId.setOptions(appointmentService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
@@ -95,25 +93,26 @@ public class LabOrdersController extends BasePageController {
             appointmentId.selectById(labOrder.getAppointmentId());
             doctorId.selectById(labOrder.getDoctorId());
             testName.setText(labOrder.getTestName());
-            status.setValue(labOrder.getStatus());
         }
 
         formDialogController.open(addMode ? "Add Lab Order" : "Update Lab Order", "fas-flask", addMode, v -> {
             String apptId = appointmentId.getSelectedId();
             String docId  = doctorId.getSelectedId();
             String test   = testName.getText() == null ? "" : testName.getText().trim();
-            if (apptId == null || docId == null || test.isEmpty() || status.getValue() == null) {
-                formDialogController.setError("Appointment, doctor, test name and status are required.");
+            if (apptId == null || docId == null || test.isEmpty()) {
+                formDialogController.setError("Appointment, doctor and test name are required.");
                 formDialogController.setLoading(false);
                 return;
             }
 
             LabOrder target = addMode ? new LabOrder() : labOrder;
-            if (addMode) target.setLabOrderId(UUID.randomUUID().toString());
+            if (addMode) {
+                target.setLabOrderId(UUID.randomUUID().toString());
+                target.setStatus("Pending");
+            }
             target.setAppointmentId(apptId);
             target.setDoctorId(docId);
             target.setTestName(test);
-            target.setStatus(status.getValue());
 
             if (addMode) labOrders.add(target);
             refreshTable();
@@ -124,6 +123,27 @@ public class LabOrdersController extends BasePageController {
         formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
         formDialogController.addField("Doctor", "fas-user-md", doctorId);
         formDialogController.addField("Test Name", "fas-vial", testName);
+    }
+
+    /** Minimal single-field dialog for changing an existing lab order's status, kept out of the main Add/Edit form. */
+    private void openLabOrderStatusDialog(LabOrder labOrder) {
+        ComboBox<String> status = new ComboBox<>();
+        status.getStyleClass().add("form-combo");
+        status.getItems().addAll("Pending", "In Progress", "Completed", "Cancelled");
+        status.setValue(labOrder.getStatus());
+
+        formDialogController.open("Change Status", "fas-list", false, v -> {
+            if (status.getValue() == null) {
+                formDialogController.setError("Status is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            labOrder.setStatus(status.getValue());
+            refreshTable();
+            formDialogController.close();
+            toastSuccess("Lab order status updated.");
+        });
+
         formDialogController.addField("Status", "fas-list", status);
     }
 }

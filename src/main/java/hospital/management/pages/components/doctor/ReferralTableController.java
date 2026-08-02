@@ -8,6 +8,7 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 
 import java.time.format.DateTimeFormatter;
+import java.util.function.Consumer;
 
 public class ReferralTableController extends PaginatedTableController<Referral> {
 
@@ -18,8 +19,15 @@ public class ReferralTableController extends PaginatedTableController<Referral> 
     @FXML private TableColumn<Referral, String> toDoctorCol;
     @FXML private TableColumn<Referral, String> reasonCol;
     @FXML private TableColumn<Referral, String> statusCol;
+    @FXML private TableColumn<Referral, Void>   changeStatusCol;
     @FXML private TableColumn<Referral, String> dateCol;
     @FXML private TableColumn<Referral, Void>   actionsCol;
+
+    private Consumer<Referral> onChangeStatus;
+
+    public void setOnChangeStatus(Consumer<Referral> onChangeStatus) {
+        this.onChangeStatus = onChangeStatus;
+    }
 
     @Override
     protected void configureColumns() {
@@ -28,6 +36,8 @@ public class ReferralTableController extends PaginatedTableController<Referral> 
         toDoctorCol.setCellValueFactory(new PropertyValueFactory<>("referredToDoctorId"));
         reasonCol.setCellValueFactory(new PropertyValueFactory<>("reason"));
         statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
+        wireSingleActionColumn(changeStatusCol, "fas-flag",
+                item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         dateCol.setCellValueFactory(cell -> {
             var createdAt = cell.getValue().getCreatedAt();
             return new SimpleStringProperty(createdAt == null ? "" : createdAt.format(DATE_FORMAT));

@@ -10,6 +10,7 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.function.Consumer;
 
 public class InvoiceTableController extends PaginatedTableController<Invoice> {
 
@@ -20,8 +21,15 @@ public class InvoiceTableController extends PaginatedTableController<Invoice> {
     @FXML private TableColumn<Invoice, String>     appointmentIdColumn;
     @FXML private TableColumn<Invoice, BigDecimal> totalAmountColumn;
     @FXML private TableColumn<Invoice, String>     paymentStatusColumn;
+    @FXML private TableColumn<Invoice, Void>       changeStatusColumn;
     @FXML private TableColumn<Invoice, String>     issuedAtColumn;
     @FXML private TableColumn<Invoice, Void>       actionsColumn;
+
+    private Consumer<Invoice> onChangeStatus;
+
+    public void setOnChangeStatus(Consumer<Invoice> onChangeStatus) {
+        this.onChangeStatus = onChangeStatus;
+    }
 
     @Override
     protected void configureColumns() {
@@ -30,6 +38,8 @@ public class InvoiceTableController extends PaginatedTableController<Invoice> {
         appointmentIdColumn.setCellValueFactory(new PropertyValueFactory<>("appointmentId"));
         totalAmountColumn.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
         paymentStatusColumn.setCellValueFactory(new PropertyValueFactory<>("paymentStatus"));
+        wireSingleActionColumn(changeStatusColumn, "fas-flag",
+                item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         issuedAtColumn.setCellValueFactory(cell -> {
             LocalDateTime issuedAt = cell.getValue().getIssuedAt();
             return new SimpleStringProperty(issuedAt != null ? issuedAt.format(DATE_FORMAT) : "");

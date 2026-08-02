@@ -119,6 +119,30 @@ public abstract class PaginatedTableController<T> {
         }
     }
 
+    /**
+     * Renders a single icon button in the given column, driven by {@code onClick}.
+     * Not every table needs this (unlike the universal edit/delete actions column),
+     * so subclasses opt in explicitly — e.g. a "change status" action on the handful
+     * of tables whose entity has a lifecycle status.
+     */
+    protected void wireSingleActionColumn(TableColumn<T, Void> column, String iconLiteral, Consumer<T> onClick) {
+        column.setCellFactory(col -> new TableCell<>() {
+            private final Button btn = new Button("", new FontIcon(iconLiteral));
+            {
+                btn.getStyleClass().add("row-action-btn");
+                btn.setOnAction(e -> {
+                    if (onClick != null) onClick.accept(getTableView().getItems().get(getIndex()));
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : btn);
+            }
+        });
+    }
+
     private void refreshPagination() {
         int pageCount = Math.max(1, (int) Math.ceil(filteredItems.size() / (double) ROWS_PER_PAGE));
         pagination.setPageCount(pageCount);
