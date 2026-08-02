@@ -1,9 +1,15 @@
 package hospital.management.pages.clinical;
 
 import hospital.management.pages.BasePageController;
+import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
+import hospital.management.backend.dao.department.DoctorDAOImpl;
+import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.patient.MedicalRecord;
+import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.clinical.MedicalRecordTableController;
+import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -13,6 +19,9 @@ import java.util.List;
 import java.util.UUID;
 
 public class MedicalRecordsController extends BasePageController {
+
+    private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
+        new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
 
     @FXML private MedicalRecordTableController medicalRecordTableController;
 
@@ -56,27 +65,37 @@ public class MedicalRecordsController extends BasePageController {
     private void openRecordDialog(MedicalRecord record) {
         boolean addMode = record == null;
 
-        TextField appointmentId = new TextField();
+        EntityIdComboBox appointmentId = new EntityIdComboBox();
         TextField diagnosis     = new TextField();
         TextField symptoms      = new TextField();
         TextArea  notes         = new TextArea();
         notes.setPrefRowCount(3);
 
-        List.of(appointmentId, diagnosis, symptoms).forEach(f -> f.getStyleClass().add("form-input"));
+        List.of(diagnosis, symptoms).forEach(f -> f.getStyleClass().add("form-input"));
+        appointmentId.getStyleClass().add("form-combo");
         notes.getStyleClass().add("form-input");
 
+        try {
+            appointmentId.setOptions(appointmentService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
+                    .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
+                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
+                    .toList());
+        } catch (Exception ex) {
+            toastError("Failed to load appointments: " + ex.getMessage());
+        }
+
         if (!addMode) {
-            appointmentId.setText(record.getAppointmentId());
+            appointmentId.selectById(record.getAppointmentId());
             diagnosis.setText(record.getDiagnosis());
             symptoms.setText(record.getSymptoms());
             notes.setText(record.getNotes());
         }
 
         formDialogController.open(addMode ? "Add Record" : "Update Record", "fas-notes-medical", addMode, v -> {
-            String appt = appointmentId.getText() == null ? "" : appointmentId.getText().trim();
+            String appt = appointmentId.getSelectedId();
             String diag = diagnosis.getText() == null ? "" : diagnosis.getText().trim();
-            if (appt.isEmpty() || diag.isEmpty()) {
-                formDialogController.setError("Appointment ID and diagnosis are required.");
+            if (appt == null || diag.isEmpty()) {
+                formDialogController.setError("Appointment and diagnosis are required.");
                 formDialogController.setLoading(false);
                 return;
             }
@@ -99,7 +118,7 @@ public class MedicalRecordsController extends BasePageController {
             toastSuccess(addMode ? "Medical record added." : "Medical record updated.");
         });
 
-        formDialogController.addField("Appointment Id", "fas-calendar-check", appointmentId);
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
         formDialogController.addField("Diagnosis", "fas-stethoscope", diagnosis);
         formDialogController.addField("Symptoms", "fas-head-side-cough", symptoms);
         formDialogController.addField("Notes", "fas-sticky-note", notes);

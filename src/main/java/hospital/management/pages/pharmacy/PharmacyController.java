@@ -1,11 +1,15 @@
 package hospital.management.pages.pharmacy;
 
 import hospital.management.pages.BasePageController;
+import hospital.management.backend.dao.pharmacy.MedicalInventoryDAOImpl;
+import hospital.management.backend.dao.pharmacy.MedicationDAOImpl;
 import hospital.management.backend.model.pharmacy.MedicalInventory;
 import hospital.management.backend.model.pharmacy.Prescription;
+import hospital.management.backend.service.pharmacy.PharmacyServiceImpl;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.pharmacy.MedicalInventoryTableController;
 import hospital.management.pages.components.pharmacy.PrescriptionTableController;
+import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -14,6 +18,9 @@ import java.util.List;
 import java.util.UUID;
 
 public class PharmacyController extends BasePageController {
+
+    private final PharmacyServiceImpl pharmacyService = new PharmacyServiceImpl(
+        new MedicationDAOImpl(), new MedicalInventoryDAOImpl());
 
     @FXML private TabPane pharmacyTabs;
 
@@ -75,19 +82,28 @@ public class PharmacyController extends BasePageController {
     private void openInventoryDialog(MedicalInventory item) {
         boolean addMode = item == null;
 
-        TextField medicationId    = new TextField();
+        EntityIdComboBox medicationId = new EntityIdComboBox();
         TextField batchNumber     = new TextField();
         DatePicker expiryDate     = new DatePicker();
         TextField quantityInStock = new TextField();
         TextField reorderLevel    = new TextField();
         TextField supplier        = new TextField();
 
-        List.of(medicationId, batchNumber, quantityInStock, reorderLevel, supplier)
+        List.of(batchNumber, quantityInStock, reorderLevel, supplier)
                 .forEach(f -> f.getStyleClass().add("form-input"));
+        medicationId.getStyleClass().add("form-combo");
         expiryDate.getStyleClass().add("form-date-picker");
 
+        try {
+            medicationId.setOptions(pharmacyService.findAllMedications().stream()
+                    .map(m -> new EntityIdComboBox.Option(m.getMedicationId(), m.getName()))
+                    .toList());
+        } catch (Exception ex) {
+            toastError("Failed to load medications: " + ex.getMessage());
+        }
+
         if (!addMode) {
-            medicationId.setText(item.getMedicationId());
+            medicationId.selectById(item.getMedicationId());
             batchNumber.setText(item.getBatchNumber());
             expiryDate.setValue(item.getExpiryDate());
             quantityInStock.setText(item.getQuantityInStock() != null ? String.valueOf(item.getQuantityInStock()) : "");
@@ -96,11 +112,11 @@ public class PharmacyController extends BasePageController {
         }
 
         formDialogController.open(addMode ? "Add Medication" : "Update Medication", "fas-pills", addMode, v -> {
-            String medId = medicationId.getText() == null ? "" : medicationId.getText().trim();
+            String medId = medicationId.getSelectedId();
             String batch = batchNumber.getText() == null ? "" : batchNumber.getText().trim();
 
-            if (medId.isEmpty() || batch.isEmpty() || expiryDate.getValue() == null) {
-                formDialogController.setError("Medication ID, batch number and expiry date are required.");
+            if (medId == null || batch.isEmpty() || expiryDate.getValue() == null) {
+                formDialogController.setError("Medication, batch number and expiry date are required.");
                 formDialogController.setLoading(false);
                 return;
             }
@@ -137,7 +153,7 @@ public class PharmacyController extends BasePageController {
             toastSuccess(addMode ? "Medication added." : "Medication updated.");
         });
 
-        formDialogController.addField("Medication ID", "fas-pills", medicationId);
+        formDialogController.addField("Medication", "fas-pills", medicationId);
         formDialogController.addField("Batch Number", "fas-barcode", batchNumber);
         formDialogController.addField("Expiry Date", "fas-calendar", expiryDate);
         formDialogController.addField("Quantity In Stock", "fas-boxes", quantityInStock);

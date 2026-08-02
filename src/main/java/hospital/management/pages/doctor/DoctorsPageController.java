@@ -1,9 +1,12 @@
 package hospital.management.pages.doctor;
 
 import hospital.management.pages.BasePageController;
+import hospital.management.backend.dao.department.DepartmentDAOImpl;
 import hospital.management.backend.model.doctor.Doctor;
+import hospital.management.backend.service.department.DepartmentServiceImpl;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.doctor.DoctorTableController;
+import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -12,6 +15,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class DoctorsPageController extends BasePageController {
+
+    private final DepartmentServiceImpl departmentService = new DepartmentServiceImpl(new DepartmentDAOImpl());
 
     @FXML private DoctorTableController doctorTableController;
 
@@ -60,18 +65,27 @@ public class DoctorsPageController extends BasePageController {
         TextField firstName = new TextField();
         TextField lastName = new TextField();
         TextField specialization = new TextField();
-        TextField departmentId = new TextField();
+        EntityIdComboBox departmentId = new EntityIdComboBox();
         TextField phone = new TextField();
         TextField email = new TextField();
 
-        List.of(firstName, lastName, specialization, departmentId, phone, email)
+        List.of(firstName, lastName, specialization, phone, email)
                 .forEach(f -> f.getStyleClass().add("form-input"));
+        departmentId.getStyleClass().add("form-combo");
+
+        try {
+            departmentId.setOptions(departmentService.findAll().stream()
+                    .map(d -> new EntityIdComboBox.Option(d.getDepartmentId(), d.getName()))
+                    .toList());
+        } catch (Exception ex) {
+            toastError("Failed to load departments: " + ex.getMessage());
+        }
 
         if (!addMode) {
             firstName.setText(doctor.getFirstName());
             lastName.setText(doctor.getLastName());
             specialization.setText(doctor.getSpecialization());
-            departmentId.setText(doctor.getDepartmentId());
+            departmentId.selectById(doctor.getDepartmentId());
             phone.setText(doctor.getPhone());
             email.setText(doctor.getEmail());
         }
@@ -90,7 +104,7 @@ public class DoctorsPageController extends BasePageController {
             target.setFirstName(fn);
             target.setLastName(ln);
             target.setSpecialization(specialization.getText());
-            target.setDepartmentId(departmentId.getText());
+            target.setDepartmentId(departmentId.getSelectedId());
             target.setPhone(phone.getText());
             target.setEmail(email.getText());
 
@@ -103,7 +117,7 @@ public class DoctorsPageController extends BasePageController {
         formDialogController.addField("First Name", "fas-user", firstName);
         formDialogController.addField("Last Name", "fas-user", lastName);
         formDialogController.addField("Specialization", "fas-stethoscope", specialization);
-        formDialogController.addField("Department Id", "fas-hospital", departmentId);
+        formDialogController.addField("Department", "fas-hospital", departmentId);
         formDialogController.addField("Phone", "fas-phone", phone);
         formDialogController.addField("Email", "fas-envelope", email);
     }

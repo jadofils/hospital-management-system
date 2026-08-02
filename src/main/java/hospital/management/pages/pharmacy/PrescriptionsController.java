@@ -1,9 +1,15 @@
 package hospital.management.pages.pharmacy;
 
 import hospital.management.pages.BasePageController;
+import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
+import hospital.management.backend.dao.department.DoctorDAOImpl;
+import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.pharmacy.Prescription;
+import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.pharmacy.PrescriptionTableController;
+import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -12,6 +18,9 @@ import java.util.List;
 import java.util.UUID;
 
 public class PrescriptionsController extends BasePageController {
+
+    private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
+        new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
 
     @FXML private PrescriptionTableController prescriptionTableController;
 
@@ -55,21 +64,30 @@ public class PrescriptionsController extends BasePageController {
     private void openPrescriptionDialog(Prescription prescription) {
         boolean addMode = prescription == null;
 
-        TextField appointmentId = new TextField();
+        EntityIdComboBox appointmentId = new EntityIdComboBox();
         DatePicker dateIssued = new DatePicker();
 
-        appointmentId.getStyleClass().add("form-input");
+        appointmentId.getStyleClass().add("form-combo");
         dateIssued.getStyleClass().add("form-date-picker");
 
+        try {
+            appointmentId.setOptions(appointmentService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
+                    .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
+                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
+                    .toList());
+        } catch (Exception ex) {
+            toastError("Failed to load appointments: " + ex.getMessage());
+        }
+
         if (!addMode) {
-            appointmentId.setText(prescription.getAppointmentId());
+            appointmentId.selectById(prescription.getAppointmentId());
             dateIssued.setValue(prescription.getDateIssued());
         }
 
         formDialogController.open(addMode ? "New Prescription" : "Update Prescription", "fas-prescription", addMode, v -> {
-            String apptId = appointmentId.getText() == null ? "" : appointmentId.getText().trim();
-            if (apptId.isEmpty() || dateIssued.getValue() == null) {
-                formDialogController.setError("Appointment ID and date issued are required.");
+            String apptId = appointmentId.getSelectedId();
+            if (apptId == null || dateIssued.getValue() == null) {
+                formDialogController.setError("Appointment and date issued are required.");
                 formDialogController.setLoading(false);
                 return;
             }
@@ -85,7 +103,7 @@ public class PrescriptionsController extends BasePageController {
             toastSuccess(addMode ? "Prescription added." : "Prescription updated.");
         });
 
-        formDialogController.addField("Appointment Id", "fas-calendar-check", appointmentId);
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
         formDialogController.addField("Date Issued", "fas-calendar", dateIssued);
     }
 }

@@ -2,9 +2,16 @@ package hospital.management.pages.clinical;
 
 import hospital.management.pages.BasePageController;
 import hospital.management.pages.QuickAddCapable;
+import hospital.management.backend.dao.department.DepartmentDAOImpl;
+import hospital.management.backend.dao.department.DoctorDAOImpl;
+import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.patient.Appointment;
+import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.service.patient.PatientServiceImpl;
+import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.clinical.AppointmentTableController;
+import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.widgets.CalendarController;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -21,6 +28,9 @@ import java.util.UUID;
 public class AppointmentsPageController extends BasePageController implements QuickAddCapable {
 
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
+
+    private final PatientServiceImpl patientService = new PatientServiceImpl(new PatientDAOImpl());
+    private final DoctorServiceImpl doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
 
     @FXML private CalendarController calendarController;
     @FXML private AppointmentTableController appointmentTableController;
@@ -71,22 +81,32 @@ public class AppointmentsPageController extends BasePageController implements Qu
     private void openAppointmentDialog(Appointment appointment) {
         boolean addMode = appointment == null;
 
-        TextField patientId = new TextField();
-        TextField doctorId  = new TextField();
+        EntityIdComboBox patientId = new EntityIdComboBox();
+        EntityIdComboBox doctorId  = new EntityIdComboBox();
         DatePicker appointmentDate = new DatePicker();
         TextField appointmentTime  = new TextField();
         appointmentTime.setPromptText("HH:mm");
         ComboBox<String> status = new ComboBox<>();
         TextField reason = new TextField();
 
-        List.of(patientId, doctorId, appointmentTime, reason).forEach(f -> f.getStyleClass().add("form-input"));
+        List.of(appointmentTime, reason).forEach(f -> f.getStyleClass().add("form-input"));
+        List.of(patientId, doctorId).forEach(f -> f.getStyleClass().add("form-combo"));
         appointmentDate.getStyleClass().add("form-date-picker");
         status.getStyleClass().add("form-combo");
         status.getItems().addAll("Scheduled", "Completed", "Cancelled", "No-show");
 
+        try {
+            patientId.setOptions(patientService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
+                    .map(p -> new EntityIdComboBox.Option(p.getPatientId(), p.getFullName())).toList());
+            doctorId.setOptions(doctorService.findAll(CursorPagination.firstPage(1000)).getItems().stream()
+                    .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName())).toList());
+        } catch (Exception ex) {
+            toastError("Failed to load patients/doctors: " + ex.getMessage());
+        }
+
         if (!addMode) {
-            patientId.setText(appointment.getPatientId());
-            doctorId.setText(appointment.getDoctorId());
+            patientId.selectById(appointment.getPatientId());
+            doctorId.selectById(appointment.getDoctorId());
             LocalDateTime existing = appointment.getAppointmentDate();
             if (existing != null) {
                 appointmentDate.setValue(existing.toLocalDate());
@@ -97,13 +117,13 @@ public class AppointmentsPageController extends BasePageController implements Qu
         }
 
         formDialogController.open(addMode ? "Add Appointment" : "Update Appointment", "fas-calendar-check", addMode, v -> {
-            String pId = patientId.getText() == null ? "" : patientId.getText().trim();
-            String dId = doctorId.getText() == null ? "" : doctorId.getText().trim();
+            String pId = patientId.getSelectedId();
+            String dId = doctorId.getSelectedId();
             String timeText = appointmentTime.getText() == null ? "" : appointmentTime.getText().trim();
 
-            if (pId.isEmpty() || dId.isEmpty() || appointmentDate.getValue() == null
+            if (pId == null || dId == null || appointmentDate.getValue() == null
                     || timeText.isEmpty() || status.getValue() == null) {
-                formDialogController.setError("Patient ID, doctor ID, date, time and status are required.");
+                formDialogController.setError("Patient, doctor, date, time and status are required.");
                 formDialogController.setLoading(false);
                 return;
             }
@@ -131,8 +151,8 @@ public class AppointmentsPageController extends BasePageController implements Qu
             toastSuccess(addMode ? "Appointment added." : "Appointment updated.");
         });
 
-        formDialogController.addField("Patient Id", "fas-user-injured", patientId);
-        formDialogController.addField("Doctor Id", "fas-user-md", doctorId);
+        formDialogController.addField("Patient", "fas-user-injured", patientId);
+        formDialogController.addField("Doctor", "fas-user-md", doctorId);
         formDialogController.addField("Appointment Date", "fas-calendar", appointmentDate);
         formDialogController.addField("Appointment Time", "fas-clock", appointmentTime);
         formDialogController.addField("Status", "fas-info-circle", status);

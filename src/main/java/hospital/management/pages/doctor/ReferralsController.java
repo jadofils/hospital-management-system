@@ -1,9 +1,17 @@
 package hospital.management.pages.doctor;
 
 import hospital.management.pages.BasePageController;
+import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
+import hospital.management.backend.dao.department.DepartmentDAOImpl;
+import hospital.management.backend.dao.department.DoctorDAOImpl;
+import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.model.doctor.Referral;
+import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.doctor.ReferralTableController;
+import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -13,6 +21,10 @@ import java.util.List;
 import java.util.UUID;
 
 public class ReferralsController extends BasePageController {
+
+    private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
+        new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
+    private final DoctorServiceImpl doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
 
     @FXML private ReferralTableController referralTableController;
 
@@ -62,31 +74,48 @@ public class ReferralsController extends BasePageController {
     private void openReferralDialog(Referral referral) {
         boolean addMode = referral == null;
 
-        TextField appointmentId       = new TextField();
-        TextField referringDoctorId   = new TextField();
-        TextField referredToDoctorId  = new TextField();
+        EntityIdComboBox appointmentId       = new EntityIdComboBox();
+        EntityIdComboBox referringDoctorId   = new EntityIdComboBox();
+        EntityIdComboBox referredToDoctorId  = new EntityIdComboBox();
         TextField reason              = new TextField();
         ComboBox<String> status       = new ComboBox<>();
 
-        List.of(appointmentId, referringDoctorId, referredToDoctorId, reason)
-                .forEach(f -> f.getStyleClass().add("form-input"));
+        reason.getStyleClass().add("form-input");
+        List.of(appointmentId, referringDoctorId, referredToDoctorId).forEach(f -> f.getStyleClass().add("form-combo"));
         status.getStyleClass().add("form-combo");
         status.getItems().addAll("Pending", "Accepted", "Completed", "Declined");
 
+        try {
+            List<EntityIdComboBox.Option> appointmentOptions = appointmentService.findAll(CursorPagination.firstPage(1000))
+                    .getItems().stream()
+                    .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
+                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
+                    .toList();
+            List<EntityIdComboBox.Option> doctorOptions = doctorService.findAll(CursorPagination.firstPage(1000))
+                    .getItems().stream()
+                    .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName()))
+                    .toList();
+            appointmentId.setOptions(appointmentOptions);
+            referringDoctorId.setOptions(doctorOptions);
+            referredToDoctorId.setOptions(doctorOptions);
+        } catch (Exception ex) {
+            toastError("Failed to load appointments/doctors: " + ex.getMessage());
+        }
+
         if (!addMode) {
-            appointmentId.setText(referral.getAppointmentId());
-            referringDoctorId.setText(referral.getReferringDoctorId());
-            referredToDoctorId.setText(referral.getReferredToDoctorId());
+            appointmentId.selectById(referral.getAppointmentId());
+            referringDoctorId.selectById(referral.getReferringDoctorId());
+            referredToDoctorId.selectById(referral.getReferredToDoctorId());
             reason.setText(referral.getReason());
             status.setValue(referral.getStatus());
         }
 
         formDialogController.open(addMode ? "Add Referral" : "Update Referral", "fas-exchange-alt", addMode, v -> {
-            String appt = appointmentId.getText() == null ? "" : appointmentId.getText().trim();
-            String fromDoc = referringDoctorId.getText() == null ? "" : referringDoctorId.getText().trim();
-            String toDoc = referredToDoctorId.getText() == null ? "" : referredToDoctorId.getText().trim();
+            String appt = appointmentId.getSelectedId();
+            String fromDoc = referringDoctorId.getSelectedId();
+            String toDoc = referredToDoctorId.getSelectedId();
             String reasonText = reason.getText() == null ? "" : reason.getText().trim();
-            if (appt.isEmpty() || fromDoc.isEmpty() || toDoc.isEmpty() || reasonText.isEmpty() || status.getValue() == null) {
+            if (appt == null || fromDoc == null || toDoc == null || reasonText.isEmpty() || status.getValue() == null) {
                 formDialogController.setError("Appointment, referring doctor, referred-to doctor, reason and status are required.");
                 formDialogController.setLoading(false);
                 return;
@@ -116,9 +145,9 @@ public class ReferralsController extends BasePageController {
             toastSuccess(addMode ? "Referral added." : "Referral updated.");
         });
 
-        formDialogController.addField("Appointment Id", "fas-calendar-check", appointmentId);
-        formDialogController.addField("Referring Doctor Id", "fas-user-md", referringDoctorId);
-        formDialogController.addField("Referred-To Doctor Id", "fas-user-md", referredToDoctorId);
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentId);
+        formDialogController.addField("Referring Doctor", "fas-user-md", referringDoctorId);
+        formDialogController.addField("Referred-To Doctor", "fas-user-md", referredToDoctorId);
         formDialogController.addField("Reason", "fas-notes-medical", reason);
         formDialogController.addField("Status", "fas-flag", status);
     }
