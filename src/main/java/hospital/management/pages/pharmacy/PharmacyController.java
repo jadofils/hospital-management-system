@@ -10,6 +10,7 @@ import hospital.management.backend.dao.pharmacy.PrescriptionDAOImpl;
 import hospital.management.backend.dao.pharmacy.PrescriptionItemDAOImpl;
 import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
 import hospital.management.backend.dto.pharmacy.CreateMedicalInventoryDTO;
+import hospital.management.backend.dto.pharmacy.CreateMedicationDTO;
 import hospital.management.backend.dto.pharmacy.MedicalInventoryDTO;
 import hospital.management.backend.dto.pharmacy.MedicationDTO;
 import hospital.management.backend.dto.pharmacy.PrescriptionDTO;
@@ -31,6 +32,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.util.ArrayList;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +50,7 @@ public class PharmacyController extends BasePageController {
 
     // Inventory tab
     @FXML private TextField inventorySearchField;
+    @FXML private Button    newMedicationBtn;
     @FXML private Button    addMedBtn;
     @FXML private MedicalInventoryTableController inventoryTableController;
 
@@ -63,6 +66,7 @@ public class PharmacyController extends BasePageController {
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PHARMACY);
 
+        newMedicationBtn.setOnAction(e -> openMedicationDialog());
         addMedBtn.setOnAction(e -> openInventoryDialog(null));
         inventorySearchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
@@ -125,6 +129,56 @@ public class PharmacyController extends BasePageController {
 
     private void confirmDeleteInventory(MedicalInventoryDTO item) {
         toast("Inventory batches can't be deleted — update the batch instead.", NotificationType.INFO);
+    }
+
+    private void openMedicationDialog() {
+        TextField nameField = new TextField();
+        TextField genericNameField = new TextField();
+        TextField formField = new TextField();
+        TextField unitPriceField = new TextField();
+
+        List.of(nameField, genericNameField, formField, unitPriceField)
+                .forEach(f -> f.getStyleClass().add("form-input"));
+
+        formDialogController.open("New Medication", "fas-capsules", true, v -> {
+            String name = nameField.getText() == null ? "" : nameField.getText().trim();
+            String genericName = genericNameField.getText() == null ? "" : genericNameField.getText().trim();
+            String form = formField.getText() == null ? "" : formField.getText().trim();
+            String unitPriceText = unitPriceField.getText() == null ? "" : unitPriceField.getText().trim();
+
+            if (name.isBlank() || form.isBlank() || unitPriceText.isBlank()) {
+                formDialogController.setError("Medication name, form, and unit price are required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+
+            BigDecimal unitPrice;
+            try {
+                unitPrice = new BigDecimal(unitPriceText);
+            } catch (NumberFormatException ex) {
+                formDialogController.setError("Unit price must be a valid number.");
+                formDialogController.setLoading(false);
+                return;
+            }
+
+            try {
+                pharmacyService.addMedication(new CreateMedicationDTO(name, genericName, form, unitPrice));
+                refreshInventoryTables();
+                formDialogController.close();
+                toastSuccess("Medication created. You can now select it in the inventory dropdown.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to create medication: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
+        });
+
+        formDialogController.addField("Medication Name", "fas-capsules", nameField);
+        formDialogController.addField("Generic Name", "fas-prescription-bottle", genericNameField);
+        formDialogController.addField("Form", "fas-notes-medical", formField);
+        formDialogController.addField("Unit Price", "fas-dollar-sign", unitPriceField);
     }
 
     /** Opens the shared form dialog in Add mode (item == null) or Update mode. */
@@ -193,7 +247,7 @@ public class PharmacyController extends BasePageController {
                 }
                 refreshInventoryTables();
                 formDialogController.close();
-                toastSuccess(addMode ? "Medication added." : "Medication updated.");
+                toastSuccess(addMode ? "Inventory batch added." : "Inventory batch updated.");
             } catch (AppException ex) {
                 formDialogController.setError(ex.getMessage());
                 formDialogController.setLoading(false);
