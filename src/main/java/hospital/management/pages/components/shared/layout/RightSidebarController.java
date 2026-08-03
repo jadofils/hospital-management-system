@@ -7,6 +7,9 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import hospital.management.backend.utils.listeners.AppEventType;
+import hospital.management.backend.utils.listeners.EventBus;
+
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -40,6 +43,27 @@ public class RightSidebarController {
     public void initialize() {
         // Start collapsed; content hidden — strip toggle is always visible
         collapse();
+        // Subscribe to important app events so notifications and activity feed show up
+        hospital.management.backend.utils.listeners.EventBus.subscribe(AppEventType.PATIENT_FEEDBACK_SUBMITTED, e -> {
+            String id = e.getPayload() == null ? "" : e.getPayload().toString();
+            pushNotification("New patient feedback: " + id);
+            logActivity("New patient feedback received: " + id);
+        });
+        hospital.management.backend.utils.listeners.EventBus.subscribe(AppEventType.APPOINTMENT_BOOKED, e -> {
+            String id = e.getPayload() == null ? "" : e.getPayload().toString();
+            pushNotification("Appointment booked: " + id);
+            logActivity("Appointment booked: " + id);
+        });
+        hospital.management.backend.utils.listeners.EventBus.subscribe(AppEventType.PATIENT_CREATED, e -> {
+            String id = e.getPayload() == null ? "" : e.getPayload().toString();
+            pushNotification("Patient created: " + id);
+            logActivity("Patient created: " + id);
+        });
+        hospital.management.backend.utils.listeners.EventBus.subscribe(AppEventType.APPOINTMENT_UPDATED, e -> {
+            String id = e.getPayload() == null ? "" : e.getPayload().toString();
+            pushNotification("Appointment updated: " + id);
+            logActivity("Appointment updated: " + id);
+        });
     }
 
     // ── Collapse / expand ─────────────────────────────────────────────────
