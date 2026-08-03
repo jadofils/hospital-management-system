@@ -85,7 +85,7 @@ public enum PageRoute {
               RoleName.ADMIN, RoleName.ANALYST),
 
     FEEDBACK("feedback", "Patient Feedback",
-             "/hospital/management/frontend/pages/analytics-page.fxml",
+             "/hospital/management/frontend/pages/feedback-page.fxml",
              RoleName.ANALYST, RoleName.ADMIN),
 
     // ── Admin ─────────────────────────────────────────────────────────────

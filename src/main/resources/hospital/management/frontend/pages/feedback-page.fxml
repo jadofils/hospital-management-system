@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.feedback.FeedbackController">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/table.css"/>
+        <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/search.css"/>
+        <URL value="@../../css/alerts.css"/>
+        <URL value="@../../css/spinner.css"/>
+        <URL value="@../../css/card.css"/>
+    </stylesheets>
+
+    <BorderPane styleClass="page-root">
+        <top><fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/></top>
+        <left><fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/></left>
+        <right><fx:include fx:id="rightSidebar" source="/hospital/management/frontend/components/right-sidebar/right-sidebar.fxml"/></right>
+
+        <center>
+            <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+                <VBox styleClass="page-content" spacing="16">
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-star-half-alt" iconSize="18" styleClass="page-title-icon"/>
+                        <Label text="Patient Feedback" styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                        <HBox styleClass="search-input-box" alignment="CENTER_LEFT" spacing="6">
+                            <FontIcon iconLiteral="fas-search" iconSize="13" styleClass="search-icon"/>
+                            <TextField fx:id="searchField" promptText="Search by patient, appointment, rating, comments"
+                                       styleClass="search-field" prefWidth="320"/>
+                        </HBox>
+                        <Button fx:id="refreshBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Refresh">
+                            <graphic><FontIcon iconLiteral="fas-sync-alt" iconSize="13"/></graphic>
+                        </Button>
+                    </HBox>
+
+                    <HBox spacing="12">
+                        <VBox styleClass="card" spacing="6" HBox.hgrow="ALWAYS">
+                            <Label text="Total Feedback" styleClass="label-tag"/>
+                            <Label fx:id="totalFeedbackLabel" text="0" styleClass="section-title"/>
+                        </VBox>
+                        <VBox styleClass="card" spacing="6" HBox.hgrow="ALWAYS">
+                            <Label text="Average Rating" styleClass="label-tag"/>
+                            <Label fx:id="averageRatingLabel" text="0.0" styleClass="section-title"/>
+                        </VBox>
+                        <VBox styleClass="card" spacing="6" HBox.hgrow="ALWAYS">
+                            <Label text="5-Star Reviews" styleClass="label-tag"/>
+                            <Label fx:id="fiveStarLabel" text="0" styleClass="section-title"/>
+                        </VBox>
+                    </HBox>
+
+                    <VBox styleClass="card" spacing="12">
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-comments" iconSize="14" styleClass="page-title-icon"/>
+                            <Label text="All Submitted Feedback" styleClass="subheading"/>
+                        </HBox>
+                        <TableView fx:id="feedbackTable" prefHeight="520">
+                            <columns>
+                                <TableColumn fx:id="feedbackIdColumn" text="Feedback ID" prefWidth="170"/>
+                                <TableColumn fx:id="patientIdColumn" text="Patient ID" prefWidth="170"/>
+                                <TableColumn fx:id="appointmentIdColumn" text="Appointment ID" prefWidth="170"/>
+                                <TableColumn fx:id="ratingColumn" text="Rating" prefWidth="80"/>
+                                <TableColumn fx:id="commentsColumn" text="Comments" prefWidth="380"/>
+                                <TableColumn fx:id="dateSubmittedColumn" text="Date" prefWidth="130"/>
+                            </columns>
+                        </TableView>
+                    </VBox>
+                </VBox>
+            </ScrollPane>
+        </center>
+
+        <bottom><fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/></bottom>
+    </BorderPane>
+
+    <StackPane StackPane.alignment="BOTTOM_RIGHT" styleClass="toast-anchor" pickOnBounds="false">
+        <fx:include fx:id="toast" source="/hospital/management/frontend/components/toast/toast.fxml"/>
+    </StackPane>
+</StackPane>
