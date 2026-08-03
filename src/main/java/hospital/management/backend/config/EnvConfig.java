@@ -38,4 +38,15 @@ public class EnvConfig {
     // ── Application ───────────────────────────────────────────────────────
     public static int getPageSize()          { return Integer.parseInt(dotenv.get("APP_PAGE_SIZE")); }
     public static int getMaxUploadSizeMb()   { return Integer.parseInt(dotenv.get("APP_MAX_UPLOAD_SIZE_MB")); }
+
+    // ── MongoDB (NoSQL) ──────────────────────────────────────────────────
+    public static String getMongoUri() {
+        // Prefer MONGO_URL (project convention), fallback to MONGO_URI for compatibility.
+        String primary = dotenv.get("MONGO_URL");
+        if (primary != null && !primary.isBlank()) {
+            return primary;
+        }
+        String fallback = dotenv.get("MONGO_URI");
+        return fallback == null || fallback.isBlank() ? "mongodb://localhost:27017" : fallback;
+    }
 }

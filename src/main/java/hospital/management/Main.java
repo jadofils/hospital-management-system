@@ -8,7 +8,21 @@ import javafx.scene.Scene;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 
+import java.io.InputStream;
+import java.util.logging.LogManager;
+
 public class Main extends Application {
+
+    static {
+        // Ensure JUL uses src/main/resources/logging.properties in every launch mode.
+        try (InputStream in = Main.class.getResourceAsStream("/logging.properties")) {
+            if (in != null) {
+                LogManager.getLogManager().readConfiguration(in);
+            }
+        } catch (Exception ignored) {
+            // Keep app startup resilient even if logging config is missing.
+        }
+    }
 
     @Override
     public void start(Stage stage) throws Exception {
