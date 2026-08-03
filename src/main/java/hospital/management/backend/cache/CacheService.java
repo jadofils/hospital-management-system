@@ -176,6 +176,14 @@ public final class CacheService {
      * Always call this BEFORE the DB write.
      */
     public static void evictByPattern(String pattern) {
+        String[] patterns = pattern.split("[\\s,]+");
+        for (String p : patterns) {
+            if (p == null || p.isBlank()) continue;
+            evictSinglePattern(p.trim());
+        }
+    }
+
+    private static void evictSinglePattern(String pattern) {
         L1Cache.evictByPattern(pattern);
         try (Jedis jedis = RedisConnection.getJedis()) {
             ScanParams params = new ScanParams().match(pattern).count(100);
