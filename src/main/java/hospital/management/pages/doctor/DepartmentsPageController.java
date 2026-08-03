@@ -34,8 +34,12 @@ public class DepartmentsPageController extends BasePageController {
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
+        applyCreateVisibility(addDeptBtn, PageRoute.DEPARTMENTS);
         addDeptBtn.setOnAction(e -> openDepartmentDialog(null));
-        departmentTableController.setRowActions(this::openDepartmentDialog, this::confirmDeleteDepartment, this::viewDepartmentDetail);
+        departmentTableController.setRowActions(
+            allowUpdate(PageRoute.DEPARTMENTS, this::openDepartmentDialog),
+            allowDelete(PageRoute.DEPARTMENTS, this::confirmDeleteDepartment),
+            allowRead(PageRoute.DEPARTMENTS, this::viewDepartmentDetail));
 
         refreshTable();
     }

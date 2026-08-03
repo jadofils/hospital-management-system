@@ -66,12 +66,20 @@ public class PharmacyController extends BasePageController {
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PHARMACY);
 
+        applyCreateVisibility(newMedicationBtn, PageRoute.PHARMACY);
+        applyCreateVisibility(addMedBtn, PageRoute.PHARMACY);
         newMedicationBtn.setOnAction(e -> openMedicationDialog());
         addMedBtn.setOnAction(e -> openInventoryDialog(null));
         inventorySearchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
-        inventoryTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory, this::viewInventoryDetail);
-        lowStockTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory, this::viewInventoryDetail);
+        inventoryTableController.setRowActions(
+            allowUpdate(PageRoute.PHARMACY, this::openInventoryDialog),
+            allowDelete(PageRoute.PHARMACY, this::confirmDeleteInventory),
+            allowRead(PageRoute.PHARMACY, this::viewInventoryDetail));
+        lowStockTableController.setRowActions(
+            allowUpdate(PageRoute.PHARMACY, this::openInventoryDialog),
+            allowDelete(PageRoute.PHARMACY, this::confirmDeleteInventory),
+            allowRead(PageRoute.PHARMACY, this::viewInventoryDetail));
 
         refreshInventoryTables();
         refreshPendingPrescriptions();

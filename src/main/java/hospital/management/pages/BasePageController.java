@@ -1,6 +1,8 @@
 package hospital.management.pages;
 
+import hospital.management.backend.config.security.PermissionGate;
 import hospital.management.enums.NotificationType;
+import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.shared.feedback.ButtonSpinner;
 import hospital.management.pages.components.shared.feedback.DetailViewController;
 import hospital.management.pages.components.shared.feedback.FormDialogController;
@@ -11,6 +13,8 @@ import hospital.management.pages.components.shared.feedback.ToastController;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+
+import java.util.function.Consumer;
 
 /**
  * Shared shell for every full-page controller. Every page includes the same
@@ -57,5 +61,39 @@ public abstract class BasePageController {
                 ButtonSpinner.setLoading(button, false);
             }
         });
+    }
+
+    protected boolean canCreate(PageRoute route) {
+        return PermissionGate.canCreate(route);
+    }
+
+    protected boolean canUpdate(PageRoute route) {
+        return PermissionGate.canUpdate(route);
+    }
+
+    protected boolean canDelete(PageRoute route) {
+        return PermissionGate.canDelete(route);
+    }
+
+    protected boolean canRead(PageRoute route) {
+        return PermissionGate.canRead(route);
+    }
+
+    protected void applyCreateVisibility(Button button, PageRoute route) {
+        boolean allowed = canCreate(route);
+        button.setVisible(allowed);
+        button.setManaged(allowed);
+    }
+
+    protected <T> Consumer<T> allowUpdate(PageRoute route, Consumer<T> action) {
+        return canUpdate(route) ? action : null;
+    }
+
+    protected <T> Consumer<T> allowDelete(PageRoute route, Consumer<T> action) {
+        return canDelete(route) ? action : null;
+    }
+
+    protected <T> Consumer<T> allowRead(PageRoute route, Consumer<T> action) {
+        return canRead(route) ? action : null;
     }
 }

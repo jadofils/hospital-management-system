@@ -60,9 +60,13 @@ public class ReferralsController extends BasePageController {
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         statusFilter.setOnAction(e -> applyFilter());
 
+        applyCreateVisibility(newReferralBtn, PageRoute.REFERRALS);
         newReferralBtn.setOnAction(e -> openReferralDialog(null));
-        referralTableController.setRowActions(this::openReferralDialog, this::confirmDeleteReferral, this::viewReferralDetail);
-        referralTableController.setOnChangeStatus(this::openReferralStatusDialog);
+        referralTableController.setRowActions(
+            allowUpdate(PageRoute.REFERRALS, this::openReferralDialog),
+            allowDelete(PageRoute.REFERRALS, this::confirmDeleteReferral),
+            allowRead(PageRoute.REFERRALS, this::viewReferralDetail));
+        referralTableController.setOnChangeStatus(canUpdate(PageRoute.REFERRALS) ? this::openReferralStatusDialog : null);
 
         refreshTable();
     }

@@ -47,8 +47,12 @@ public class DoctorsPageController extends BasePageController {
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         departmentFilter.setOnAction(e -> applyFilter());
 
+        applyCreateVisibility(addDoctorBtn, PageRoute.DOCTORS);
         addDoctorBtn.setOnAction(e -> openDoctorDialog(null));
-        doctorTableController.setRowActions(this::openDoctorDialog, this::confirmDeleteDoctor, this::viewDoctorDetail);
+        doctorTableController.setRowActions(
+            allowUpdate(PageRoute.DOCTORS, this::openDoctorDialog),
+            allowDelete(PageRoute.DOCTORS, this::confirmDeleteDoctor),
+            allowRead(PageRoute.DOCTORS, this::viewDoctorDetail));
 
         refreshTable();
     }

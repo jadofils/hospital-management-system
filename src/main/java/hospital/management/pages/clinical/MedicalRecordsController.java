@@ -49,8 +49,12 @@ public class MedicalRecordsController extends BasePageController {
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
+        applyCreateVisibility(addRecordBtn, PageRoute.MEDICAL_RECORDS);
         addRecordBtn.setOnAction(e -> openRecordDialog(null));
-        medicalRecordTableController.setRowActions(this::openRecordDialog, this::confirmDeleteRecord, this::viewRecordDetail);
+        medicalRecordTableController.setRowActions(
+            allowUpdate(PageRoute.MEDICAL_RECORDS, this::openRecordDialog),
+            allowDelete(PageRoute.MEDICAL_RECORDS, this::confirmDeleteRecord),
+            allowRead(PageRoute.MEDICAL_RECORDS, this::viewRecordDetail));
 
         refreshTable();
     }

@@ -6,7 +6,6 @@ import hospital.management.backend.dao.auth.RolePermissionDAOImpl;
 import hospital.management.backend.dao.auth.UserRoleDAOImpl;
 import hospital.management.backend.dto.auth.PermissionDTO;
 import hospital.management.backend.dto.auth.RoleDTO;
-import hospital.management.backend.model.enums.RoleName;
 import hospital.management.backend.service.auth.RoleServiceImpl;
 import hospital.management.backend.service.auth.interfaces.RoleService;
 import hospital.management.enums.PageRoute;
@@ -69,12 +68,9 @@ public final class PermissionGate {
 
     private PermissionGate() {}
 
-    public static RoleName currentRole() {
-        try {
-            return RoleName.fromDbValue(SessionManager.getCurrentRole());
-        } catch (Exception ignored) {
-            return null;
-        }
+    public static String currentRole() {
+        String role = SessionManager.getCurrentRole();
+        return role == null ? null : role.trim();
     }
 
     public static boolean isAllowed(PageRoute route) {
@@ -90,6 +86,40 @@ public final class PermissionGate {
         }
 
         return hasAnyCrudPermission(route);
+    }
+
+    public static boolean canRead(PageRoute route) {
+        return hasPermission(route, "read");
+    }
+
+    public static boolean canCreate(PageRoute route) {
+        return hasPermission(route, "create");
+    }
+
+    public static boolean canUpdate(PageRoute route) {
+        return hasPermission(route, "update");
+    }
+
+    public static boolean canDelete(PageRoute route) {
+        return hasPermission(route, "delete");
+    }
+
+    public static boolean hasPermission(PageRoute route, String action) {
+        if (route == PageRoute.HOME || route == PageRoute.PROFILE) return true;
+        String normalizedAction = normalizeAction(action);
+        if (normalizedAction.isBlank()) return false;
+
+        Set<String> resources = ROUTE_RESOURCES.get(route);
+        if (resources == null || resources.isEmpty()) return true;
+
+        Set<String> granted = currentPermissionKeys();
+        for (String resource : resources) {
+            String normalizedResource = resource.toLowerCase(Locale.ROOT);
+            if (granted.contains(normalizedResource + ":" + normalizedAction)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static synchronized void invalidateCache() {

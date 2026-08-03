@@ -167,7 +167,21 @@ public abstract class PaginatedTableController<T> {
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                setGraphic(empty ? null : box);
+                if (empty) {
+                    setGraphic(null);
+                    return;
+                }
+                viewBtn.setVisible(onViewDetails != null);
+                viewBtn.setManaged(onViewDetails != null);
+                editBtn.setVisible(onEdit != null);
+                editBtn.setManaged(onEdit != null);
+                deleteBtn.setVisible(onDelete != null);
+                deleteBtn.setManaged(onDelete != null);
+                if (onViewDetails == null && onEdit == null && onDelete == null) {
+                    setGraphic(null);
+                } else {
+                    setGraphic(box);
+                }
             }
         });
     }

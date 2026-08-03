@@ -62,11 +62,15 @@ public class RolesPageController extends BasePageController {
 
         roleTableController.setPermissionCountResolver(
             r -> permissionCountByRoleId.getOrDefault(r.getRoleId(), "0"));
-        roleTableController.setRowActions(this::openRoleDialog, this::confirmDeleteRole, this::viewRoleDetail);
+        roleTableController.setRowActions(
+                allowUpdate(PageRoute.ROLES, this::openRoleDialog),
+                allowDelete(PageRoute.ROLES, this::confirmDeleteRole),
+                allowRead(PageRoute.ROLES, this::viewRoleDetail));
         roleSearchField.textProperty().addListener((obs, o, n) -> roleTableController.filter(n));
+        applyCreateVisibility(addRoleBtn, PageRoute.ROLES);
         addRoleBtn.setOnAction(e -> openRoleDialog(null));
 
-        permissionTableController.setOnDelete(this::confirmDeletePermission);
+        permissionTableController.setOnDelete(canDelete(PageRoute.ROLES) ? this::confirmDeletePermission : null);
         permissionSearchField.textProperty().addListener((obs, o, n) -> permissionTableController.filter(n));
 
         refreshPermissions();
