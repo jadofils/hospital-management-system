@@ -1,7 +1,11 @@
 package hospital.management.pages.log;
 
 import hospital.management.pages.BasePageController;
-import hospital.management.backend.model.user.SystemLog;
+import hospital.management.backend.dao.log.SystemLogDAOImpl;
+import hospital.management.backend.dto.log.SystemLogDTO;
+import hospital.management.backend.service.log.SystemLogServiceImpl;
+import hospital.management.backend.service.log.interfaces.SystemLogService;
+import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.log.SystemLogTableController;
@@ -13,6 +17,10 @@ import java.util.List;
 
 public class SystemLogsController extends BasePageController {
 
+    private static final int FETCH_SIZE = 500;
+
+    private final SystemLogService systemLogService = new SystemLogServiceImpl(new SystemLogDAOImpl());
+
     @FXML private SystemLogTableController systemLogTableController;
 
     @FXML private TextField    searchField;
@@ -22,7 +30,7 @@ public class SystemLogsController extends BasePageController {
     @FXML private Button       purgeBtn;
     @FXML private Button       exportBtn;
 
-    private final List<SystemLog> logs = new ArrayList<>();
+    private List<SystemLogDTO> logs = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.SYSTEM_LOGS);
@@ -31,7 +39,7 @@ public class SystemLogsController extends BasePageController {
         levelFilter.setValue("All Levels");
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
-        levelFilter.setOnAction(e -> applyFilter());
+        levelFilter.setOnAction(e -> refreshTable());
 
         purgeBtn.setOnAction(e -> confirmPurgeLogs());
         exportBtn.setOnAction(e -> toast("Export not yet implemented.", NotificationType.INFO));
@@ -40,23 +48,34 @@ public class SystemLogsController extends BasePageController {
     }
 
     private void applyFilter() {
-        // searchField drives the actual predicate (matches logLevel or source);
-        // levelFilter is wired to re-trigger it for a consistent filtering feel,
-        // mirroring PatientsPageController's statusFilter (also not itself matched on).
         systemLogTableController.filter(searchField.getText());
     }
 
     private void refreshTable() {
-        systemLogTableController.setItems(logs);
+        try {
+            String level = levelFilter.getValue();
+            if (level != null && !"All Levels".equals(level)) {
+                logs = systemLogService.findByLevel(level);
+            } else {
+                logs = systemLogService.findAll(CursorPagination.firstPage(FETCH_SIZE)).getItems();
+            }
+            systemLogTableController.setItems(logs);
+        } catch (Exception e) {
+            toastError("Failed to load system logs: " + e.getMessage());
+        }
     }
 
     private void confirmPurgeLogs() {
         confirm("Purge System Logs",
                 "This will permanently delete all system log entries. This cannot be undone.",
                 () -> {
-                    logs.clear();
-                    refreshTable();
-                    toastSuccess("System logs purged.");
+                    try {
+                        int purged = systemLogService.purgeOlderThanDays(0);
+                        refreshTable();
+                        toastSuccess(purged + " system log entries purged.");
+                    } catch (Exception e) {
+                        toastError("Failed to purge system logs: " + e.getMessage());
+                    }
                 });
     }
 }

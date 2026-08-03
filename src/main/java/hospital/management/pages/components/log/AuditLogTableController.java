@@ -1,7 +1,7 @@
 package hospital.management.pages.components.log;
 
 import hospital.management.pages.components.PaginatedTableController;
-import hospital.management.backend.model.user.AuditLog;
+import hospital.management.backend.dto.log.AuditLogDTO;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -14,21 +14,21 @@ import java.time.format.DateTimeFormatter;
  * Read-only audit log table. Audit logs are immutable, so unlike the other
  * entity tables there is no actions column and no row edit/delete wiring.
  */
-public class AuditLogTableController extends PaginatedTableController<AuditLog> {
+public class AuditLogTableController extends PaginatedTableController<AuditLogDTO> {
 
     private static final DateTimeFormatter TIMESTAMP_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    @FXML private TableColumn<AuditLog, String> idColumn;
-    @FXML private TableColumn<AuditLog, String> userIdColumn;
-    @FXML private TableColumn<AuditLog, String> actionColumn;
-    @FXML private TableColumn<AuditLog, String> tableColumn;
-    @FXML private TableColumn<AuditLog, String> recordIdColumn;
-    @FXML private TableColumn<AuditLog, String> createdAtColumn;
+    @FXML private TableColumn<AuditLogDTO, String> idColumn;
+    @FXML private TableColumn<AuditLogDTO, String> userIdColumn;
+    @FXML private TableColumn<AuditLogDTO, String> actionColumn;
+    @FXML private TableColumn<AuditLogDTO, String> tableColumn;
+    @FXML private TableColumn<AuditLogDTO, String> recordIdColumn;
+    @FXML private TableColumn<AuditLogDTO, String> createdAtColumn;
 
     @Override
     protected void configureColumns() {
-        idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
+        idColumn.setCellValueFactory(new PropertyValueFactory<>("logId"));
         userIdColumn.setCellValueFactory(new PropertyValueFactory<>("userId"));
         actionColumn.setCellValueFactory(new PropertyValueFactory<>("action"));
         tableColumn.setCellValueFactory(new PropertyValueFactory<>("tableAffected"));
@@ -42,7 +42,7 @@ public class AuditLogTableController extends PaginatedTableController<AuditLog> 
     }
 
     @Override
-    protected boolean matches(AuditLog log, String lowerQuery) {
+    protected boolean matches(AuditLogDTO log, String lowerQuery) {
         boolean actionMatch = log.getAction() != null
                 && log.getAction().toLowerCase().contains(lowerQuery);
         boolean tableMatch = log.getTableAffected() != null

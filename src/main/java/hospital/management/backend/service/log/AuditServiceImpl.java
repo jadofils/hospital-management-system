@@ -1,5 +1,6 @@
 package hospital.management.backend.service.log;
 
+import hospital.management.backend.config.AppLogger;
 import hospital.management.backend.dao.log.interfaces.AuditLogDAO;
 import hospital.management.backend.dto.log.AuditLogDTO;
 import hospital.management.backend.mapper.log.AuditLogMapper;
@@ -16,7 +17,10 @@ import java.util.List;
 
 public class AuditServiceImpl implements AuditService {
 
+    private static final AppLogger logger = AppLogger.getLogger(AuditServiceImpl.class);
+
     private final AuditLogDAO auditLogDAO;
+    private final MongoLogStore mongoLogStore = new MongoLogStore();
 
     public AuditServiceImpl(AuditLogDAO auditLogDAO) {
         this.auditLogDAO = auditLogDAO;
@@ -33,27 +37,27 @@ public class AuditServiceImpl implements AuditService {
         log.setTableAffected(table);
         log.setRecordId(recordId);
 
-        // A single INSERT is already atomic under Postgres — no TransactionManager
-        // needed here since nothing else has to succeed alongside it.
-        AuditLog saved = auditLogDAO.save(log);
+        AuditLog saved = mongoLogStore.saveAudit(log);
+        logger.info("Audit recorded: " + saved.getAction() + " on " + saved.getTableAffected());
         EventBus.publish(AppEventType.AUDIT_LOG_RECORDED, saved.getLogId());
         return AuditLogMapper.toDTO(saved);
     }
 
     @Override
     public PageResult<AuditLogDTO> findAll(PageRequest request) throws Exception {
-        return auditLogDAO.findAll(request).map(AuditLogMapper::toDTO);
+        return mongoLogStore.findAllAudit(request).map(AuditLogMapper::toDTO);
     }
 
     @Override
     public List<AuditLogDTO> findByUser(String userId) throws Exception {
         List<AuditLogDTO> dtos = new ArrayList<>();
-        for (AuditLog log : auditLogDAO.findByUserId(userId)) dtos.add(AuditLogMapper.toDTO(log));
+        for (AuditLog log : mongoLogStore.findAuditByUser(userId)) dtos.add(AuditLogMapper.toDTO(log));
         return dtos;
     }
 
     @Override
     public int purgeOlderThanDays(int days) throws Exception {
-        return auditLogDAO.deleteOlderThanDays(days);
+        // Audit logs are immutable and retained for traceability in the NoSQL benchmark store.
+        return 0;
     }
 }

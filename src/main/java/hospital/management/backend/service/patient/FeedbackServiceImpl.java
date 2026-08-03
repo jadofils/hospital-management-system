@@ -14,6 +14,7 @@ import hospital.management.backend.service.patient.interfaces.FeedbackService;
 import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.listeners.AppEventType;
 import hospital.management.backend.utils.listeners.EventBus;
+import hospital.management.backend.service.log.ServiceAudit;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +43,8 @@ public class FeedbackServiceImpl implements FeedbackService {
         // A single INSERT is already atomic — no TransactionManager needed here.
         CacheService.evict(CacheKey.feedback(patientId));
         PatientFeedback saved = feedbackDAO.save(PatientFeedbackMapper.toEntity(dto));
+        // record audit and publish event
+        ServiceAudit.record("patient_feedback", "create", saved.getFeedbackId());
         EventBus.publish(AppEventType.PATIENT_FEEDBACK_SUBMITTED, saved.getFeedbackId());
         return PatientFeedbackMapper.toDTO(saved);
     }
@@ -70,5 +73,6 @@ public class FeedbackServiceImpl implements FeedbackService {
         // is defined for this domain, so deletion is cache-invalidation only.
         CacheService.evict(CacheKey.feedback(feedback.getPatientId()));
         feedbackDAO.softDelete(feedbackId);
+        ServiceAudit.record("patient_feedback", "delete", feedbackId);
     }
 }

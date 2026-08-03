@@ -1,6 +1,8 @@
 package hospital.management.backend.utils.listeners;
 
 import hospital.management.backend.config.AppLogger;
+import hospital.management.backend.config.security.SessionManager;
+import hospital.management.backend.service.log.DualLogBridge;
 import javafx.application.Platform;
 
 import java.util.ArrayList;
@@ -82,6 +84,19 @@ public final class EventBus {
      */
     public static void publish(AppEventType type, Object payload) {
         AppEvent event = new AppEvent(type, payload);
+
+        // Central dual logging for benchmarking: every service event is mirrored
+        // to PostgreSQL system_logs and MongoDB system_log_benchmark.
+        if (type != AppEventType.AUDIT_LOG_RECORDED && type != AppEventType.SYSTEM_LOG_RECORDED) {
+            try {
+                String userId = null;
+                try { userId = SessionManager.getCurrentUserId(); } catch (Exception ignored) {}
+                DualLogBridge.recordServiceEvent(type, payload, userId);
+            } catch (Exception e) {
+                logger.warn("Failed to mirror event log: " + e.getMessage());
+            }
+        }
+
         List<Consumer<AppEvent>> list = LISTENERS.get(type);
         if (list == null || list.isEmpty()) return;
 
