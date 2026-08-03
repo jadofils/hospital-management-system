@@ -10,7 +10,6 @@ import hospital.management.backend.dao.pharmacy.PrescriptionDAOImpl;
 import hospital.management.backend.dao.pharmacy.PrescriptionItemDAOImpl;
 import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
 import hospital.management.backend.dto.pharmacy.CreateMedicalInventoryDTO;
-import hospital.management.backend.dto.pharmacy.CreateMedicationDTO;
 import hospital.management.backend.dto.pharmacy.MedicalInventoryDTO;
 import hospital.management.backend.dto.pharmacy.MedicationDTO;
 import hospital.management.backend.dto.pharmacy.PrescriptionDTO;
@@ -32,7 +31,6 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
 import java.util.ArrayList;
-import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +48,6 @@ public class PharmacyController extends BasePageController {
 
     // Inventory tab
     @FXML private TextField inventorySearchField;
-    @FXML private Button    newMedicationBtn;
     @FXML private Button    addMedBtn;
     @FXML private MedicalInventoryTableController inventoryTableController;
 
@@ -66,20 +63,11 @@ public class PharmacyController extends BasePageController {
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PHARMACY);
 
-        applyCreateVisibility(newMedicationBtn, PageRoute.PHARMACY);
-        applyCreateVisibility(addMedBtn, PageRoute.PHARMACY);
-        newMedicationBtn.setOnAction(e -> openMedicationDialog());
         addMedBtn.setOnAction(e -> openInventoryDialog(null));
         inventorySearchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
-        inventoryTableController.setRowActions(
-            allowUpdate(PageRoute.PHARMACY, this::openInventoryDialog),
-            allowDelete(PageRoute.PHARMACY, this::confirmDeleteInventory),
-            allowRead(PageRoute.PHARMACY, this::viewInventoryDetail));
-        lowStockTableController.setRowActions(
-            allowUpdate(PageRoute.PHARMACY, this::openInventoryDialog),
-            allowDelete(PageRoute.PHARMACY, this::confirmDeleteInventory),
-            allowRead(PageRoute.PHARMACY, this::viewInventoryDetail));
+        inventoryTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory, this::viewInventoryDetail);
+        lowStockTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory, this::viewInventoryDetail);
 
         refreshInventoryTables();
         refreshPendingPrescriptions();
@@ -94,19 +82,7 @@ public class PharmacyController extends BasePageController {
             inventory.clear();
             List<MedicationDTO> medications = pharmacyService.findAllMedications();
             for (MedicationDTO medication : medications) {
-                List<MedicalInventoryDTO> rows = pharmacyService.findStockByMedication(medication.getMedicationId());
-                if (rows.isEmpty()) {
-                    MedicalInventoryDTO virtualRow = new MedicalInventoryDTO();
-                    virtualRow.setInventoryId("VIRTUAL:" + medication.getMedicationId());
-                    virtualRow.setMedicationId(medication.getMedicationId());
-                    virtualRow.setBatchNumber("No stock batch yet");
-                    virtualRow.setQuantityInStock(0);
-                    virtualRow.setReorderLevel(0);
-                    virtualRow.setSupplier("-");
-                    inventory.add(virtualRow);
-                } else {
-                    inventory.addAll(rows);
-                }
+                inventory.addAll(pharmacyService.findStockByMedication(medication.getMedicationId()));
             }
             inventoryTableController.setItems(inventory);
             lowStockTableController.setItems(pharmacyService.findLowStock());
@@ -151,60 +127,9 @@ public class PharmacyController extends BasePageController {
         toast("Inventory batches can't be deleted — update the batch instead.", NotificationType.INFO);
     }
 
-    private void openMedicationDialog() {
-        TextField nameField = new TextField();
-        TextField genericNameField = new TextField();
-        TextField formField = new TextField();
-        TextField unitPriceField = new TextField();
-
-        List.of(nameField, genericNameField, formField, unitPriceField)
-                .forEach(f -> f.getStyleClass().add("form-input"));
-
-        formDialogController.open("New Medication", "fas-capsules", true, v -> {
-            String name = nameField.getText() == null ? "" : nameField.getText().trim();
-            String genericName = genericNameField.getText() == null ? "" : genericNameField.getText().trim();
-            String form = formField.getText() == null ? "" : formField.getText().trim();
-            String unitPriceText = unitPriceField.getText() == null ? "" : unitPriceField.getText().trim();
-
-            if (name.isBlank() || form.isBlank() || unitPriceText.isBlank()) {
-                formDialogController.setError("Medication name, form, and unit price are required.");
-                formDialogController.setLoading(false);
-                return;
-            }
-
-            BigDecimal unitPrice;
-            try {
-                unitPrice = new BigDecimal(unitPriceText);
-            } catch (NumberFormatException ex) {
-                formDialogController.setError("Unit price must be a valid number.");
-                formDialogController.setLoading(false);
-                return;
-            }
-
-            try {
-                pharmacyService.addMedication(new CreateMedicationDTO(name, genericName, form, unitPrice));
-                refreshInventoryTables();
-                formDialogController.close();
-                toastSuccess("Medication created and shown in inventory table. Add a batch to stock it.");
-            } catch (AppException ex) {
-                formDialogController.setError(ex.getMessage());
-                formDialogController.setLoading(false);
-            } catch (Exception ex) {
-                formDialogController.setError("Failed to create medication: " + ex.getMessage());
-                formDialogController.setLoading(false);
-            }
-        });
-
-        formDialogController.addField("Medication Name", "fas-capsules", nameField);
-        formDialogController.addField("Generic Name", "fas-prescription-bottle", genericNameField);
-        formDialogController.addField("Form", "fas-notes-medical", formField);
-        formDialogController.addField("Unit Price", "fas-dollar-sign", unitPriceField);
-    }
-
     /** Opens the shared form dialog in Add mode (item == null) or Update mode. */
     private void openInventoryDialog(MedicalInventoryDTO item) {
-        boolean virtualRow = item != null && item.getInventoryId() != null && item.getInventoryId().startsWith("VIRTUAL:");
-        boolean addMode = item == null || virtualRow;
+        boolean addMode = item == null;
 
         LoadingIdComboBox medicationIdField = new LoadingIdComboBox();
         EntityIdComboBox medicationId = medicationIdField.getComboBox();
@@ -268,7 +193,7 @@ public class PharmacyController extends BasePageController {
                 }
                 refreshInventoryTables();
                 formDialogController.close();
-                toastSuccess(addMode ? "Inventory batch added." : "Inventory batch updated.");
+                toastSuccess(addMode ? "Medication added." : "Medication updated.");
             } catch (AppException ex) {
                 formDialogController.setError(ex.getMessage());
                 formDialogController.setLoading(false);
@@ -285,11 +210,7 @@ public class PharmacyController extends BasePageController {
         formDialogController.addField("Reorder Level", "fas-exclamation-triangle", reorderLevel);
         formDialogController.addField("Supplier", "fas-truck", supplier);
 
-        loadMedicationDropdown(medicationIdField, otherFields, item);
-
-        if (virtualRow && item != null) {
-            medicationId.selectById(item.getMedicationId());
-        }
+        loadMedicationDropdown(medicationIdField, otherFields, addMode ? null : item);
     }
 
     /** Loads the medication dropdown options asynchronously, showing its own spinner while

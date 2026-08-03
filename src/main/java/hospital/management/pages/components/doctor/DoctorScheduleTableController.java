@@ -7,34 +7,16 @@ import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 
-import java.util.Map;
-
 public class DoctorScheduleTableController extends PaginatedTableController<DoctorScheduleDTO> {
 
-    @FXML private TableColumn<DoctorScheduleDTO, String> doctorNameColumn;
     @FXML private TableColumn<DoctorScheduleDTO, String> dayOfWeekColumn;
     @FXML private TableColumn<DoctorScheduleDTO, String> startTimeColumn;
     @FXML private TableColumn<DoctorScheduleDTO, String> endTimeColumn;
     @FXML private TableColumn<DoctorScheduleDTO, String> availableColumn;
     @FXML private TableColumn<DoctorScheduleDTO, Void>   actionsColumn;
 
-    /** Resolves a doctorId to a display name for the "All Doctors" view; empty until the page sets it. */
-    private Map<String, String> doctorNameById = Map.of();
-
-    /** Called by the page once its doctor list has loaded, so the Doctor column can resolve names. */
-    public void setDoctorNames(Map<String, String> doctorNameById) {
-        this.doctorNameById = doctorNameById == null ? Map.of() : doctorNameById;
-    }
-
-    /** Shows/hides the Doctor column — relevant only when browsing every doctor's schedule at once. */
-    public void setDoctorColumnVisible(boolean visible) {
-        doctorNameColumn.setVisible(visible);
-    }
-
     @Override
     protected void configureColumns() {
-        doctorNameColumn.setCellValueFactory(cell ->
-                new SimpleStringProperty(doctorNameById.getOrDefault(cell.getValue().getDoctorId(), "—")));
         dayOfWeekColumn.setCellValueFactory(new PropertyValueFactory<>("dayOfWeek"));
         // LocalTime#toString() renders as "HH:mm" (ISO_LOCAL_TIME), which is exactly the format
         // the Add/Edit dialog's start/end time TextFields parse back on submit.

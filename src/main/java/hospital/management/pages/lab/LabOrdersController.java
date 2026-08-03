@@ -24,7 +24,6 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.lab.LabOrderTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
-import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -49,8 +48,6 @@ public class LabOrdersController extends BasePageController {
     @FXML private TextField    searchField;
     @FXML private ComboBox<String> statusFilter;
     @FXML private Button       newOrderBtn;
-    @FXML private Button       importBtn;
-    @FXML private Button       exportBtn;
 
     private final List<LabOrderDTO> labOrders = new ArrayList<>();
 
@@ -63,20 +60,11 @@ public class LabOrdersController extends BasePageController {
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         statusFilter.setOnAction(e -> applyFilter());
 
-        applyCreateVisibility(newOrderBtn, PageRoute.LAB_ORDERS);
-        applyCreateVisibility(importBtn, PageRoute.LAB_ORDERS);
-        boolean canExport = canRead(PageRoute.LAB_ORDERS);
-        exportBtn.setVisible(canExport);
-        exportBtn.setManaged(canExport);
-
         newOrderBtn.setOnAction(e -> openLabOrderDialog());
-        importBtn.setOnAction(e -> withSpinner(importBtn, this::importLabOrders));
-        exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportLabOrders));
         labOrderTableController.setRowActions(
-            canUpdate(PageRoute.LAB_ORDERS) ? o -> toast("Lab orders can't be edited once placed.", NotificationType.INFO) : null,
-            allowDelete(PageRoute.LAB_ORDERS, this::confirmDeleteLabOrder),
-            allowRead(PageRoute.LAB_ORDERS, this::viewLabOrderDetail));
-        labOrderTableController.setOnChangeStatus(canUpdate(PageRoute.LAB_ORDERS) ? this::openRecordResultDialog : null);
+                o -> toast("Lab orders can't be edited once placed.", NotificationType.INFO),
+                this::confirmDeleteLabOrder, this::viewLabOrderDetail);
+        labOrderTableController.setOnChangeStatus(this::openRecordResultDialog);
 
         refreshTable();
     }
@@ -107,95 +95,6 @@ public class LabOrdersController extends BasePageController {
         } catch (Exception e) {
             toastError("Failed to load lab orders: " + e.getMessage());
         }
-    }
-
-    private void exportLabOrders() {
-        try {
-            if (labOrders.isEmpty()) {
-                toastError("No lab orders available to export.");
-                return;
-            }
-            List<LabOrderDTO> source = chooseLabExportSource();
-            if (source.isEmpty()) {
-                return;
-            }
-
-            List<Map<String, Object>> rows = new ArrayList<>();
-            for (LabOrderDTO order : source) {
-                Map<String, Object> row = new LinkedHashMap<>();
-                row.put("lab_order_id", order.getLabOrderId());
-                row.put("appointment_id", order.getAppointmentId());
-                row.put("doctor_id", order.getDoctorId());
-                row.put("test_name", order.getTestName());
-                row.put("status", order.getStatus());
-                row.put("ordered_at", order.getOrderedAt());
-                rows.add(row);
-            }
-
-            boolean saved = CsvUiIO.exportRows(exportBtn.getScene().getWindow(), "lab-orders.csv", rows);
-            if (saved) {
-                toastSuccess("Lab orders exported successfully.");
-            }
-        } catch (Exception e) {
-            toastError("Failed to export lab orders: " + e.getMessage());
-        }
-    }
-
-    private List<LabOrderDTO> chooseLabExportSource() {
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("Current table view", "Current table view", "All loaded rows");
-        dialog.setTitle("Export Lab Orders");
-        dialog.setHeaderText("Choose what to export");
-        dialog.setContentText("Export scope:");
-        String choice = dialog.showAndWait().orElse(null);
-        if (choice == null) {
-            return List.of();
-        }
-        if ("Current table view".equals(choice)) {
-            return new ArrayList<>(labOrderTableController.getTable().getItems());
-        }
-        return labOrders;
-    }
-
-    private void importLabOrders() {
-        try {
-            List<Map<String, String>> rows = CsvUiIO.importRows(importBtn.getScene().getWindow(), "Import Lab Orders");
-            if (rows.isEmpty()) {
-                return;
-            }
-
-            int ok = 0;
-            int failed = 0;
-            for (Map<String, String> row : rows) {
-                try {
-                    CreateLabOrderDTO dto = new CreateLabOrderDTO(
-                            value(row, "appointment_id"),
-                            value(row, "doctor_id"),
-                            value(row, "test_name"));
-                    labService.orderTest(dto);
-                    ok++;
-                } catch (Exception ex) {
-                    failed++;
-                }
-            }
-
-            refreshTable();
-            if (failed == 0) {
-                toastSuccess("Imported " + ok + " lab order(s).");
-            } else {
-                toastError("Imported " + ok + " lab order(s), failed " + failed + ".");
-            }
-        } catch (Exception e) {
-            toastError("Failed to import lab orders: " + e.getMessage());
-        }
-    }
-
-    private String value(Map<String, String> row, String... keys) {
-        for (String key : keys) {
-            if (row.containsKey(key) && row.get(key) != null) {
-                return row.get(key).trim();
-            }
-        }
-        return "";
     }
 
     private void viewLabOrderDetail(LabOrderDTO labOrder) {

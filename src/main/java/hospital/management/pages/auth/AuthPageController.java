@@ -38,8 +38,6 @@ import java.util.Optional;
 
 public class AuthPageController {
 
-    private static final int DEMO_USERS_PAGE_SIZE = 200;
-
     private final AuthService authService = new AuthServiceImpl(
         new UserDAOImpl(), new UserSessionDAOImpl(), new UserRoleDAOImpl(),
         new RoleDAOImpl(), new AuditLogDAOImpl());
@@ -65,28 +63,21 @@ public class AuthPageController {
     }
 
     private void loadUsersForDemo() {
-        Task<List<UserDTO>> t = new Task<>() {
+        Task<PageResult<UserDTO>> t = new Task<>() {
             @Override
-            protected List<UserDTO> call() throws Exception {
+            protected PageResult<UserDTO> call() throws Exception {
                 UserServiceImpl uService = new UserServiceImpl(new UserDAOImpl());
-                List<UserDTO> all = new ArrayList<>();
-                PageResult<UserDTO> page = uService.findAll(CursorPagination.firstPage(DEMO_USERS_PAGE_SIZE));
-                all.addAll(page.getItems());
-                while (page.hasMore() && page.getNextCursor() != null) {
-                    page = uService.findAll(CursorPagination.nextPage(page.getNextCursor(), DEMO_USERS_PAGE_SIZE));
-                    all.addAll(page.getItems());
-                }
-                return all;
+                return uService.findAll(CursorPagination.firstPage(100));
             }
         };
 
         t.setOnSucceeded(evt -> {
-            List<UserDTO> users = t.getValue();
+            PageResult<UserDTO> res = t.getValue();
             List<String> entries = new ArrayList<>();
             UserRoleDAOImpl urDao = new UserRoleDAOImpl();
             RoleDAOImpl roleDao = new RoleDAOImpl();
             try {
-                for (UserDTO u : users) {
+                for (UserDTO u : res.getItems()) {
                     List<UserRole> urs = urDao.findByUserId(u.getUserId());
                     List<String> roleNames = new ArrayList<>();
                     for (UserRole ur : urs) {

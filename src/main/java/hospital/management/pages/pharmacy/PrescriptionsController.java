@@ -26,13 +26,11 @@ import hospital.management.backend.service.pharmacy.PharmacyServiceImpl;
 import hospital.management.pages.components.pharmacy.PrescriptionTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
-import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,8 +52,6 @@ public class PrescriptionsController extends BasePageController {
     @FXML private DatePicker fromDatePicker;
     @FXML private DatePicker toDatePicker;
     @FXML private Button     newPrescriptionBtn;
-    @FXML private Button     importBtn;
-    @FXML private Button     exportBtn;
 
     private final List<PrescriptionDTO> prescriptions = new ArrayList<>();
 
@@ -64,19 +60,10 @@ public class PrescriptionsController extends BasePageController {
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
-        applyCreateVisibility(newPrescriptionBtn, PageRoute.PRESCRIPTIONS);
-        applyCreateVisibility(importBtn, PageRoute.PRESCRIPTIONS);
-        boolean canExport = canRead(PageRoute.PRESCRIPTIONS);
-        exportBtn.setVisible(canExport);
-        exportBtn.setManaged(canExport);
-
         newPrescriptionBtn.setOnAction(e -> openPrescriptionDialog());
-        importBtn.setOnAction(e -> withSpinner(importBtn, this::importPrescriptions));
-        exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportPrescriptions));
         prescriptionTableController.setRowActions(
-            canUpdate(PageRoute.PRESCRIPTIONS) ? p -> toast("Prescriptions can't be edited once issued.", NotificationType.INFO) : null,
-            allowDelete(PageRoute.PRESCRIPTIONS, this::confirmDeletePrescription),
-            allowRead(PageRoute.PRESCRIPTIONS, this::viewPrescriptionDetail));
+                p -> toast("Prescriptions can't be edited once issued.", NotificationType.INFO),
+                this::confirmDeletePrescription, this::viewPrescriptionDetail);
 
         refreshTable();
     }
@@ -100,116 +87,6 @@ public class PrescriptionsController extends BasePageController {
         } catch (Exception e) {
             toastError("Failed to load prescriptions: " + e.getMessage());
         }
-    }
-
-    private void exportPrescriptions() {
-        try {
-            if (prescriptions.isEmpty()) {
-                toastError("No prescriptions available to export.");
-                return;
-            }
-            List<PrescriptionDTO> source = choosePrescriptionExportSource();
-            if (source.isEmpty()) {
-                return;
-            }
-
-            List<Map<String, Object>> rows = new ArrayList<>();
-            for (PrescriptionDTO prescription : source) {
-                if (prescription.getItems() == null || prescription.getItems().isEmpty()) {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("prescription_id", prescription.getPrescriptionId());
-                    row.put("appointment_id", prescription.getAppointmentId());
-                    row.put("date_issued", prescription.getDateIssued());
-                    row.put("medication_id", "");
-                    row.put("dosage", "");
-                    row.put("quantity", "");
-                    row.put("instructions", "");
-                    rows.add(row);
-                    continue;
-                }
-
-                for (hospital.management.backend.dto.pharmacy.PrescriptionItemDTO item : prescription.getItems()) {
-                    Map<String, Object> row = new LinkedHashMap<>();
-                    row.put("prescription_id", prescription.getPrescriptionId());
-                    row.put("appointment_id", prescription.getAppointmentId());
-                    row.put("date_issued", prescription.getDateIssued());
-                    row.put("medication_id", item.getMedicationId());
-                    row.put("dosage", item.getDosage());
-                    row.put("quantity", item.getQuantity());
-                    row.put("instructions", item.getInstructions());
-                    rows.add(row);
-                }
-            }
-
-            boolean saved = CsvUiIO.exportRows(exportBtn.getScene().getWindow(), "prescriptions.csv", rows);
-            if (saved) {
-                toastSuccess("Prescriptions exported successfully.");
-            }
-        } catch (Exception e) {
-            toastError("Failed to export prescriptions: " + e.getMessage());
-        }
-    }
-
-    private List<PrescriptionDTO> choosePrescriptionExportSource() {
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("All loaded rows", "All loaded rows", "Current table view");
-        dialog.setTitle("Export Prescriptions");
-        dialog.setHeaderText("Choose what to export");
-        dialog.setContentText("Export scope:");
-        String choice = dialog.showAndWait().orElse(null);
-        if (choice == null) {
-            return List.of();
-        }
-        if ("Current table view".equals(choice)) {
-            return new ArrayList<>(prescriptionTableController.getTable().getItems());
-        }
-        return prescriptions;
-    }
-
-    private void importPrescriptions() {
-        try {
-            List<Map<String, String>> rows = CsvUiIO.importRows(importBtn.getScene().getWindow(), "Import Prescriptions");
-            if (rows.isEmpty()) {
-                return;
-            }
-
-            int ok = 0;
-            int failed = 0;
-            for (Map<String, String> row : rows) {
-                try {
-                    String appointmentId = value(row, "appointment_id");
-                    LocalDate dateIssued = LocalDate.parse(value(row, "date_issued"));
-                    String medicationId = value(row, "medication_id");
-                    int quantity = Integer.parseInt(value(row, "quantity"));
-                    CreatePrescriptionItemDTO item = new CreatePrescriptionItemDTO(
-                            medicationId,
-                            value(row, "dosage"),
-                            quantity,
-                            value(row, "instructions"));
-                    prescriptionService.issue(new CreatePrescriptionDTO(appointmentId, dateIssued, List.of(item)));
-                    ok++;
-                } catch (Exception ex) {
-                    failed++;
-                }
-            }
-
-            refreshTable();
-            if (failed == 0) {
-                toastSuccess("Imported " + ok + " prescription row(s).");
-            } else {
-                toastError("Imported " + ok + " prescription row(s), failed " + failed + ".");
-            }
-        } catch (Exception e) {
-            toastError("Failed to import prescriptions: " + e.getMessage());
-        }
-    }
-
-    private String value(Map<String, String> row, String... keys) {
-        for (String key : keys) {
-            if (row.containsKey(key) && row.get(key) != null) {
-                return row.get(key).trim();
-            }
-        }
-        return "";
     }
 
     private void viewPrescriptionDetail(PrescriptionDTO prescription) {

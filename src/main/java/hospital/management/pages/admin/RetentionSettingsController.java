@@ -1,32 +1,18 @@
 package hospital.management.pages.admin;
 
 import hospital.management.pages.BasePageController;
-import hospital.management.backend.daemon.DatabaseCleanupDaemon;
 import hospital.management.backend.daemon.RetentionPolicy;
-import hospital.management.backend.daemon.RetentionPolicyStore;
-import hospital.management.backend.daemon.UserInactivityCleaner;
 import hospital.management.backend.dao.log.AuditLogDAOImpl;
 import hospital.management.backend.dao.log.SystemLogDAOImpl;
 import hospital.management.backend.service.log.AuditServiceImpl;
 import hospital.management.backend.service.log.SystemLogServiceImpl;
 import hospital.management.backend.service.log.interfaces.AuditService;
 import hospital.management.backend.service.log.interfaces.SystemLogService;
-import hospital.management.backend.utils.listeners.AppEvent;
-import hospital.management.backend.utils.listeners.AppEventType;
-import hospital.management.backend.utils.listeners.EventBus;
 import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
-import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.HBox;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.function.Consumer;
 
 /**
  * Controller for the admin Retention & Cleanup Settings page.
@@ -38,26 +24,18 @@ import java.util.function.Consumer;
  * is persisted yet.
  *
  * Integration checklist (connect when ready):
- * Integration status:
- *   - load/save policy: wired through RetentionPolicyStore
- *   - daemon control: wired through DatabaseCleanupDaemon (restart/runNow)
- *   - preview: user inactivity estimate + archive count are live
- *   - event stream: DATA_CLEANING_* is subscribed/unsubscribed on page lifecycle
+ *   TODO: initialize()  — call RetentionPolicyStore.load() and populate spinners
+ *   TODO: onSave()      — call RetentionPolicyStore.save() + DatabaseCleanupDaemon.restart()
+ *   TODO: onRunNow()    — call DatabaseCleanupDaemon.runNow()
+ *   TODO: onPreview()   — call UserInactivityCleaner.previewCount(), query log counts
+ *   TODO: onReset()     — reset spinners to RetentionPolicy defaults
+ *   TODO: EventBus      — subscribe DATA_CLEANING_* events to update lastRunLog + statusLabel
  */
 public class RetentionSettingsController extends BasePageController {
-
-     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-     private static final Path LOG_DIR = Paths.get(System.getProperty("user.home"), ".hms", "logs");
 
     // ── Services ──────────────────────────────────────────────────────────────
     private final AuditService auditService = new AuditServiceImpl(new AuditLogDAOImpl());
     private final SystemLogService systemLogService = new SystemLogServiceImpl(new SystemLogDAOImpl());
-    private final UserInactivityCleaner userInactivityCleaner = new UserInactivityCleaner();
-
-    private Consumer<AppEvent> onCleaningStarted;
-    private Consumer<AppEvent> onCleaningProgress;
-    private Consumer<AppEvent> onCleaningCompleted;
-    private Consumer<AppEvent> onCleaningFailed;
 
     // ── Status banner ─────────────────────────────────────────────────────────
     @FXML private HBox  statusBanner;
@@ -103,20 +81,14 @@ public class RetentionSettingsController extends BasePageController {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.RETENTION);
 
         initSpinners();
-        statusLabel.setText("Daemon is running. Next scheduled run: based on saved interval.");
+        statusLabel.setText("Daemon is running. Next scheduled run: —");
         lastRunLabel.setText("Last run: never");
         nextRunLabel.setText("—");
         logDirLabel.setText("Log directory: " +
             System.getProperty("user.home") + "/.hms/logs/");
 
-        loadPolicyIntoForm();
-        refreshArchiveIndicators();
-        subscribeCleaningEvents();
-    }
-
-    @FXML
-    private void onPageHidden() {
-        unsubscribeCleaningEvents();
+        // TODO: load real policy from RetentionPolicyStore.load()
+        // TODO: subscribe to EventBus DATA_CLEANING_* events
     }
 
     // ── Spinner setup ─────────────────────────────────────────────────────────
@@ -171,16 +143,6 @@ public class RetentionSettingsController extends BasePageController {
         return policy;
     }
 
-    private void loadPolicyIntoForm() {
-        RetentionPolicy policy = RetentionPolicyStore.load();
-        inactiveUserDaysSpinner.getValueFactory().setValue(policy.getInactiveUserDays());
-        dbLogRetentionSpinner.getValueFactory().setValue(policy.getDbLogRetentionDays());
-        fileLogMaxSizeSpinner.getValueFactory().setValue(policy.getFileLogMaxSizeMb());
-        archiveRetentionSpinner.getValueFactory().setValue(policy.getArchiveRetentionDays());
-        intervalHoursSpinner.getValueFactory().setValue(policy.getCleanupIntervalHours());
-        nextRunLabel.setText("Every " + policy.getCleanupIntervalHours() + " hour(s)");
-    }
-
     // ── Handlers (stubs) ──────────────────────────────────────────────────────
 
     @FXML
@@ -188,11 +150,10 @@ public class RetentionSettingsController extends BasePageController {
         withSpinner(saveBtn, () -> {
             try {
                 RetentionPolicy policy = buildPolicyFromForm();
-                RetentionPolicyStore.save(policy);
-                DatabaseCleanupDaemon.restart();
-                appendToLog("[INFO] Settings saved and daemon restarted: " + policy);
-                statusLabel.setText("Settings saved and daemon restarted.");
-                nextRunLabel.setText("Every " + policy.getCleanupIntervalHours() + " hour(s)");
+                // TODO: RetentionPolicyStore.save(policy);
+                // TODO: DatabaseCleanupDaemon.restart();
+                appendToLog("[STUB] Settings saved: " + policy);
+                statusLabel.setText("Settings saved — daemon will restart on next cycle.");
                 toastSuccess("Retention settings saved.");
             } catch (IllegalArgumentException e) {
                 toastError(e.getMessage());
@@ -207,12 +168,14 @@ public class RetentionSettingsController extends BasePageController {
                 () -> {
                     try {
                         RetentionPolicy policy = buildPolicyFromForm();
-                        RetentionPolicyStore.save(policy);
-                        appendToLog("[INFO] Manual cleanup requested.");
-                        runNowBtn.setDisable(true);
-                        statusLabel.setText("Cleanup running...");
-                        DatabaseCleanupDaemon.runNow();
-                        toastSuccess("Cleanup run started.");
+                        int sysPurged = systemLogService.purgeOlderThanDays(policy.getDbLogRetentionDays());
+                        int auditPurged = auditService.purgeOlderThanDays(policy.getDbLogRetentionDays());
+                        appendToLog("[INFO] Purged " + sysPurged + " system log(s) and "
+                                + auditPurged + " audit log(s) older than "
+                                + policy.getDbLogRetentionDays() + " days.");
+                        lastRunLabel.setText("Last run: just now");
+                        statusLabel.setText("Cleanup completed.");
+                        toastSuccess("Cleanup run completed.");
                     } catch (IllegalArgumentException e) {
                         toastError(e.getMessage());
                     } catch (Exception e) {
@@ -224,29 +187,14 @@ public class RetentionSettingsController extends BasePageController {
     @FXML
     private void onPreview() {
         withSpinner(previewBtn, () -> {
-            RetentionPolicy policy;
-            try {
-                policy = buildPolicyFromForm();
-            } catch (IllegalArgumentException e) {
-                toastError(e.getMessage());
-                return;
-            }
-
-            int usersToDeactivate = userInactivityCleaner.previewCount(policy);
-            int archiveCount = countArchives();
-            previewUserCount.setText(usersToDeactivate >= 0 ? String.valueOf(usersToDeactivate) : "n/a");
-            previewSysLogCount.setText("depends on current DB log volume");
-            previewAuditLogCount.setText("depends on current DB log volume");
-            previewArchiveCount.setText(String.valueOf(archiveCount));
-            previewDeleteCount.setText("based on " + policy.getArchiveRetentionDays() + " day retention");
-            previewNote.setText("Preview mixes exact (users, archive count) and bounded estimates.");
-
-            inactiveUserCount.setText(usersToDeactivate >= 0 ? String.valueOf(usersToDeactivate) : "n/a");
-            archiveCount = Math.max(archiveCount, 0);
-            archiveCount = archiveCount; // keep explicit for readability in UI flow
-            this.archiveCount.setText(String.valueOf(archiveCount));
-
-            toast("Preview refreshed.", NotificationType.INFO);
+            // TODO: run previewCount queries and update all preview labels
+            previewNote.setText("Preview not yet connected to backend.");
+            previewUserCount.setText("?");
+            previewSysLogCount.setText("?");
+            previewAuditLogCount.setText("?");
+            previewArchiveCount.setText("?");
+            previewDeleteCount.setText("?");
+            toast("Preview not yet connected to backend.", NotificationType.WARNING);
         });
     }
 
@@ -259,7 +207,6 @@ public class RetentionSettingsController extends BasePageController {
             archiveRetentionSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_ARCHIVE_RETENTION_DAYS);
             intervalHoursSpinner.getValueFactory().setValue(RetentionPolicy.DEFAULT_CLEANUP_INTERVAL_HOURS);
             appendToLog("[INFO] Settings reset to defaults.");
-            refreshArchiveIndicators();
             toastSuccess("Settings reset to defaults.");
         });
     }
@@ -275,7 +222,7 @@ public class RetentionSettingsController extends BasePageController {
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void appendToLog(String line) {
-        lastRunLog.appendText("[" + LocalDateTime.now().format(TS) + "] " + line + "\n");
+        lastRunLog.appendText(line + "\n");
     }
 
     /**
@@ -288,77 +235,5 @@ public class RetentionSettingsController extends BasePageController {
         lastRunLabel.setText("Last run: just now");
         statusLabel.setText("Cleanup completed.");
         runNowBtn.setDisable(false);
-        refreshArchiveIndicators();
-    }
-
-    private void subscribeCleaningEvents() {
-        onCleaningStarted = e -> Platform.runLater(() -> {
-            statusLabel.setText("Cleanup running...");
-            appendToLog("[INFO] Cleanup cycle started.");
-            runNowBtn.setDisable(true);
-        });
-        onCleaningProgress = e -> Platform.runLater(() -> {
-            Object payload = e.getPayload();
-            appendToLog("[INFO] Task progress: " + payload);
-        });
-        onCleaningCompleted = e -> Platform.runLater(() -> {
-            Object payload = e.getPayload();
-            if (payload instanceof java.util.List<?> list) {
-                list.forEach(item -> appendToLog(String.valueOf(item)));
-            }
-            lastRunLabel.setText("Last run: " + LocalDateTime.now().format(TS));
-            statusLabel.setText("Cleanup completed.");
-            runNowBtn.setDisable(false);
-            refreshArchiveIndicators();
-        });
-        onCleaningFailed = e -> Platform.runLater(() -> {
-            appendToLog("[ERROR] " + e.getPayload());
-            statusLabel.setText("Cleanup finished with errors.");
-            runNowBtn.setDisable(false);
-        });
-
-        EventBus.subscribe(AppEventType.DATA_CLEANING_STARTED, onCleaningStarted);
-        EventBus.subscribe(AppEventType.DATA_CLEANING_PROGRESS, onCleaningProgress);
-        EventBus.subscribe(AppEventType.DATA_CLEANING_COMPLETED, onCleaningCompleted);
-        EventBus.subscribe(AppEventType.DATA_CLEANING_FAILED, onCleaningFailed);
-    }
-
-    private void unsubscribeCleaningEvents() {
-        if (onCleaningStarted != null) {
-            EventBus.unsubscribe(AppEventType.DATA_CLEANING_STARTED, onCleaningStarted);
-            onCleaningStarted = null;
-        }
-        if (onCleaningProgress != null) {
-            EventBus.unsubscribe(AppEventType.DATA_CLEANING_PROGRESS, onCleaningProgress);
-            onCleaningProgress = null;
-        }
-        if (onCleaningCompleted != null) {
-            EventBus.unsubscribe(AppEventType.DATA_CLEANING_COMPLETED, onCleaningCompleted);
-            onCleaningCompleted = null;
-        }
-        if (onCleaningFailed != null) {
-            EventBus.unsubscribe(AppEventType.DATA_CLEANING_FAILED, onCleaningFailed);
-            onCleaningFailed = null;
-        }
-    }
-
-    private void refreshArchiveIndicators() {
-        int archives = countArchives();
-        this.archiveCount.setText(String.valueOf(archives));
-        dbLogCount.setText("—");
-    }
-
-    private int countArchives() {
-        try {
-            if (!Files.isDirectory(LOG_DIR)) return 0;
-            try (java.util.stream.Stream<Path> stream = Files.list(LOG_DIR)) {
-                return (int) stream
-                    .filter(Files::isRegularFile)
-                    .filter(p -> p.getFileName().toString().endsWith(".log.gz"))
-                    .count();
-            }
-        } catch (Exception e) {
-            return 0;
-        }
     }
 }

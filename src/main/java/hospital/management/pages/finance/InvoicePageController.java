@@ -22,20 +22,15 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.finance.InvoiceTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
-import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
-import javafx.print.PrinterJob;
 import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.text.Text;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +53,6 @@ public class InvoicePageController extends BasePageController implements QuickAd
     @FXML private Label pendingLabel;
 
     @FXML private Button newInvoiceBtn;
-    @FXML private Button importCsvBtn;
     @FXML private Button exportCsvBtn;
     @FXML private Button printReportBtn;
 
@@ -71,20 +65,14 @@ public class InvoicePageController extends BasePageController implements QuickAd
         paidLabel.setText("$0.00");
         pendingLabel.setText("$0.00");
 
-        applyCreateVisibility(newInvoiceBtn, PageRoute.BILLING);
-        applyCreateVisibility(importCsvBtn, PageRoute.BILLING);
         newInvoiceBtn.setOnAction(e -> openInvoiceDialog());
-        importCsvBtn.setOnAction(e -> withSpinner(importCsvBtn, this::importInvoicesCsv));
-        exportCsvBtn.setOnAction(e -> withSpinner(exportCsvBtn, this::exportInvoicesCsv));
-        printReportBtn.setOnAction(e -> printReport());
-        printReportBtn.setVisible(canRead(PageRoute.BILLING));
-        printReportBtn.setManaged(canRead(PageRoute.BILLING));
+        exportCsvBtn.setOnAction(e -> toast("Export not yet implemented.", NotificationType.INFO));
+        printReportBtn.setOnAction(e -> toast("Print not yet implemented.", NotificationType.INFO));
 
         invoiceTableController.setRowActions(
-            canUpdate(PageRoute.BILLING) ? invoice -> toast("Invoices can't be edited after issuance.", NotificationType.INFO) : null,
-            allowDelete(PageRoute.BILLING, this::confirmDeleteInvoice),
-            allowRead(PageRoute.BILLING, this::viewInvoiceDetail));
-        invoiceTableController.setOnChangeStatus(canUpdate(PageRoute.BILLING) ? this::markInvoicePaid : null);
+                invoice -> toast("Invoices can't be edited after issuance.", NotificationType.INFO),
+                this::confirmDeleteInvoice, this::viewInvoiceDetail);
+        invoiceTableController.setOnChangeStatus(this::markInvoicePaid);
 
         refreshTable();
     }
@@ -275,177 +263,5 @@ public class InvoicePageController extends BasePageController implements QuickAd
                 toastError("Failed to load appointments: " + ex.getMessage());
                 onOneLoaded.run();
             });
-    }
-
-    private void exportInvoicesCsv() {
-        try {
-            if (invoices.isEmpty()) {
-                toastError("No invoices available to export.");
-                return;
-            }
-
-            List<InvoiceDTO> source = chooseInvoiceExportSource();
-            if (source == null || source.isEmpty()) {
-                return;
-            }
-
-            List<Map<String, Object>> rows = new ArrayList<>();
-            for (InvoiceDTO invoice : source) {
-                Map<String, Object> row = new LinkedHashMap<>();
-                row.put("invoice_id", invoice.getInvoiceId());
-                row.put("appointment_id", invoice.getAppointmentId());
-                row.put("patient_id", invoice.getPatientId());
-                row.put("total_amount", invoice.getTotalAmount());
-                row.put("payment_status", invoice.getPaymentStatus());
-                row.put("issued_at", invoice.getIssuedAt());
-                rows.add(row);
-            }
-
-            boolean saved = CsvUiIO.exportRows(exportCsvBtn.getScene().getWindow(), "invoices.csv", rows);
-            if (saved) {
-                toastSuccess("Invoices exported successfully.");
-            }
-        } catch (Exception e) {
-            toastError("Failed to export invoices: " + e.getMessage());
-        }
-    }
-
-    private List<InvoiceDTO> chooseInvoiceExportSource() {
-        ChoiceDialog<String> dialog = new ChoiceDialog<>("All loaded rows", "All loaded rows", "Current table view");
-        dialog.setTitle("Export Invoices");
-        dialog.setHeaderText("Choose what to export");
-        dialog.setContentText("Export scope:");
-        String choice = dialog.showAndWait().orElse(null);
-        if (choice == null) {
-            return List.of();
-        }
-        if ("Current table view".equals(choice)) {
-            return new ArrayList<>(invoiceTableController.getTable().getItems());
-        }
-        return invoices;
-    }
-
-    private void importInvoicesCsv() {
-        try {
-            List<Map<String, String>> rows = CsvUiIO.importRows(importCsvBtn.getScene().getWindow(), "Import Invoices CSV");
-            if (rows.isEmpty()) {
-                return;
-            }
-
-            int success = 0;
-            int failed = 0;
-            List<String> failures = new ArrayList<>();
-
-            for (Map<String, String> row : rows) {
-                try {
-                    String appointmentId = readColumn(row, "appointment_id", "appointmentId");
-                    String patientId = readColumn(row, "patient_id", "patientId");
-                    String totalAmount = readColumn(row, "total_amount", "totalAmount");
-
-                    if (appointmentId == null || patientId == null || totalAmount == null) {
-                        throw new IllegalArgumentException("Missing required columns appointment_id, patient_id, total_amount");
-                    }
-
-                    invoiceService.generate(new CreateInvoiceDTO(
-                            appointmentId.trim(),
-                            patientId.trim(),
-                            new BigDecimal(totalAmount.trim())));
-                    success++;
-                } catch (Exception ex) {
-                    failed++;
-                    if (failures.size() < 3) {
-                        failures.add(ex.getMessage());
-                    }
-                }
-            }
-
-            refreshTable();
-            if (failed == 0) {
-                toastSuccess("Imported " + success + " invoice rows.");
-            } else {
-                String details = failures.isEmpty() ? "" : " Example errors: " + String.join(" | ", failures);
-                toastError("Imported " + success + " rows, failed " + failed + "." + details);
-            }
-        } catch (Exception e) {
-            toastError("Failed to import invoices: " + e.getMessage());
-        }
-    }
-
-    private String readColumn(Map<String, String> row, String preferred, String alternate) {
-        if (row.containsKey(preferred)) {
-            return row.get(preferred);
-        }
-        if (row.containsKey(alternate)) {
-            return row.get(alternate);
-        }
-
-        Map<String, String> normalized = new HashMap<>();
-        row.forEach((k, v) -> normalized.put(normalizeHeader(k), v));
-        String normalizedPreferred = normalizeHeader(preferred);
-        if (normalized.containsKey(normalizedPreferred)) {
-            return normalized.get(normalizedPreferred);
-        }
-        return normalized.get(normalizeHeader(alternate));
-    }
-
-    private String normalizeHeader(String header) {
-        if (header == null) {
-            return "";
-        }
-        return header.trim().toLowerCase().replace(" ", "_");
-    }
-
-    private void printReport() {
-        if (invoices.isEmpty()) {
-            toastError("No billing data available to print.");
-            return;
-        }
-
-        BigDecimal total = BigDecimal.ZERO;
-        BigDecimal paid = BigDecimal.ZERO;
-        for (InvoiceDTO invoice : invoices) {
-            BigDecimal amount = invoice.getTotalAmount() == null ? BigDecimal.ZERO : invoice.getTotalAmount();
-            total = total.add(amount);
-            if (STATUS_PAID.equalsIgnoreCase(invoice.getPaymentStatus())) {
-                paid = paid.add(amount);
-            }
-        }
-
-        StringBuilder content = new StringBuilder();
-        content.append("Hospital Billing Report\n\n");
-        content.append("Total invoices: ").append(invoices.size()).append("\n");
-        content.append("Total revenue: $").append(total.toPlainString()).append("\n");
-        content.append("Paid amount: $").append(paid.toPlainString()).append("\n");
-        content.append("Pending amount: $").append(total.subtract(paid).toPlainString()).append("\n\n");
-        content.append("Invoice ID, Patient ID, Appointment ID, Amount, Status, Issued At\n");
-        for (InvoiceDTO invoice : invoices) {
-            content.append(invoice.getInvoiceId()).append(",")
-                    .append(invoice.getPatientId()).append(",")
-                    .append(invoice.getAppointmentId()).append(",")
-                    .append(invoice.getTotalAmount() == null ? "0" : invoice.getTotalAmount().toPlainString()).append(",")
-                    .append(invoice.getPaymentStatus() == null ? "" : invoice.getPaymentStatus()).append(",")
-                    .append(invoice.getIssuedAt() == null ? "" : invoice.getIssuedAt())
-                    .append("\n");
-        }
-
-        PrinterJob job = PrinterJob.createPrinterJob();
-        if (job == null) {
-            toastError("No printer available.");
-            return;
-        }
-        Text printable = new Text(content.toString());
-        printable.setWrappingWidth(520);
-
-        boolean proceed = job.showPrintDialog(printReportBtn.getScene().getWindow());
-        if (!proceed) {
-            return;
-        }
-        boolean success = job.printPage(printable);
-        if (success) {
-            job.endJob();
-            toastSuccess("Billing report sent to printer.");
-        } else {
-            toastError("Failed to print billing report.");
-        }
     }
 }

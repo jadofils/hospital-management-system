@@ -28,7 +28,6 @@ import hospital.management.backend.dto.patient.VitalSignDTO;
 import hospital.management.backend.dto.pharmacy.CreatePrescriptionDTO;
 import hospital.management.backend.dto.pharmacy.CreatePrescriptionItemDTO;
 import hospital.management.backend.dto.pharmacy.PrescriptionDTO;
-import hospital.management.backend.config.security.SessionManager;
 import hospital.management.backend.exceptions.AppException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
@@ -42,7 +41,6 @@ import hospital.management.backend.service.patient.AllergyServiceImpl;
 import hospital.management.backend.service.patient.interfaces.AllergyService;
 import hospital.management.backend.service.patient.interfaces.PatientService;
 import hospital.management.backend.service.patient.interfaces.VitalSignService;
-import hospital.management.backend.service.patient.PatientNotesNoSqlService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.backend.service.patient.VitalSignServiceImpl;
 import hospital.management.backend.service.pharmacy.PharmacyServiceImpl;
@@ -101,7 +99,6 @@ public class PatientDetailController extends BasePageController {
     private final InvoiceService invoiceService = new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl());
     private final PharmacyServiceImpl pharmacyService = new PharmacyServiceImpl(
         new MedicationDAOImpl(), new MedicalInventoryDAOImpl());
-    private final PatientNotesNoSqlService patientNotesNoSqlService = new PatientNotesNoSqlService();
 
     // Header
     @FXML private Label  patientNameLabel;
@@ -160,27 +157,15 @@ public class PatientDetailController extends BasePageController {
 
         backBtn.setOnAction(e -> navigateBack());
         editPatientBtn.setOnAction(e -> openEditPatientDialog());
-        editPatientBtn.setVisible(canUpdate(PageRoute.PATIENT_DETAIL));
-        editPatientBtn.setManaged(canUpdate(PageRoute.PATIENT_DETAIL));
 
-        applyCreateVisibility(addVitalBtn, PageRoute.PATIENT_DETAIL);
         addVitalBtn.setOnAction(e -> openVitalDialog(null));
-        vitalSignTableController.setRowActions(
-            allowUpdate(PageRoute.PATIENT_DETAIL, this::openVitalDialog),
-            allowDelete(PageRoute.PATIENT_DETAIL, this::confirmDeleteVital),
-            allowRead(PageRoute.PATIENT_DETAIL, this::viewVitalDetail));
+        vitalSignTableController.setRowActions(this::openVitalDialog, this::confirmDeleteVital, this::viewVitalDetail);
 
-        applyCreateVisibility(addRecordBtn, PageRoute.MEDICAL_RECORDS);
-        applyCreateVisibility(addPrescriptionBtn, PageRoute.PRESCRIPTIONS);
         addRecordBtn.setOnAction(e -> openRecordDialog(null));
         addPrescriptionBtn.setOnAction(e -> openPrescriptionDialog());
 
-        applyCreateVisibility(addAllergyBtn, PageRoute.PATIENT_DETAIL);
         addAllergyBtn.setOnAction(e -> openAllergyDialog(null));
-        patientAllergyTableController.setRowActions(
-            allowUpdate(PageRoute.PATIENT_DETAIL, this::openAllergyDialog),
-            allowDelete(PageRoute.PATIENT_DETAIL, this::confirmDeleteAllergy),
-            allowRead(PageRoute.PATIENT_DETAIL, this::viewAllergyDetail));
+        patientAllergyTableController.setRowActions(this::openAllergyDialog, this::confirmDeleteAllergy, this::viewAllergyDetail);
 
         // Medical Records, Appointments, Prescriptions, Lab Results and Billing are read-only
         // in this drill-down (full CRUD lives on their own pages) — hide their Actions column
@@ -497,9 +482,6 @@ public class PatientDetailController extends BasePageController {
                 } else {
                     medicalRecordService.update(record.getRecordId(), dto);
                 }
-
-                mirrorNotesToNoSql(appt, notes.getText());
-
                 refreshMedicalRecords();
                 formDialogController.close();
                 toastSuccess(addMode ? "Medical record added." : "Medical record updated.");
@@ -518,26 +500,6 @@ public class PatientDetailController extends BasePageController {
         formDialogController.addField("Notes", "fas-sticky-note", notes);
 
         loadAppointmentDropdown(appointmentIdField, recordOtherFields, addMode ? null : record.getAppointmentId());
-    }
-
-    private void mirrorNotesToNoSql(String appointmentId, String noteText) {
-        try {
-            if (currentPatient == null || noteText == null || noteText.trim().isEmpty()) {
-                return;
-            }
-            String role = SessionManager.getCurrentRole();
-            if (!("doctor".equalsIgnoreCase(role) || "admin".equalsIgnoreCase(role))) {
-                return;
-            }
-            patientNotesNoSqlService.saveNote(
-                    currentPatient.getPatientId(),
-                    appointmentId,
-                    SessionManager.getCurrentUserId(),
-                    role,
-                    noteText.trim());
-        } catch (Exception ignored) {
-            // Best-effort mirror: SQL medical record remains the source of truth.
-        }
     }
 
     // ── Prescriptions ─────────────────────────────────────────────────────
