@@ -94,7 +94,19 @@ public class PharmacyController extends BasePageController {
             inventory.clear();
             List<MedicationDTO> medications = pharmacyService.findAllMedications();
             for (MedicationDTO medication : medications) {
-                inventory.addAll(pharmacyService.findStockByMedication(medication.getMedicationId()));
+                List<MedicalInventoryDTO> rows = pharmacyService.findStockByMedication(medication.getMedicationId());
+                if (rows.isEmpty()) {
+                    MedicalInventoryDTO virtualRow = new MedicalInventoryDTO();
+                    virtualRow.setInventoryId("VIRTUAL:" + medication.getMedicationId());
+                    virtualRow.setMedicationId(medication.getMedicationId());
+                    virtualRow.setBatchNumber("No stock batch yet");
+                    virtualRow.setQuantityInStock(0);
+                    virtualRow.setReorderLevel(0);
+                    virtualRow.setSupplier("-");
+                    inventory.add(virtualRow);
+                } else {
+                    inventory.addAll(rows);
+                }
             }
             inventoryTableController.setItems(inventory);
             lowStockTableController.setItems(pharmacyService.findLowStock());
@@ -173,7 +185,7 @@ public class PharmacyController extends BasePageController {
                 pharmacyService.addMedication(new CreateMedicationDTO(name, genericName, form, unitPrice));
                 refreshInventoryTables();
                 formDialogController.close();
-                toastSuccess("Medication created. You can now select it in the inventory dropdown.");
+                toastSuccess("Medication created and shown in inventory table. Add a batch to stock it.");
             } catch (AppException ex) {
                 formDialogController.setError(ex.getMessage());
                 formDialogController.setLoading(false);
@@ -191,7 +203,8 @@ public class PharmacyController extends BasePageController {
 
     /** Opens the shared form dialog in Add mode (item == null) or Update mode. */
     private void openInventoryDialog(MedicalInventoryDTO item) {
-        boolean addMode = item == null;
+        boolean virtualRow = item != null && item.getInventoryId() != null && item.getInventoryId().startsWith("VIRTUAL:");
+        boolean addMode = item == null || virtualRow;
 
         LoadingIdComboBox medicationIdField = new LoadingIdComboBox();
         EntityIdComboBox medicationId = medicationIdField.getComboBox();
@@ -272,7 +285,11 @@ public class PharmacyController extends BasePageController {
         formDialogController.addField("Reorder Level", "fas-exclamation-triangle", reorderLevel);
         formDialogController.addField("Supplier", "fas-truck", supplier);
 
-        loadMedicationDropdown(medicationIdField, otherFields, addMode ? null : item);
+        loadMedicationDropdown(medicationIdField, otherFields, item);
+
+        if (virtualRow && item != null) {
+            medicationId.selectById(item.getMedicationId());
+        }
     }
 
     /** Loads the medication dropdown options asynchronously, showing its own spinner while

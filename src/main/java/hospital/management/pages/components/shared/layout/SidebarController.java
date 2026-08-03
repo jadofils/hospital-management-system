@@ -206,7 +206,7 @@ public class SidebarController {
             case BILLING         -> billingBtn;
             case DOCTORS         -> doctorsBtn;
             case MEDICAL_RECORDS -> medicalRecordsBtn;
-            case PRESCRIPTIONS   -> prescriptionsBtn;
+            case PRESCRIPTIONS   -> prescriptionsNavButton();
             case LAB_ORDERS      -> labOrdersBtn;
             case REFERRALS       -> referralsBtn;
             case MY_SCHEDULE     -> scheduleBtn;
@@ -297,7 +297,7 @@ public class SidebarController {
     @FXML private void handleBilling()        { navigate(PageRoute.BILLING, billingBtn); }
     @FXML private void handleDoctors()        { navigate(PageRoute.DOCTORS, doctorsBtn); }
     @FXML private void handleMedicalRecords() { navigate(PageRoute.MEDICAL_RECORDS, medicalRecordsBtn); }
-    @FXML private void handlePrescriptions()  { navigate(PageRoute.PRESCRIPTIONS, prescriptionsBtn); }
+    @FXML private void handlePrescriptions()  { navigate(PageRoute.PRESCRIPTIONS, prescriptionsNavButton()); }
     @FXML private void handleLabOrders()      { navigate(PageRoute.LAB_ORDERS, labOrdersBtn); }
     @FXML private void handleReferrals()      { navigate(PageRoute.REFERRALS, referralsBtn); }
     @FXML private void handleSchedule()       { navigate(PageRoute.MY_SCHEDULE, scheduleBtn); }
@@ -395,6 +395,10 @@ public class SidebarController {
         };
         for (Button b : candidates) if (b != null) buttons.add(b);
         return buttons;
+    }
+
+    private Button prescriptionsNavButton() {
+        return prescriptionsBtn != null ? prescriptionsBtn : prescriptionsQueueBtn;
     }
 
     private void show(VBox... sections) {
