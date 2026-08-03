@@ -22,6 +22,7 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.finance.InvoiceTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -31,6 +32,7 @@ import javafx.scene.control.TextField;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +55,7 @@ public class InvoicePageController extends BasePageController implements QuickAd
     @FXML private Label pendingLabel;
 
     @FXML private Button newInvoiceBtn;
+    @FXML private Button importCsvBtn;
     @FXML private Button exportCsvBtn;
     @FXML private Button printReportBtn;
 
@@ -66,7 +69,8 @@ public class InvoicePageController extends BasePageController implements QuickAd
         pendingLabel.setText("$0.00");
 
         newInvoiceBtn.setOnAction(e -> openInvoiceDialog());
-        exportCsvBtn.setOnAction(e -> toast("Export not yet implemented.", NotificationType.INFO));
+        importCsvBtn.setOnAction(e -> withSpinner(importCsvBtn, this::importInvoicesCsv));
+        exportCsvBtn.setOnAction(e -> withSpinner(exportCsvBtn, this::exportInvoicesCsv));
         printReportBtn.setOnAction(e -> toast("Print not yet implemented.", NotificationType.INFO));
 
         invoiceTableController.setRowActions(
@@ -263,5 +267,103 @@ public class InvoicePageController extends BasePageController implements QuickAd
                 toastError("Failed to load appointments: " + ex.getMessage());
                 onOneLoaded.run();
             });
+    }
+
+    private void exportInvoicesCsv() {
+        try {
+            if (invoices.isEmpty()) {
+                toastError("No invoices available to export.");
+                return;
+            }
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (InvoiceDTO invoice : invoices) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("invoice_id", invoice.getInvoiceId());
+                row.put("appointment_id", invoice.getAppointmentId());
+                row.put("patient_id", invoice.getPatientId());
+                row.put("total_amount", invoice.getTotalAmount());
+                row.put("payment_status", invoice.getPaymentStatus());
+                row.put("issued_at", invoice.getIssuedAt());
+                rows.add(row);
+            }
+
+            boolean saved = CsvUiIO.exportRows(exportCsvBtn.getScene().getWindow(), "invoices.csv", rows);
+            if (saved) {
+                toastSuccess("Invoices exported successfully.");
+            }
+        } catch (Exception e) {
+            toastError("Failed to export invoices: " + e.getMessage());
+        }
+    }
+
+    private void importInvoicesCsv() {
+        try {
+            List<Map<String, String>> rows = CsvUiIO.importRows(importCsvBtn.getScene().getWindow(), "Import Invoices CSV");
+            if (rows.isEmpty()) {
+                return;
+            }
+
+            int success = 0;
+            int failed = 0;
+            List<String> failures = new ArrayList<>();
+
+            for (Map<String, String> row : rows) {
+                try {
+                    String appointmentId = readColumn(row, "appointment_id", "appointmentId");
+                    String patientId = readColumn(row, "patient_id", "patientId");
+                    String totalAmount = readColumn(row, "total_amount", "totalAmount");
+
+                    if (appointmentId == null || patientId == null || totalAmount == null) {
+                        throw new IllegalArgumentException("Missing required columns appointment_id, patient_id, total_amount");
+                    }
+
+                    invoiceService.generate(new CreateInvoiceDTO(
+                            appointmentId.trim(),
+                            patientId.trim(),
+                            new BigDecimal(totalAmount.trim())));
+                    success++;
+                } catch (Exception ex) {
+                    failed++;
+                    if (failures.size() < 3) {
+                        failures.add(ex.getMessage());
+                    }
+                }
+            }
+
+            refreshTable();
+            if (failed == 0) {
+                toastSuccess("Imported " + success + " invoice rows.");
+            } else {
+                String details = failures.isEmpty() ? "" : " Example errors: " + String.join(" | ", failures);
+                toastError("Imported " + success + " rows, failed " + failed + "." + details);
+            }
+        } catch (Exception e) {
+            toastError("Failed to import invoices: " + e.getMessage());
+        }
+    }
+
+    private String readColumn(Map<String, String> row, String preferred, String alternate) {
+        if (row.containsKey(preferred)) {
+            return row.get(preferred);
+        }
+        if (row.containsKey(alternate)) {
+            return row.get(alternate);
+        }
+
+        Map<String, String> normalized = new HashMap<>();
+        row.forEach((k, v) -> normalized.put(normalizeHeader(k), v));
+        String normalizedPreferred = normalizeHeader(preferred);
+        if (normalized.containsKey(normalizedPreferred)) {
+            return normalized.get(normalizedPreferred);
+        }
+        return normalized.get(normalizeHeader(alternate));
+    }
+
+    private String normalizeHeader(String header) {
+        if (header == null) {
+            return "";
+        }
+        return header.trim().toLowerCase().replace(" ", "_");
     }
 }

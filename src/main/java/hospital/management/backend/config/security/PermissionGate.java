@@ -21,9 +21,11 @@ import java.util.Set;
 /**
  * Central route access gate.
  *
- * A page is visible/navigable when BOTH are true:
- * 1) the role is allowed by PageRoute metadata
- * 2) the logged-in user has at least one CRUD permission on the page resource
+ * A page is visible/navigable when the logged-in user has at least one
+ * CRUD permission on the route resource mapping.
+ *
+ * This keeps page access dynamic for custom roles created at runtime,
+ * including roles not listed in the RoleName enum.
  *
  * CRUD actions considered: create, read, update, delete (and edit alias).
  */
@@ -68,18 +70,15 @@ public final class PermissionGate {
     private PermissionGate() {}
 
     public static RoleName currentRole() {
-        return RoleName.fromDbValue(SessionManager.getCurrentRole());
+        try {
+            return RoleName.fromDbValue(SessionManager.getCurrentRole());
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     public static boolean isAllowed(PageRoute route) {
         if (route == PageRoute.HOME || route == PageRoute.PROFILE) return true;
-
-        try {
-            RoleName r = currentRole();
-            if (!route.isAllowedFor(r)) return false;
-        } catch (Exception ignored) {
-            return false;
-        }
 
         if (route == PageRoute.DASHBOARD) {
             return isAllowed(PageRoute.PATIENTS)
