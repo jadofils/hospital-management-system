@@ -15,6 +15,12 @@ By the end of this project, learners will be able to:
 - Compare relational and NoSQL designs for unstructured data storage such as patient notes or medical logs
 - Measure and document performance improvement through optimization and indexing
 
+NoSQL scope in this project:
+- Use MongoDB only for unstructured or semi-structured records (for example patient notes, medical logs, and notification payloads).
+- Keep core transactional entities (patients, appointments, billing, prescriptions, inventory, users/roles) in PostgreSQL.
+- Use environment variable MONGO_URL for MongoDB connection configuration.
+- Include benchmark evidence in reports by comparing query/insert latency and throughput before vs after indexing in both PostgreSQL and MongoDB for the selected unstructured dataset.
+
 ---
 
 ## Project Overview
@@ -163,6 +169,9 @@ The system must reflect real-world hospital logic (patients, doctors, department
 | NoSQL Design *(Optional)* | Documented schema or implementation for storing unstructured data (e.g., patient notes) |
 | README File | Setup guide, dependencies, how to run SQL scripts, and usage instructions |
 | Testing Evidence | Screenshots or reports showing correct query results and validation outcomes |
+
+Performance report starter template:
+- See `PERFORMANCE_REPORT_TEMPLATE.md` for a ready-to-fill structure aligned to relational vs NoSQL comparison and before/after indexing benchmarks.
 
 ---
 
