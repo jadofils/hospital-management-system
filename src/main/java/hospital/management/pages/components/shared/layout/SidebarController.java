@@ -7,7 +7,6 @@ import hospital.management.backend.dao.auth.UserDAOImpl;
 import hospital.management.backend.dao.auth.UserRoleDAOImpl;
 import hospital.management.backend.dao.auth.UserSessionDAOImpl;
 import hospital.management.backend.dao.log.AuditLogDAOImpl;
-import hospital.management.backend.model.enums.RoleName;
 import hospital.management.backend.service.auth.AuthServiceImpl;
 import hospital.management.backend.service.auth.interfaces.AuthService;
 import hospital.management.enums.PageRoute;
@@ -140,7 +139,7 @@ public class SidebarController {
 
     // ── Role-based section visibility ─────────────────────────────────────
 
-    public void configureForRole(RoleName role) {
+    public void configureForRole(String role) {
         Map<Button, PageRoute> buttonRoutes = new LinkedHashMap<>();
         buttonRoutes.put(dashboardBtn, PageRoute.DASHBOARD);
         buttonRoutes.put(patientsBtn, PageRoute.PATIENTS);

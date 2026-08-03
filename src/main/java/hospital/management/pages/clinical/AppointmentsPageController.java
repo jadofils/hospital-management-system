@@ -59,9 +59,13 @@ public class AppointmentsPageController extends BasePageController implements Qu
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.APPOINTMENTS);
 
+        applyCreateVisibility(addAppointmentBtn, PageRoute.APPOINTMENTS);
         addAppointmentBtn.setOnAction(e -> openAppointmentDialog(null));
-        appointmentTableController.setRowActions(this::openAppointmentDialog, this::confirmDeleteAppointment, this::viewAppointmentDetail);
-        appointmentTableController.setOnChangeStatus(this::openAppointmentStatusDialog);
+        appointmentTableController.setRowActions(
+            allowUpdate(PageRoute.APPOINTMENTS, this::openAppointmentDialog),
+            allowDelete(PageRoute.APPOINTMENTS, this::confirmDeleteAppointment),
+            allowRead(PageRoute.APPOINTMENTS, this::viewAppointmentDetail));
+        appointmentTableController.setOnChangeStatus(canUpdate(PageRoute.APPOINTMENTS) ? this::openAppointmentStatusDialog : null);
 
         if (calendarController != null) {
             calendarController.setOnDateSelected(this::loadAppointmentsForDate);

@@ -57,8 +57,12 @@ public class ScheduleController extends BasePageController {
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.MY_SCHEDULE);
 
+        applyCreateVisibility(addSlotBtn, PageRoute.MY_SCHEDULE);
         addSlotBtn.setOnAction(e -> openScheduleDialog(null));
-        scheduleTableController.setRowActions(this::openScheduleDialog, this::confirmDeleteSchedule, this::viewScheduleDetail);
+        scheduleTableController.setRowActions(
+            allowUpdate(PageRoute.MY_SCHEDULE, this::openScheduleDialog),
+            allowDelete(PageRoute.MY_SCHEDULE, this::confirmDeleteSchedule),
+            allowRead(PageRoute.MY_SCHEDULE, this::viewScheduleDetail));
 
         refreshTable();
     }

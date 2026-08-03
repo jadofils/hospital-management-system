@@ -60,11 +60,13 @@ public class LabOrdersController extends BasePageController {
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         statusFilter.setOnAction(e -> applyFilter());
 
+        applyCreateVisibility(newOrderBtn, PageRoute.LAB_ORDERS);
         newOrderBtn.setOnAction(e -> openLabOrderDialog());
         labOrderTableController.setRowActions(
-                o -> toast("Lab orders can't be edited once placed.", NotificationType.INFO),
-                this::confirmDeleteLabOrder, this::viewLabOrderDetail);
-        labOrderTableController.setOnChangeStatus(this::openRecordResultDialog);
+            canUpdate(PageRoute.LAB_ORDERS) ? o -> toast("Lab orders can't be edited once placed.", NotificationType.INFO) : null,
+            allowDelete(PageRoute.LAB_ORDERS, this::confirmDeleteLabOrder),
+            allowRead(PageRoute.LAB_ORDERS, this::viewLabOrderDetail));
+        labOrderTableController.setOnChangeStatus(canUpdate(PageRoute.LAB_ORDERS) ? this::openRecordResultDialog : null);
 
         refreshTable();
     }

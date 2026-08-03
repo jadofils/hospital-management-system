@@ -46,8 +46,12 @@ public class PatientsPageController extends BasePageController implements QuickA
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         statusFilter.setOnAction(e -> applyFilter());
 
+        applyCreateVisibility(addPatientBtn, PageRoute.PATIENTS);
         addPatientBtn.setOnAction(e -> openPatientDialog(null));
-        patientTableController.setRowActions(this::openPatientDialog, this::confirmDeletePatient, this::viewPatientDetail);
+        patientTableController.setRowActions(
+            allowUpdate(PageRoute.PATIENTS, this::openPatientDialog),
+            allowDelete(PageRoute.PATIENTS, this::confirmDeletePatient),
+            allowRead(PageRoute.PATIENTS, this::viewPatientDetail));
 
         if (advancedSearchController != null) {
             advancedSearchController.setOnSearch(this::applyAdvancedSearch);

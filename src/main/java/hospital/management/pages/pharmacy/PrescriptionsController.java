@@ -60,10 +60,12 @@ public class PrescriptionsController extends BasePageController {
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
+        applyCreateVisibility(newPrescriptionBtn, PageRoute.PRESCRIPTIONS);
         newPrescriptionBtn.setOnAction(e -> openPrescriptionDialog());
         prescriptionTableController.setRowActions(
-                p -> toast("Prescriptions can't be edited once issued.", NotificationType.INFO),
-                this::confirmDeletePrescription, this::viewPrescriptionDetail);
+            canUpdate(PageRoute.PRESCRIPTIONS) ? p -> toast("Prescriptions can't be edited once issued.", NotificationType.INFO) : null,
+            allowDelete(PageRoute.PRESCRIPTIONS, this::confirmDeletePrescription),
+            allowRead(PageRoute.PRESCRIPTIONS, this::viewPrescriptionDetail));
 
         refreshTable();
     }

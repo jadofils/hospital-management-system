@@ -157,15 +157,27 @@ public class PatientDetailController extends BasePageController {
 
         backBtn.setOnAction(e -> navigateBack());
         editPatientBtn.setOnAction(e -> openEditPatientDialog());
+        editPatientBtn.setVisible(canUpdate(PageRoute.PATIENT_DETAIL));
+        editPatientBtn.setManaged(canUpdate(PageRoute.PATIENT_DETAIL));
 
+        applyCreateVisibility(addVitalBtn, PageRoute.PATIENT_DETAIL);
         addVitalBtn.setOnAction(e -> openVitalDialog(null));
-        vitalSignTableController.setRowActions(this::openVitalDialog, this::confirmDeleteVital, this::viewVitalDetail);
+        vitalSignTableController.setRowActions(
+            allowUpdate(PageRoute.PATIENT_DETAIL, this::openVitalDialog),
+            allowDelete(PageRoute.PATIENT_DETAIL, this::confirmDeleteVital),
+            allowRead(PageRoute.PATIENT_DETAIL, this::viewVitalDetail));
 
+        applyCreateVisibility(addRecordBtn, PageRoute.MEDICAL_RECORDS);
+        applyCreateVisibility(addPrescriptionBtn, PageRoute.PRESCRIPTIONS);
         addRecordBtn.setOnAction(e -> openRecordDialog(null));
         addPrescriptionBtn.setOnAction(e -> openPrescriptionDialog());
 
+        applyCreateVisibility(addAllergyBtn, PageRoute.PATIENT_DETAIL);
         addAllergyBtn.setOnAction(e -> openAllergyDialog(null));
-        patientAllergyTableController.setRowActions(this::openAllergyDialog, this::confirmDeleteAllergy, this::viewAllergyDetail);
+        patientAllergyTableController.setRowActions(
+            allowUpdate(PageRoute.PATIENT_DETAIL, this::openAllergyDialog),
+            allowDelete(PageRoute.PATIENT_DETAIL, this::confirmDeleteAllergy),
+            allowRead(PageRoute.PATIENT_DETAIL, this::viewAllergyDetail));
 
         // Medical Records, Appointments, Prescriptions, Lab Results and Billing are read-only
         // in this drill-down (full CRUD lives on their own pages) — hide their Actions column
