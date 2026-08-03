@@ -11,7 +11,6 @@ talk to each other at runtime.
 src/main/java/hospital/management/
 │
 ├── Main.java                          JavaFX entry point — starts app + daemon
-├── Launcher.java                      Thin wrapper (module-info workaround)
 │
 ├── enums/                             UI-side enums (PageRoute, BloodGroup, etc.)
 ├── pages/                             JavaFX page controllers (one per screen)
