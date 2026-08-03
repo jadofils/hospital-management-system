@@ -20,7 +20,6 @@ public class SystemLogServiceImpl implements SystemLogService {
     private static final AppLogger logger = AppLogger.getLogger(SystemLogServiceImpl.class);
 
     private final SystemLogDAO systemLogDAO;
-    private final MongoLogStore mongoLogStore = new MongoLogStore();
 
     public SystemLogServiceImpl(SystemLogDAO systemLogDAO) {
         this.systemLogDAO = systemLogDAO;
@@ -39,7 +38,7 @@ public class SystemLogServiceImpl implements SystemLogService {
         entry.setUserId(userId);
         entry.setCreatedAt(java.time.LocalDateTime.now());
 
-        SystemLog saved = mongoLogStore.saveSystem(entry);
+        SystemLog saved = systemLogDAO.save(entry);
         logger.info("System log recorded: [" + saved.getLogLevel() + "] " + saved.getSource());
         EventBus.publish(AppEventType.SYSTEM_LOG_RECORDED, saved.getLogId());
         return SystemLogMapper.toDTO(saved);
@@ -47,18 +46,18 @@ public class SystemLogServiceImpl implements SystemLogService {
 
     @Override
     public PageResult<SystemLogDTO> findAll(PageRequest request) throws Exception {
-        return mongoLogStore.findAllSystem(request).map(SystemLogMapper::toDTO);
+        return systemLogDAO.findAll(request).map(SystemLogMapper::toDTO);
     }
 
     @Override
     public List<SystemLogDTO> findByLevel(String level) throws Exception {
         List<SystemLogDTO> dtos = new ArrayList<>();
-        for (SystemLog log : mongoLogStore.findSystemByLevel(level)) dtos.add(SystemLogMapper.toDTO(log));
+        for (SystemLog log : systemLogDAO.findByLevel(level)) dtos.add(SystemLogMapper.toDTO(log));
         return dtos;
     }
 
     @Override
     public int purgeOlderThanDays(int days) throws Exception {
-        return mongoLogStore.purgeSystemOlderThanDays(days);
+        return systemLogDAO.deleteOlderThanDays(days);
     }
 }
