@@ -1,0 +1,10 @@
+Hello {{recipientName}},
+
+{{actorName}} scheduled an appointment for {{patientName}} on {{appointmentTime}}.
+
+Notes: {{notes}}
+
+View appointment: {{appointmentUrl}}
+
+Regards,
+Hospital Management System
