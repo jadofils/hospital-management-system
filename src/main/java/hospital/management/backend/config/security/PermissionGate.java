@@ -75,6 +75,7 @@ public final class PermissionGate {
 
     public static boolean isAllowed(PageRoute route) {
         if (route == PageRoute.HOME || route == PageRoute.PROFILE) return true;
+        if (isAdmin()) return true;
 
         if (route == PageRoute.DASHBOARD) {
             return isAllowed(PageRoute.PATIENTS)
@@ -106,6 +107,7 @@ public final class PermissionGate {
 
     public static boolean hasPermission(PageRoute route, String action) {
         if (route == PageRoute.HOME || route == PageRoute.PROFILE) return true;
+        if (isAdmin()) return true;
         String normalizedAction = normalizeAction(action);
         if (normalizedAction.isBlank()) return false;
 
@@ -179,5 +181,10 @@ public final class PermissionGate {
 
     private static String safe(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isAdmin() {
+        String role = currentRole();
+        return role != null && "admin".equalsIgnoreCase(role);
     }
 }
