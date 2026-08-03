@@ -6,6 +6,7 @@ import hospital.management.backend.dao.auth.RolePermissionDAOImpl;
 import hospital.management.backend.dao.auth.UserRoleDAOImpl;
 import hospital.management.backend.dto.auth.PermissionDTO;
 import hospital.management.backend.dto.auth.RoleDTO;
+import hospital.management.backend.model.enums.RoleName;
 import hospital.management.backend.service.auth.RoleServiceImpl;
 import hospital.management.backend.service.auth.interfaces.RoleService;
 import hospital.management.enums.PageRoute;
@@ -20,11 +21,9 @@ import java.util.Set;
 /**
  * Central route access gate.
  *
- * A page is visible/navigable when the logged-in user has at least one
- * CRUD permission on the route resource mapping.
- *
- * This keeps page access dynamic for custom roles created at runtime,
- * including roles not listed in the RoleName enum.
+ * A page is visible/navigable when BOTH are true:
+ * 1) the role is allowed by PageRoute metadata
+ * 2) the logged-in user has at least one CRUD permission on the page resource
  *
  * CRUD actions considered: create, read, update, delete (and edit alias).
  */
@@ -68,15 +67,19 @@ public final class PermissionGate {
 
     private PermissionGate() {}
 
-    public static String currentRole() {
-        String role = SessionManager.getCurrentRole();
-        return role == null ? null : role.trim();
+    public static RoleName currentRole() {
+        return RoleName.fromDbValue(SessionManager.getCurrentRole());
     }
 
     public static boolean isAllowed(PageRoute route) {
         if (route == PageRoute.HOME || route == PageRoute.PROFILE) return true;
-        if (isAdmin()) return true;
-        if (route == PageRoute.MY_SCHEDULE && isDoctor()) return true;
+
+        try {
+            RoleName r = currentRole();
+            if (!route.isAllowedFor(r)) return false;
+        } catch (Exception ignored) {
+            return false;
+        }
 
         if (route == PageRoute.DASHBOARD) {
             return isAllowed(PageRoute.PATIENTS)
@@ -88,41 +91,6 @@ public final class PermissionGate {
         }
 
         return hasAnyCrudPermission(route);
-    }
-
-    public static boolean canRead(PageRoute route) {
-        return hasPermission(route, "read");
-    }
-
-    public static boolean canCreate(PageRoute route) {
-        return hasPermission(route, "create");
-    }
-
-    public static boolean canUpdate(PageRoute route) {
-        return hasPermission(route, "update");
-    }
-
-    public static boolean canDelete(PageRoute route) {
-        return hasPermission(route, "delete");
-    }
-
-    public static boolean hasPermission(PageRoute route, String action) {
-        if (route == PageRoute.HOME || route == PageRoute.PROFILE) return true;
-        if (isAdmin()) return true;
-        String normalizedAction = normalizeAction(action);
-        if (normalizedAction.isBlank()) return false;
-
-        Set<String> resources = ROUTE_RESOURCES.get(route);
-        if (resources == null || resources.isEmpty()) return true;
-
-        Set<String> granted = currentPermissionKeys();
-        for (String resource : resources) {
-            String normalizedResource = resource.toLowerCase(Locale.ROOT);
-            if (granted.contains(normalizedResource + ":" + normalizedAction)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public static synchronized void invalidateCache() {
@@ -182,26 +150,5 @@ public final class PermissionGate {
 
     private static String safe(String value) {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private static boolean isAdmin() {
-        String role = currentRole();
-        if (role == null) return false;
-        String normalized = role.trim().toLowerCase(Locale.ROOT)
-            .replace('-', ' ')
-            .replace('_', ' ');
-        return normalized.equals("admin")
-            || normalized.equals("administrator")
-            || normalized.contains("admin");
-    }
-
-    private static boolean isDoctor() {
-        String role = currentRole();
-        if (role == null) return false;
-        String normalized = role.trim().toLowerCase(Locale.ROOT)
-            .replace('-', ' ')
-            .replace('_', ' ');
-        return normalized.equals("doctor")
-            || normalized.contains("doctor");
     }
 }
