@@ -5,7 +5,6 @@ import hospital.management.backend.dao.auth.RoleDAOImpl;
 import hospital.management.backend.dao.auth.RolePermissionDAOImpl;
 import hospital.management.backend.dao.auth.UserDAOImpl;
 import hospital.management.backend.dao.auth.UserRoleDAOImpl;
-import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dto.auth.CreateUserDTO;
 import hospital.management.backend.dto.auth.RoleDTO;
 import hospital.management.backend.dto.auth.PermissionDTO;
@@ -83,24 +82,16 @@ public class UsersPageController extends BasePageController {
         statusFilter.setOnAction(e -> applyFilter());
 
         userTableController.setRoleNameResolver(u -> roleNameByUserId.getOrDefault(u.getUserId(), "—"));
-        applyCreateVisibility(addUserBtn, PageRoute.USERS);
         addUserBtn.setOnAction(e -> openUserDialog(null));
-        userTableController.setRowActions(
-            allowUpdate(PageRoute.USERS, this::openUserDialog),
-            allowDelete(PageRoute.USERS, this::confirmDeleteUser),
-            allowRead(PageRoute.USERS, this::viewUserDetail));
-        userTableController.setOnChangeStatus(canUpdate(PageRoute.USERS) ? this::confirmToggleActive : null);
+        userTableController.setRowActions(this::openUserDialog, this::confirmDeleteUser, this::viewUserDetail);
+        userTableController.setOnChangeStatus(this::confirmToggleActive);
 
         loadRolesAndUsers();
         // Roles & permissions tab setup
         roleTableController.setPermissionCountResolver(
             r -> permissionCountByRoleId.getOrDefault(r.getRoleId(), "0"));
-        roleTableController.setRowActions(
-            allowUpdate(PageRoute.ROLES, this::openRoleDialog),
-            allowDelete(PageRoute.ROLES, this::confirmDeleteRole),
-            allowRead(PageRoute.ROLES, this::viewRoleDetail));
+        roleTableController.setRowActions(this::openRoleDialog, this::confirmDeleteRole, this::viewRoleDetail);
         roleSearchField.textProperty().addListener((obs, o, n) -> roleTableController.filter(n));
-        applyCreateVisibility(addRoleBtn, PageRoute.ROLES);
         addRoleBtn.setOnAction(e -> openRoleDialog(null));
 
         permissionTableController.setOnDelete(this::confirmDeletePermission);
@@ -236,17 +227,7 @@ public class UsersPageController extends BasePageController {
                 UserDTO saved;
 
                 if (addMode) {
-                    String selectedRoleName = role.getValue() == null ? "" : role.getValue().label();
-                    String doctorId = null;
-                    if ("doctor".equalsIgnoreCase(selectedRoleName.trim())) {
-                        doctorId = resolveDoctorIdByEmail(em);
-                        if (doctorId == null) {
-                            formDialogController.setError("No doctor profile found for this email. Create doctor first, or use the doctor's email.");
-                            formDialogController.setLoading(false);
-                            return;
-                        }
-                    }
-                    saved = userService.create(new CreateUserDTO(doctorId, un, password.getText(), em));
+                    saved = userService.create(new CreateUserDTO(null, un, password.getText(), em));
                 } else {
                     saved = userService.update(new UpdateUserDTO(user.getUserId(), em, user.getIsActive()));
                 }
@@ -280,14 +261,6 @@ public class UsersPageController extends BasePageController {
         formDialogController.addField("Role", "fas-user-tag", roleField);
 
         loadRoleDropdown(roleField, otherFields, addMode ? null : user.getUserId());
-    }
-
-    private String resolveDoctorIdByEmail(String email) throws Exception {
-        if (email == null || email.isBlank()) return null;
-        return new DoctorDAOImpl()
-                .findByEmail(email.trim())
-                .map(d -> d.getDoctorId())
-                .orElse(null);
     }
 
     /** Loads the role dropdown fresh from the DB every time the dialog opens — not from the
