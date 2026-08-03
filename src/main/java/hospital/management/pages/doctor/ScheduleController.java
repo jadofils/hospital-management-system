@@ -1,7 +1,17 @@
 package hospital.management.pages.doctor;
 
 import hospital.management.pages.BasePageController;
-import hospital.management.backend.model.doctor.DoctorSchedule;
+import hospital.management.backend.config.security.SessionManager;
+import hospital.management.backend.dao.auth.UserDAOImpl;
+import hospital.management.backend.dao.department.DoctorScheduleDAOImpl;
+import hospital.management.backend.dto.auth.UserDTO;
+import hospital.management.backend.dto.doctor.CreateDoctorScheduleDTO;
+import hospital.management.backend.dto.doctor.DoctorScheduleDTO;
+import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.service.auth.UserServiceImpl;
+import hospital.management.backend.service.auth.interfaces.UserService;
+import hospital.management.backend.service.department.DoctorScheduleServiceImpl;
+import hospital.management.backend.service.department.interfaces.DoctorScheduleService;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.doctor.DoctorScheduleTableController;
 import javafx.fxml.FXML;
@@ -16,9 +26,18 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class ScheduleController extends BasePageController {
+
+    private final DoctorScheduleService scheduleService = new DoctorScheduleServiceImpl(new DoctorScheduleDAOImpl());
+    private final UserService userService = new UserServiceImpl(new UserDAOImpl());
+
+    private static final Map<String, String> DAY_ABBREVIATIONS = Map.of(
+            "Monday", "Mon", "Tuesday", "Tue", "Wednesday", "Wed",
+            "Thursday", "Thu", "Friday", "Fri", "Saturday", "Sat", "Sunday", "Sun");
+    private static final Map<String, String> DAY_NAMES = Map.of(
+            "Mon", "Monday", "Tue", "Tuesday", "Wed", "Wednesday",
+            "Thu", "Thursday", "Fri", "Friday", "Sat", "Saturday", "Sun", "Sunday");
 
     @FXML private DoctorScheduleTableController scheduleTableController;
 
@@ -33,7 +52,7 @@ public class ScheduleController extends BasePageController {
     @FXML private VBox satCol;
     @FXML private VBox sunCol;
 
-    private final List<DoctorSchedule> schedules = new ArrayList<>();
+    private final List<DoctorScheduleDTO> schedules = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.MY_SCHEDULE);
@@ -45,30 +64,49 @@ public class ScheduleController extends BasePageController {
     }
 
     private void refreshTable() {
-        scheduleTableController.setItems(schedules);
+        try {
+            schedules.clear();
+            schedules.addAll(scheduleService.findByDoctor(currentDoctorId()));
+            scheduleTableController.setItems(schedules);
+        } catch (Exception e) {
+            toastError("Failed to load schedules: " + e.getMessage());
+        }
     }
 
-    private void viewScheduleDetail(DoctorSchedule schedule) {
+    private String currentDoctorId() throws Exception {
+        UserDTO user = userService.findById(SessionManager.getCurrentUserId());
+        String doctorId = user.getDoctorId();
+        if (doctorId == null || doctorId.isBlank()) {
+            throw new AppException("Your account is not linked to a doctor profile.");
+        }
+        return doctorId;
+    }
+
+    private void viewScheduleDetail(DoctorScheduleDTO schedule) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Day of Week", schedule.getDayOfWeek());
         fields.put("Start Time", schedule.getStartTime() == null ? null : schedule.getStartTime().toString());
         fields.put("End Time", schedule.getEndTime() == null ? null : schedule.getEndTime().toString());
-        fields.put("Available", Boolean.TRUE.equals(schedule.isIsAvailable()) ? "Yes" : "No");
+        fields.put("Available", Boolean.TRUE.equals(schedule.getIsAvailable()) ? "Yes" : "No");
         detailViewController.show("Schedule Slot Details", "fas-calendar-alt", fields);
     }
 
-    private void confirmDeleteSchedule(DoctorSchedule schedule) {
+    private void confirmDeleteSchedule(DoctorScheduleDTO schedule) {
         confirm("Delete Schedule Slot",
                 "Are you sure you want to delete the " + schedule.getDayOfWeek() + " slot? This cannot be undone.",
                 () -> {
-                    schedules.remove(schedule);
-                    refreshTable();
-                    toastSuccess("Schedule slot deleted.");
+                    try {
+                        scheduleService.delete(schedule.getScheduleId());
+                        refreshTable();
+                        toastSuccess("Schedule slot deleted.");
+                    } catch (Exception e) {
+                        toastError("Failed to delete schedule slot: " + e.getMessage());
+                    }
                 });
     }
 
     /** Opens the shared form dialog in Add mode (schedule == null) or Update mode. */
-    private void openScheduleDialog(DoctorSchedule schedule) {
+    private void openScheduleDialog(DoctorScheduleDTO schedule) {
         boolean addMode = schedule == null;
 
         ComboBox<String> dayOfWeek = new ComboBox<>();
@@ -86,10 +124,10 @@ public class ScheduleController extends BasePageController {
         available.getStyleClass().add("form-combo");
 
         if (!addMode) {
-            dayOfWeek.setValue(schedule.getDayOfWeek());
+            dayOfWeek.setValue(DAY_NAMES.getOrDefault(schedule.getDayOfWeek(), schedule.getDayOfWeek()));
             startTime.setText(schedule.getStartTime() == null ? "" : schedule.getStartTime().toString());
             endTime.setText(schedule.getEndTime() == null ? "" : schedule.getEndTime().toString());
-            available.setValue(Boolean.TRUE.equals(schedule.isIsAvailable()) ? "Yes" : "No");
+            available.setValue(Boolean.TRUE.equals(schedule.getIsAvailable()) ? "Yes" : "No");
         }
 
         formDialogController.open(addMode ? "Add Availability" : "Update Availability", "fas-calendar-alt", addMode, v -> {
@@ -121,17 +159,24 @@ public class ScheduleController extends BasePageController {
                 return;
             }
 
-            DoctorSchedule target = addMode ? new DoctorSchedule() : schedule;
-            if (addMode) target.setScheduleId(UUID.randomUUID().toString());
-            target.setDayOfWeek(day);
-            target.setStartTime(start);
-            target.setEndTime(end);
-            target.setIsAvailable("Yes".equals(availableValue));
-
-            if (addMode) schedules.add(target);
-            refreshTable();
-            formDialogController.close();
-            toastSuccess(addMode ? "Schedule slot added." : "Schedule slot updated.");
+            try {
+                CreateDoctorScheduleDTO dto = new CreateDoctorScheduleDTO(
+                        currentDoctorId(), DAY_ABBREVIATIONS.getOrDefault(day, day), start, end, "Yes".equals(availableValue));
+                if (addMode) {
+                    scheduleService.create(dto);
+                } else {
+                    scheduleService.update(schedule.getScheduleId(), dto);
+                }
+                refreshTable();
+                formDialogController.close();
+                toastSuccess(addMode ? "Schedule slot added." : "Schedule slot updated.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save schedule slot: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("Day of Week", "fas-calendar-day", dayOfWeek);

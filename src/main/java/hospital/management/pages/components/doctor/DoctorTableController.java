@@ -1,21 +1,21 @@
 package hospital.management.pages.components.doctor;
 
 import hospital.management.pages.components.PaginatedTableController;
-import hospital.management.backend.model.doctor.Doctor;
+import hospital.management.backend.dto.doctor.DoctorDTO;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 
-public class DoctorTableController extends PaginatedTableController<Doctor> {
+public class DoctorTableController extends PaginatedTableController<DoctorDTO> {
 
-    @FXML private TableColumn<Doctor, String> idColumn;
-    @FXML private TableColumn<Doctor, String> nameColumn;
-    @FXML private TableColumn<Doctor, String> specializationColumn;
-    @FXML private TableColumn<Doctor, String> departmentColumn;
-    @FXML private TableColumn<Doctor, String> phoneColumn;
-    @FXML private TableColumn<Doctor, String> emailColumn;
-    @FXML private TableColumn<Doctor, Void>   actionsColumn;
+    @FXML private TableColumn<DoctorDTO, String> idColumn;
+    @FXML private TableColumn<DoctorDTO, String> nameColumn;
+    @FXML private TableColumn<DoctorDTO, String> specializationColumn;
+    @FXML private TableColumn<DoctorDTO, String> departmentColumn;
+    @FXML private TableColumn<DoctorDTO, String> phoneColumn;
+    @FXML private TableColumn<DoctorDTO, String> emailColumn;
+    @FXML private TableColumn<DoctorDTO, Void>   actionsColumn;
 
     @Override
     protected void configureColumns() {
@@ -30,7 +30,7 @@ public class DoctorTableController extends PaginatedTableController<Doctor> {
     }
 
     @Override
-    protected boolean matches(Doctor doctor, String lowerQuery) {
+    protected boolean matches(DoctorDTO doctor, String lowerQuery) {
         String specialization = doctor.getSpecialization();
         return doctor.getFullName().toLowerCase().contains(lowerQuery)
                 || (specialization != null && specialization.toLowerCase().contains(lowerQuery));

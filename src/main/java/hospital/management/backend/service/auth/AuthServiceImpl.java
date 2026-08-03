@@ -171,4 +171,28 @@ public class AuthServiceImpl implements AuthService {
         });
         EventBus.publish(AppEventType.USER_UPDATED, userId);
     }
+
+    @Override
+    public String resetPasswordByEmail(String email) throws Exception {
+        ValidatorUtils.requireNonBlank(email, "email");
+        User user = userDAO.findByEmail(email).orElseThrow(() -> new ResourceNotFoundException("User", email));
+        // Generate a temporary password (8 chars alphanumeric) — admin can force change later
+        String temp = java.util.UUID.randomUUID().toString().replaceAll("[^A-Za-z0-9]", "").substring(0, 10);
+        String newHash = PasswordConfig.hash(temp);
+
+        CacheService.evict(CacheKey.user(user.getUserId()));
+        TransactionManager.executeInTransaction(conn -> {
+            userDAO.updatePasswordHash(user.getUserId(), newHash, conn);
+
+            AuditLog log = new AuditLog();
+            log.setUserId(user.getUserId());
+            log.setAction("PASSWORD_RESET");
+            log.setTableAffected("users");
+            log.setRecordId(user.getUserId());
+            auditLogDAO.save(log, conn);
+        });
+
+        EventBus.publish(AppEventType.USER_UPDATED, user.getUserId());
+        return temp;
+    }
 }

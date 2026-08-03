@@ -10,6 +10,8 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
+import javafx.beans.property.SimpleStringProperty;
+import java.lang.reflect.Method;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.List;
@@ -40,10 +42,60 @@ public abstract class PaginatedTableController<T> {
 
     public void initialize() {
         configureColumns();
+        // Ensure an ID column is present for user-facing lists (UUIDs or entity id getters)
+        ensureIdColumn();
         filteredItems = new FilteredList<>(sourceItems, item -> true);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         pagination.currentPageIndexProperty().addListener((obs, o, n) -> renderPage(n.intValue()));
         refreshPagination();
+    }
+
+    /**
+     * Adds an `ID` column at the front of the table when possible. The column
+     * attempts to extract a readable id by reflection (getId() or any getter
+     * ending with "Id"). Falls back to object's hashCode when no id accessor
+     * is found. This is a frontend-only display aid and does not modify data.
+     */
+    @SuppressWarnings("unchecked")
+    private void ensureIdColumn() {
+        // If a column named "ID" already exists, do nothing.
+        boolean hasId = table.getColumns().stream().anyMatch(c -> "ID".equalsIgnoreCase(c.getText()));
+        if (hasId) return;
+
+        TableColumn<T, String> idCol = new TableColumn<>("ID");
+        idCol.setMinWidth(120);
+        idCol.setCellValueFactory(cellData -> {
+            T item = cellData.getValue();
+            if (item == null) return new SimpleStringProperty("");
+            String id = extractId(item);
+            return new SimpleStringProperty(id == null ? "" : id);
+        });
+
+        // Insert ID column at the left-most position so it's visible in paginated lists
+        table.getColumns().add(0, idCol);
+    }
+
+    private String extractId(T item) {
+        try {
+            Class<?> cls = item.getClass();
+            // Prefer explicit getId()
+            try {
+                Method m = cls.getMethod("getId");
+                Object val = m.invoke(item);
+                if (val != null) return String.valueOf(val);
+            } catch (NoSuchMethodException ignored) {
+            }
+            // Fallback: any getter that ends with 'Id'
+            for (Method m : cls.getMethods()) {
+                String name = m.getName();
+                if (name.startsWith("get") && name.length() > 3 && name.toLowerCase().endsWith("id") && m.getParameterCount() == 0) {
+                    Object val = m.invoke(item);
+                    if (val != null) return String.valueOf(val);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return String.valueOf(item.hashCode());
     }
 
     /** Bind columns to the entity's properties. Called once during {@link #initialize()}. */

@@ -2,6 +2,12 @@ package hospital.management.pages.admin;
 
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.daemon.RetentionPolicy;
+import hospital.management.backend.dao.log.AuditLogDAOImpl;
+import hospital.management.backend.dao.log.SystemLogDAOImpl;
+import hospital.management.backend.service.log.AuditServiceImpl;
+import hospital.management.backend.service.log.SystemLogServiceImpl;
+import hospital.management.backend.service.log.interfaces.AuditService;
+import hospital.management.backend.service.log.interfaces.SystemLogService;
 import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
 import javafx.fxml.FXML;
@@ -26,6 +32,10 @@ import javafx.scene.layout.HBox;
  *   TODO: EventBus      — subscribe DATA_CLEANING_* events to update lastRunLog + statusLabel
  */
 public class RetentionSettingsController extends BasePageController {
+
+    // ── Services ──────────────────────────────────────────────────────────────
+    private final AuditService auditService = new AuditServiceImpl(new AuditLogDAOImpl());
+    private final SystemLogService systemLogService = new SystemLogServiceImpl(new SystemLogDAOImpl());
 
     // ── Status banner ─────────────────────────────────────────────────────────
     @FXML private HBox  statusBanner;
@@ -158,13 +168,18 @@ public class RetentionSettingsController extends BasePageController {
                 () -> {
                     try {
                         RetentionPolicy policy = buildPolicyFromForm();
-                        // TODO: DatabaseCleanupDaemon.runNow();
-                        appendToLog("[STUB] Manual run triggered with policy: " + policy);
+                        int sysPurged = systemLogService.purgeOlderThanDays(policy.getDbLogRetentionDays());
+                        int auditPurged = auditService.purgeOlderThanDays(policy.getDbLogRetentionDays());
+                        appendToLog("[INFO] Purged " + sysPurged + " system log(s) and "
+                                + auditPurged + " audit log(s) older than "
+                                + policy.getDbLogRetentionDays() + " days.");
                         lastRunLabel.setText("Last run: just now");
                         statusLabel.setText("Cleanup completed.");
                         toastSuccess("Cleanup run completed.");
                     } catch (IllegalArgumentException e) {
                         toastError(e.getMessage());
+                    } catch (Exception e) {
+                        toastError("Failed to run cleanup: " + e.getMessage());
                     }
                 });
     }

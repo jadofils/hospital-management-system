@@ -2,10 +2,17 @@ package hospital.management.pages.clinical;
 
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
+import hospital.management.backend.dao.clinical.MedicalRecordDAOImpl;
 import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
-import hospital.management.backend.model.patient.MedicalRecord;
+import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
+import hospital.management.backend.dto.clinical.CreateMedicalRecordDTO;
+import hospital.management.backend.dto.clinical.MedicalRecordDTO;
+import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.clinical.MedicalRecordServiceImpl;
+import hospital.management.backend.service.clinical.interfaces.MedicalRecordService;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
@@ -16,17 +23,16 @@ import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class MedicalRecordsController extends BasePageController {
 
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
+    private final MedicalRecordService medicalRecordService = new MedicalRecordServiceImpl(new MedicalRecordDAOImpl());
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private MedicalRecordTableController medicalRecordTableController;
@@ -36,7 +42,7 @@ public class MedicalRecordsController extends BasePageController {
     @FXML private DatePicker toDatePicker;
     @FXML private Button     addRecordBtn;
 
-    private final List<MedicalRecord> records = new ArrayList<>();
+    private final List<MedicalRecordDTO> records = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.MEDICAL_RECORDS);
@@ -54,10 +60,23 @@ public class MedicalRecordsController extends BasePageController {
     }
 
     private void refreshTable() {
-        medicalRecordTableController.setItems(records);
+        try {
+            records.clear();
+            List<AppointmentSummaryDTO> appointments =
+                    appointmentService.findAll(CursorPagination.firstPage(500)).getItems();
+            for (AppointmentSummaryDTO appointment : appointments) {
+                try {
+                    records.add(medicalRecordService.findByAppointment(appointment.getAppointmentId()));
+                } catch (ResourceNotFoundException ignored) {
+                }
+            }
+            medicalRecordTableController.setItems(records);
+        } catch (Exception e) {
+            toastError("Failed to load medical records: " + e.getMessage());
+        }
     }
 
-    private void viewRecordDetail(MedicalRecord record) {
+    private void viewRecordDetail(MedicalRecordDTO record) {
         Map<String, String> fields = new LinkedHashMap<>();
         try {
             fields.put("Appointment", entityLookupService.appointmentLabel(record.getAppointmentId()));
@@ -71,18 +90,22 @@ public class MedicalRecordsController extends BasePageController {
         detailViewController.show("Medical Record Details", "fas-notes-medical", fields);
     }
 
-    private void confirmDeleteRecord(MedicalRecord record) {
+    private void confirmDeleteRecord(MedicalRecordDTO record) {
         confirm("Delete Medical Record",
                 "Are you sure you want to delete record " + record.getRecordId() + "? This cannot be undone.",
                 () -> {
-                    records.remove(record);
-                    refreshTable();
-                    toastSuccess("Medical record deleted.");
+                    try {
+                        medicalRecordService.delete(record.getRecordId());
+                        refreshTable();
+                        toastSuccess("Medical record deleted.");
+                    } catch (Exception e) {
+                        toastError("Failed to delete medical record: " + e.getMessage());
+                    }
                 });
     }
 
     /** Opens the shared form dialog in Add mode (record == null) or Update mode. */
-    private void openRecordDialog(MedicalRecord record) {
+    private void openRecordDialog(MedicalRecordDTO record) {
         boolean addMode = record == null;
 
         LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
@@ -114,22 +137,23 @@ public class MedicalRecordsController extends BasePageController {
                 return;
             }
 
-            MedicalRecord target = addMode ? new MedicalRecord() : record;
-            if (addMode) {
-                target.setRecordId(UUID.randomUUID().toString());
-                target.setCreatedAt(LocalDateTime.now());
-            } else {
-                target.setUpdatedAt(LocalDateTime.now());
+            try {
+                CreateMedicalRecordDTO dto = new CreateMedicalRecordDTO(appt, diag, symptoms.getText(), notes.getText());
+                if (addMode) {
+                    medicalRecordService.create(dto);
+                } else {
+                    medicalRecordService.update(record.getRecordId(), dto);
+                }
+                refreshTable();
+                formDialogController.close();
+                toastSuccess(addMode ? "Medical record added." : "Medical record updated.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save medical record: " + ex.getMessage());
+                formDialogController.setLoading(false);
             }
-            target.setAppointmentId(appt);
-            target.setDiagnosis(diag);
-            target.setSymptoms(symptoms.getText());
-            target.setNotes(notes.getText());
-
-            if (addMode) records.add(target);
-            refreshTable();
-            formDialogController.close();
-            toastSuccess(addMode ? "Medical record added." : "Medical record updated.");
         });
 
         formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
@@ -142,7 +166,7 @@ public class MedicalRecordsController extends BasePageController {
 
     /** Loads the appointment dropdown options asynchronously, showing its own spinner while
      *  data is in flight and keeping the rest of the form disabled until it finishes loading. */
-    private void loadRecordDropdown(LoadingIdComboBox appointmentIdField, List<Control> otherFields, MedicalRecord existing) {
+    private void loadRecordDropdown(LoadingIdComboBox appointmentIdField, List<Control> otherFields, MedicalRecordDTO existing) {
         EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
 
         appointmentIdField.setLoading(true);

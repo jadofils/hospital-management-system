@@ -20,6 +20,7 @@ import hospital.management.backend.service.auth.interfaces.AuthService;
 import hospital.management.backend.service.auth.interfaces.RoleService;
 import hospital.management.backend.service.auth.interfaces.UserService;
 import hospital.management.pages.BasePageController;
+import hospital.management.backend.config.AppConfig;
 import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.auth.UserSessionTableController;
@@ -47,6 +48,7 @@ public class ProfilePageController extends BasePageController {
     @FXML private Label emailLabel;
     @FXML private Label memberSinceLabel;
     @FXML private Button changePhotoBtn;
+    @FXML private javafx.scene.image.ImageView avatarImage;
 
     // Edit form
     @FXML private TextField usernameField;
@@ -77,7 +79,7 @@ public class ProfilePageController extends BasePageController {
         saveProfileBtn.setOnAction(e -> handleSaveProfile());
         changePassBtn.setOnAction(e -> handleChangePassword());
         revokeAllBtn.setOnAction(e -> confirmRevokeAllSessions());
-        changePhotoBtn.setOnAction(e -> toast("Photo upload not yet implemented.", NotificationType.INFO));
+        changePhotoBtn.setOnAction(e -> handleChangePhoto());
 
         loadProfile();
     }
@@ -183,6 +185,36 @@ public class ProfilePageController extends BasePageController {
             } catch (Exception e) {
                 passValidationMsg.setText("Failed to change password.");
                 toastError("Failed to change password: " + e.getMessage());
+            }
+        });
+    }
+
+    private void handleChangePhoto() {
+        javafx.stage.FileChooser chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Select profile image");
+        chooser.getExtensionFilters().addAll(
+            new javafx.stage.FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif")
+        );
+        java.io.File f = chooser.showOpenDialog(changePhotoBtn.getScene().getWindow());
+        if (f == null) return;
+        if (f.length() > AppConfig.getMaxUploadSizeBytes()) {
+            toastError("File exceeds maximum allowed size.");
+            return;
+        }
+
+        withSpinner(changePhotoBtn, () -> {
+            try {
+                com.cloudinary.Cloudinary cloud = hospital.management.backend.config.CloudinaryConfig.get();
+                java.util.Map uploadResult = cloud.uploader().upload(f, java.util.Collections.emptyMap());
+                String url = (String) uploadResult.get("secure_url");
+                if (url != null && !url.isBlank()) {
+                    avatarImage.setImage(new javafx.scene.image.Image(url, true));
+                    toastSuccess("Profile photo uploaded.");
+                } else {
+                    toastError("Upload failed: no url returned.");
+                }
+            } catch (Exception ex) {
+                toastError("Failed to upload photo: " + ex.getMessage());
             }
         });
     }

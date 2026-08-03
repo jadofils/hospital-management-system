@@ -16,4 +16,10 @@ public interface AuthService {
     List<UserSessionDTO> findActiveSessions(String userId) throws Exception;
 
     void changePassword(String userId, String oldPassword, String newPassword) throws Exception;
+
+    /**
+     * Reset password by email: generates a temporary password, updates the stored hash,
+     * and returns the plain temporary password so the caller can email it to the user.
+     */
+    String resetPasswordByEmail(String email) throws Exception;
 }

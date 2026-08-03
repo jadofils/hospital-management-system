@@ -1,18 +1,18 @@
 package hospital.management.pages.components.doctor;
 
 import hospital.management.pages.components.PaginatedTableController;
-import hospital.management.backend.model.doctor.Department;
+import hospital.management.backend.dto.doctor.DepartmentDTO;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 
-public class DepartmentTableController extends PaginatedTableController<Department> {
+public class DepartmentTableController extends PaginatedTableController<DepartmentDTO> {
 
-    @FXML private TableColumn<Department, String> deptIdColumn;
-    @FXML private TableColumn<Department, String> nameColumn;
-    @FXML private TableColumn<Department, String> locationColumn;
-    @FXML private TableColumn<Department, String> phoneColumn;
-    @FXML private TableColumn<Department, Void>   actionsColumn;
+    @FXML private TableColumn<DepartmentDTO, String> deptIdColumn;
+    @FXML private TableColumn<DepartmentDTO, String> nameColumn;
+    @FXML private TableColumn<DepartmentDTO, String> locationColumn;
+    @FXML private TableColumn<DepartmentDTO, String> phoneColumn;
+    @FXML private TableColumn<DepartmentDTO, Void>   actionsColumn;
 
     @Override
     protected void configureColumns() {
@@ -24,7 +24,7 @@ public class DepartmentTableController extends PaginatedTableController<Departme
     }
 
     @Override
-    protected boolean matches(Department department, String lowerQuery) {
+    protected boolean matches(DepartmentDTO department, String lowerQuery) {
         String name = department.getName();
         String location = department.getLocation();
         return (name != null && name.toLowerCase().contains(lowerQuery))

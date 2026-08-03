@@ -2,7 +2,14 @@ package hospital.management.pages.patient;
 
 import hospital.management.pages.BasePageController;
 import hospital.management.pages.QuickAddCapable;
-import hospital.management.backend.model.patient.Patient;
+import hospital.management.backend.dao.patient.PatientDAOImpl;
+import hospital.management.backend.dto.patient.CreatePatientDTO;
+import hospital.management.backend.dto.patient.PatientDTO;
+import hospital.management.backend.dto.patient.UpdatePatientDTO;
+import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.service.patient.interfaces.PatientService;
+import hospital.management.backend.service.patient.PatientServiceImpl;
+import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.patient.PatientTableController;
 import hospital.management.pages.components.shared.search.AdvancedSearchController;
@@ -13,12 +20,12 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 public class PatientsPageController extends BasePageController implements QuickAddCapable {
+
+    private final PatientService patientService = new PatientServiceImpl(new PatientDAOImpl());
 
     @FXML private PatientTableController patientTableController;
     @FXML private AdvancedSearchController advancedSearchController;
@@ -28,7 +35,7 @@ public class PatientsPageController extends BasePageController implements QuickA
     @FXML private Button addPatientBtn;
     @FXML private Label totalLabel;
 
-    private final List<Patient> patients = new ArrayList<>();
+    private List<PatientDTO> patients = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PATIENTS);
@@ -63,12 +70,17 @@ public class PatientsPageController extends BasePageController implements QuickA
     }
 
     private void refreshTable() {
-        patientTableController.setItems(patients);
-        totalLabel.setText("Total: " + patients.size() + " patients");
+        try {
+            patients = patientService.findAll(CursorPagination.firstPage(500)).getItems();
+            patientTableController.setItems(patients);
+            totalLabel.setText("Total: " + patients.size() + " patients");
+        } catch (Exception e) {
+            toastError("Failed to load patients: " + e.getMessage());
+        }
     }
 
     /** Navigates to the full PatientDetailController drill-down page for this patient. */
-    private void viewPatientDetail(Patient patient) {
+    private void viewPatientDetail(PatientDTO patient) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(PageRoute.PATIENT_DETAIL.getFxmlPath()));
             Parent root = loader.load();
@@ -85,13 +97,17 @@ public class PatientsPageController extends BasePageController implements QuickA
         }
     }
 
-    private void confirmDeletePatient(Patient patient) {
+    private void confirmDeletePatient(PatientDTO patient) {
         confirm("Delete Patient",
                 "Are you sure you want to delete " + patient.getFullName() + "? This cannot be undone.",
                 () -> {
-                    patients.remove(patient);
-                    refreshTable();
-                    toastSuccess("Patient deleted.");
+                    try {
+                        patientService.delete(patient.getPatientId());
+                        refreshTable();
+                        toastSuccess("Patient deleted.");
+                    } catch (Exception e) {
+                        toastError("Failed to delete patient: " + e.getMessage());
+                    }
                 });
     }
 
@@ -101,7 +117,7 @@ public class PatientsPageController extends BasePageController implements QuickA
     }
 
     /** Opens the shared form dialog in Add mode (patient == null) or Update mode. */
-    private void openPatientDialog(Patient patient) {
+    private void openPatientDialog(PatientDTO patient) {
         boolean addMode = patient == null;
 
         TextField firstName = new TextField();
@@ -136,20 +152,40 @@ public class PatientsPageController extends BasePageController implements QuickA
                 return;
             }
 
-            Patient target = addMode ? new Patient() : patient;
-            if (addMode) target.setPatientId(UUID.randomUUID().toString());
-            target.setFirstName(fn);
-            target.setLastName(ln);
-            target.setDob(dob.getValue());
-            target.setGender(gender.getValue());
-            target.setPhone(phone.getText());
-            target.setEmail(email.getText());
-            target.setAddress(address.getText());
+            try {
+                if (addMode) {
+                    patientService.create(new CreatePatientDTO(fn, ln, dob.getValue(), gender.getValue(),
+                            phone.getText(), email.getText(), address.getText()));
+                } else {
+                    patientService.update(new UpdatePatientDTO(patient.getPatientId(),
+                            phone.getText(), email.getText(), address.getText()));
+                }
+                refreshTable();
+                formDialogController.close();
+                toastSuccess(addMode ? "Patient added." : "Patient updated.");
+            } catch (AppException ex) {
+                // Domain-level validation or expected failures — show inline error
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+                toastError(ex.getMessage());
+            } catch (Exception ex) {
+                // Unexpected errors (DB constraint violations, SQLExceptions) — surface as toast
+                String msg = ex.getMessage() == null ? "Failed to save patient." : ex.getMessage();
+                formDialogController.setError("Failed to save patient: " + msg);
+                formDialogController.setLoading(false);
+                toastError("Failed to save patient: " + (msg.length() > 120 ? msg.substring(0, 120) + "..." : msg));
 
-            if (addMode) patients.add(target);
-            refreshTable();
-            formDialogController.close();
-            toastSuccess(addMode ? "Patient added." : "Patient updated.");
+                // Show full details in an alert so the user (or tester) can copy the DB error.
+                try {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Save Failed");
+                    alert.setHeaderText("Could not save patient record");
+                    alert.getDialogPane().setExpandableContent(new javafx.scene.control.TextArea(msg));
+                    alert.initOwner(addPatientBtn.getScene().getWindow());
+                    alert.showAndWait();
+                } catch (Exception ignore) {
+                }
+            }
         });
 
         formDialogController.addField("First Name", "fas-user", firstName);

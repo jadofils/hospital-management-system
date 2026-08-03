@@ -2,10 +2,16 @@ package hospital.management.pages.doctor;
 
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.dao.department.DepartmentDAOImpl;
-import hospital.management.backend.model.doctor.Doctor;
+import hospital.management.backend.dao.department.DoctorDAOImpl;
+import hospital.management.backend.dto.doctor.CreateDoctorDTO;
+import hospital.management.backend.dto.doctor.DoctorDTO;
+import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.service.department.interfaces.DoctorService;
 import hospital.management.backend.service.department.DepartmentServiceImpl;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.enums.PageRoute;
+import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.doctor.DoctorTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
@@ -17,11 +23,13 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class DoctorsPageController extends BasePageController {
 
+    private static final int FETCH_SIZE = 500;
+
     private final DepartmentServiceImpl departmentService = new DepartmentServiceImpl(new DepartmentDAOImpl());
+    private final DoctorService doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private DoctorTableController doctorTableController;
@@ -31,7 +39,7 @@ public class DoctorsPageController extends BasePageController {
     @FXML private Button addDoctorBtn;
     @FXML private Label totalLabel;
 
-    private final List<Doctor> doctors = new ArrayList<>();
+    private List<DoctorDTO> doctors = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.DOCTORS);
@@ -50,11 +58,16 @@ public class DoctorsPageController extends BasePageController {
     }
 
     private void refreshTable() {
-        doctorTableController.setItems(doctors);
-        totalLabel.setText("Total: " + doctors.size() + " doctors");
+        try {
+            doctors = doctorService.findAll(CursorPagination.firstPage(FETCH_SIZE)).getItems();
+            doctorTableController.setItems(doctors);
+            totalLabel.setText("Total: " + doctors.size() + " doctors");
+        } catch (Exception e) {
+            toastError("Failed to load doctors: " + e.getMessage());
+        }
     }
 
-    private void viewDoctorDetail(Doctor doctor) {
+    private void viewDoctorDetail(DoctorDTO doctor) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Full Name", doctor.getFullName());
         fields.put("Specialization", doctor.getSpecialization());
@@ -68,18 +81,22 @@ public class DoctorsPageController extends BasePageController {
         detailViewController.show("Doctor Details", "fas-user-md", fields);
     }
 
-    private void confirmDeleteDoctor(Doctor doctor) {
+    private void confirmDeleteDoctor(DoctorDTO doctor) {
         confirm("Delete Doctor",
                 "Are you sure you want to delete " + doctor.getFullName() + "? This cannot be undone.",
                 () -> {
-                    doctors.remove(doctor);
-                    refreshTable();
-                    toastSuccess("Doctor deleted.");
+                    try {
+                        doctorService.delete(doctor.getDoctorId());
+                        refreshTable();
+                        toastSuccess("Doctor deleted.");
+                    } catch (Exception e) {
+                        toastError("Failed to delete doctor: " + e.getMessage());
+                    }
                 });
     }
 
     /** Opens the shared form dialog in Add mode (doctor == null) or Update mode. */
-    private void openDoctorDialog(Doctor doctor) {
+    private void openDoctorDialog(DoctorDTO doctor) {
         boolean addMode = doctor == null;
 
         TextField firstName = new TextField();
@@ -114,19 +131,25 @@ public class DoctorsPageController extends BasePageController {
                 return;
             }
 
-            Doctor target = addMode ? new Doctor() : doctor;
-            if (addMode) target.setDoctorId(UUID.randomUUID().toString());
-            target.setFirstName(fn);
-            target.setLastName(ln);
-            target.setSpecialization(specialization.getText());
-            target.setDepartmentId(departmentId.getSelectedId());
-            target.setPhone(phone.getText());
-            target.setEmail(email.getText());
-
-            if (addMode) doctors.add(target);
-            refreshTable();
-            formDialogController.close();
-            toastSuccess(addMode ? "Doctor added." : "Doctor updated.");
+            try {
+                CreateDoctorDTO dto = new CreateDoctorDTO(
+                        departmentId.getSelectedId(), fn, ln,
+                        specialization.getText(), phone.getText(), email.getText());
+                if (addMode) {
+                    doctorService.create(dto);
+                } else {
+                    doctorService.update(doctor.getDoctorId(), dto);
+                }
+                refreshTable();
+                formDialogController.close();
+                toastSuccess(addMode ? "Doctor added." : "Doctor updated.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save doctor: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("First Name", "fas-user", firstName);
@@ -141,7 +164,7 @@ public class DoctorsPageController extends BasePageController {
 
     /** Loads the department dropdown options asynchronously, showing its own spinner while
      *  data is in flight and keeping the rest of the form disabled until it finishes loading. */
-    private void loadDepartmentDropdown(LoadingIdComboBox departmentIdField, List<Control> otherFields, Doctor existing) {
+    private void loadDepartmentDropdown(LoadingIdComboBox departmentIdField, List<Control> otherFields, DoctorDTO existing) {
         EntityIdComboBox departmentId = departmentIdField.getComboBox();
 
         departmentIdField.setLoading(true);

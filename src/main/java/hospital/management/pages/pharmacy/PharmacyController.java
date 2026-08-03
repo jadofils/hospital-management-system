@@ -1,11 +1,26 @@
 package hospital.management.pages.pharmacy;
 
 import hospital.management.pages.BasePageController;
+import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
+import hospital.management.backend.dao.department.DoctorDAOImpl;
+import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.dao.pharmacy.MedicalInventoryDAOImpl;
 import hospital.management.backend.dao.pharmacy.MedicationDAOImpl;
-import hospital.management.backend.model.pharmacy.MedicalInventory;
-import hospital.management.backend.model.pharmacy.Prescription;
+import hospital.management.backend.dao.pharmacy.PrescriptionDAOImpl;
+import hospital.management.backend.dao.pharmacy.PrescriptionItemDAOImpl;
+import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
+import hospital.management.backend.dto.pharmacy.CreateMedicalInventoryDTO;
+import hospital.management.backend.dto.pharmacy.MedicalInventoryDTO;
+import hospital.management.backend.dto.pharmacy.MedicationDTO;
+import hospital.management.backend.dto.pharmacy.PrescriptionDTO;
+import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.exceptions.ResourceNotFoundException;
+import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.pharmacy.PharmacyServiceImpl;
+import hospital.management.backend.service.pharmacy.PrescriptionServiceImpl;
+import hospital.management.backend.service.pharmacy.interfaces.PrescriptionService;
+import hospital.management.backend.utils.pagination.CursorPagination;
+import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.pharmacy.MedicalInventoryTableController;
@@ -19,12 +34,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class PharmacyController extends BasePageController {
 
     private final PharmacyServiceImpl pharmacyService = new PharmacyServiceImpl(
         new MedicationDAOImpl(), new MedicalInventoryDAOImpl());
+    private final PrescriptionService prescriptionService =
+            new PrescriptionServiceImpl(new PrescriptionDAOImpl(), new PrescriptionItemDAOImpl());
+    private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
+        new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
 
     @FXML private TabPane pharmacyTabs;
 
@@ -39,8 +57,8 @@ public class PharmacyController extends BasePageController {
     // Pending prescriptions tab
     @FXML private PrescriptionTableController pendingPrescriptionsTableController;
 
-    private final List<MedicalInventory> inventory = new ArrayList<>();
-    private final List<Prescription> pendingPrescriptions = new ArrayList<>();
+    private final List<MedicalInventoryDTO> inventory = new ArrayList<>();
+    private final List<PrescriptionDTO> pendingPrescriptions = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PHARMACY);
@@ -51,28 +69,46 @@ public class PharmacyController extends BasePageController {
         inventoryTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory, this::viewInventoryDetail);
         lowStockTableController.setRowActions(this::openInventoryDialog, this::confirmDeleteInventory, this::viewInventoryDetail);
 
-        pendingPrescriptionsTableController.setItems(pendingPrescriptions);
-
         refreshInventoryTables();
+        refreshPendingPrescriptions();
     }
 
     private void applyFilter() {
         inventoryTableController.filter(inventorySearchField.getText());
     }
 
-    private List<MedicalInventory> computeLowStock() {
-        return inventory.stream()
-                .filter(i -> i.getQuantityInStock() != null && i.getReorderLevel() != null
-                        && i.getQuantityInStock() <= i.getReorderLevel())
-                .toList();
-    }
-
     private void refreshInventoryTables() {
-        inventoryTableController.setItems(inventory);
-        lowStockTableController.setItems(computeLowStock());
+        try {
+            inventory.clear();
+            List<MedicationDTO> medications = pharmacyService.findAllMedications();
+            for (MedicationDTO medication : medications) {
+                inventory.addAll(pharmacyService.findStockByMedication(medication.getMedicationId()));
+            }
+            inventoryTableController.setItems(inventory);
+            lowStockTableController.setItems(pharmacyService.findLowStock());
+        } catch (Exception e) {
+            toastError("Failed to load inventory: " + e.getMessage());
+        }
     }
 
-    private void viewInventoryDetail(MedicalInventory item) {
+    private void refreshPendingPrescriptions() {
+        try {
+            pendingPrescriptions.clear();
+            List<AppointmentSummaryDTO> appointments =
+                    appointmentService.findAll(CursorPagination.firstPage(500)).getItems();
+            for (AppointmentSummaryDTO appointment : appointments) {
+                try {
+                    pendingPrescriptions.add(prescriptionService.findByAppointment(appointment.getAppointmentId()));
+                } catch (ResourceNotFoundException ignored) {
+                }
+            }
+            pendingPrescriptionsTableController.setItems(pendingPrescriptions);
+        } catch (Exception e) {
+            toastError("Failed to load prescriptions: " + e.getMessage());
+        }
+    }
+
+    private void viewInventoryDetail(MedicalInventoryDTO item) {
         Map<String, String> fields = new LinkedHashMap<>();
         try {
             fields.put("Medication", pharmacyService.findMedicationById(item.getMedicationId()).getName());
@@ -87,18 +123,12 @@ public class PharmacyController extends BasePageController {
         detailViewController.show("Medication Details", "fas-pills", fields);
     }
 
-    private void confirmDeleteInventory(MedicalInventory item) {
-        confirm("Delete Inventory Item",
-                "Are you sure you want to delete batch " + item.getBatchNumber() + "? This cannot be undone.",
-                () -> {
-                    inventory.remove(item);
-                    refreshInventoryTables();
-                    toastSuccess("Inventory item deleted.");
-                });
+    private void confirmDeleteInventory(MedicalInventoryDTO item) {
+        toast("Inventory batches can't be deleted — update the batch instead.", NotificationType.INFO);
     }
 
     /** Opens the shared form dialog in Add mode (item == null) or Update mode. */
-    private void openInventoryDialog(MedicalInventory item) {
+    private void openInventoryDialog(MedicalInventoryDTO item) {
         boolean addMode = item == null;
 
         LoadingIdComboBox medicationIdField = new LoadingIdComboBox();
@@ -152,19 +182,25 @@ public class PharmacyController extends BasePageController {
                 return;
             }
 
-            MedicalInventory target = addMode ? new MedicalInventory() : item;
-            if (addMode) target.setInventoryId(UUID.randomUUID().toString());
-            target.setMedicationId(medId);
-            target.setBatchNumber(batch);
-            target.setExpiryDate(expiryDate.getValue());
-            target.setQuantityInStock(qty);
-            target.setReorderLevel(reorder);
-            target.setSupplier(supplier.getText());
+            CreateMedicalInventoryDTO dto = new CreateMedicalInventoryDTO(
+                    medId, batch, expiryDate.getValue(), qty, reorder, supplier.getText());
 
-            if (addMode) inventory.add(target);
-            refreshInventoryTables();
-            formDialogController.close();
-            toastSuccess(addMode ? "Medication added." : "Medication updated.");
+            try {
+                if (addMode) {
+                    pharmacyService.addStock(dto);
+                } else {
+                    pharmacyService.updateStock(item.getInventoryId(), dto);
+                }
+                refreshInventoryTables();
+                formDialogController.close();
+                toastSuccess(addMode ? "Medication added." : "Medication updated.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save inventory: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("Medication", "fas-pills", medicationIdField);
@@ -179,7 +215,7 @@ public class PharmacyController extends BasePageController {
 
     /** Loads the medication dropdown options asynchronously, showing its own spinner while
      *  data is in flight and keeping the rest of the form disabled until it finishes loading. */
-    private void loadMedicationDropdown(LoadingIdComboBox medicationIdField, List<Control> otherFields, MedicalInventory existing) {
+    private void loadMedicationDropdown(LoadingIdComboBox medicationIdField, List<Control> otherFields, MedicalInventoryDTO existing) {
         EntityIdComboBox medicationId = medicationIdField.getComboBox();
 
         medicationIdField.setLoading(true);

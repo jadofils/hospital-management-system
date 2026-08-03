@@ -1,7 +1,7 @@
 package hospital.management.pages.components.clinical;
 
 import hospital.management.pages.components.PaginatedTableController;
-import hospital.management.backend.model.patient.Appointment;
+import hospital.management.backend.dto.clinical.AppointmentDTO;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -10,22 +10,22 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
-public class AppointmentTableController extends PaginatedTableController<Appointment> {
+public class AppointmentTableController extends PaginatedTableController<AppointmentDTO> {
 
     private static final DateTimeFormatter DISPLAY_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    @FXML private TableColumn<Appointment, String> patientIdColumn;
-    @FXML private TableColumn<Appointment, String> doctorIdColumn;
-    @FXML private TableColumn<Appointment, String> dateColumn;
-    @FXML private TableColumn<Appointment, String> statusColumn;
-    @FXML private TableColumn<Appointment, Void>   changeStatusColumn;
-    @FXML private TableColumn<Appointment, String> reasonColumn;
-    @FXML private TableColumn<Appointment, Void>   actionsColumn;
+    @FXML private TableColumn<AppointmentDTO, String> patientIdColumn;
+    @FXML private TableColumn<AppointmentDTO, String> doctorIdColumn;
+    @FXML private TableColumn<AppointmentDTO, String> dateColumn;
+    @FXML private TableColumn<AppointmentDTO, String> statusColumn;
+    @FXML private TableColumn<AppointmentDTO, Void>   changeStatusColumn;
+    @FXML private TableColumn<AppointmentDTO, String> reasonColumn;
+    @FXML private TableColumn<AppointmentDTO, Void>   actionsColumn;
 
-    private Consumer<Appointment> onChangeStatus;
+    private Consumer<AppointmentDTO> onChangeStatus;
 
     /** Registers the row-level "change status" callback used by the changeStatusColumn button. */
-    public void setOnChangeStatus(Consumer<Appointment> onChangeStatus) {
+    public void setOnChangeStatus(Consumer<AppointmentDTO> onChangeStatus) {
         this.onChangeStatus = onChangeStatus;
     }
 
@@ -45,7 +45,7 @@ public class AppointmentTableController extends PaginatedTableController<Appoint
     }
 
     @Override
-    protected boolean matches(Appointment appointment, String lowerQuery) {
+    protected boolean matches(AppointmentDTO appointment, String lowerQuery) {
         return containsIgnoreCase(appointment.getPatientId(), lowerQuery)
                 || containsIgnoreCase(appointment.getDoctorId(), lowerQuery)
                 || containsIgnoreCase(appointment.getStatus(), lowerQuery)

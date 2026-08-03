@@ -142,3 +142,7 @@
     -fx-icon-color: white;
 }
 .loading-button:disabled { -fx-opacity: 0.7; -fx-cursor: default; }
+
+/* Spinner placed inside buttons by ButtonSpinner; color should match button text/icon */
+.button-spinner .progress-bar, .button-spinner .bar { -fx-background-color: transparent; }
+.button-spinner { -fx-progress-color: white; }

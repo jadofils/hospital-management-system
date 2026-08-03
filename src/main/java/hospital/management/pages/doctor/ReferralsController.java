@@ -4,10 +4,18 @@ import hospital.management.pages.BasePageController;
 import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
 import hospital.management.backend.dao.department.DepartmentDAOImpl;
 import hospital.management.backend.dao.department.DoctorDAOImpl;
+import hospital.management.backend.dao.department.ReferralDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
-import hospital.management.backend.model.doctor.Referral;
+import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
+import hospital.management.backend.dto.doctor.CreateReferralDTO;
+import hospital.management.backend.dto.doctor.ReferralDTO;
+import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.exceptions.ResourceNotFoundException;
+import hospital.management.backend.model.enums.ReferralStatus;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.service.department.ReferralServiceImpl;
+import hospital.management.backend.service.department.interfaces.ReferralService;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
@@ -18,12 +26,10 @@ import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReferralsController extends BasePageController {
@@ -31,6 +37,7 @@ public class ReferralsController extends BasePageController {
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
     private final DoctorServiceImpl doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
+    private final ReferralService referralService = new ReferralServiceImpl(new ReferralDAOImpl());
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private ReferralTableController referralTableController;
@@ -40,7 +47,7 @@ public class ReferralsController extends BasePageController {
     @FXML private ComboBox<String> directionFilter;
     @FXML private Button       newReferralBtn;
 
-    private final List<Referral> referrals = new ArrayList<>();
+    private final List<ReferralDTO> referrals = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.REFERRALS);
@@ -65,10 +72,23 @@ public class ReferralsController extends BasePageController {
     }
 
     private void refreshTable() {
-        referralTableController.setItems(referrals);
+        try {
+            referrals.clear();
+            List<AppointmentSummaryDTO> appointments =
+                    appointmentService.findAll(CursorPagination.firstPage(500)).getItems();
+            for (AppointmentSummaryDTO appointment : appointments) {
+                try {
+                    referrals.addAll(referralService.findByAppointment(appointment.getAppointmentId()));
+                } catch (ResourceNotFoundException ignored) {
+                }
+            }
+            referralTableController.setItems(referrals);
+        } catch (Exception e) {
+            toastError("Failed to load referrals: " + e.getMessage());
+        }
     }
 
-    private void viewReferralDetail(Referral referral) {
+    private void viewReferralDetail(ReferralDTO referral) {
         Map<String, String> fields = new LinkedHashMap<>();
         try {
             fields.put("Appointment", entityLookupService.appointmentLabel(referral.getAppointmentId()));
@@ -83,18 +103,22 @@ public class ReferralsController extends BasePageController {
         detailViewController.show("Referral Details", "fas-exchange-alt", fields);
     }
 
-    private void confirmDeleteReferral(Referral referral) {
+    private void confirmDeleteReferral(ReferralDTO referral) {
         confirm("Delete Referral",
                 "Are you sure you want to delete referral " + referral.getReferralId() + "? This cannot be undone.",
                 () -> {
-                    referrals.remove(referral);
-                    refreshTable();
-                    toastSuccess("Referral deleted.");
+                    try {
+                        referralService.delete(referral.getReferralId());
+                        refreshTable();
+                        toastSuccess("Referral deleted.");
+                    } catch (Exception e) {
+                        toastError("Failed to delete referral: " + e.getMessage());
+                    }
                 });
     }
 
     /** Opens the shared form dialog in Add mode (referral == null) or Update mode. */
-    private void openReferralDialog(Referral referral) {
+    private void openReferralDialog(ReferralDTO referral) {
         boolean addMode = referral == null;
 
         LoadingIdComboBox appointmentIdField      = new LoadingIdComboBox();
@@ -131,23 +155,24 @@ public class ReferralsController extends BasePageController {
                 return;
             }
 
-            Referral target = addMode ? new Referral() : referral;
-            if (addMode) {
-                target.setReferralId(UUID.randomUUID().toString());
-                target.setCreatedAt(LocalDateTime.now());
-                target.setStatus("Pending");
-            } else {
-                target.setUpdatedAt(LocalDateTime.now());
+            if (!addMode) {
+                formDialogController.setError("Referral details cannot be edited after creation; use the status action on the row to update it.");
+                formDialogController.setLoading(false);
+                return;
             }
-            target.setAppointmentId(appt);
-            target.setReferringDoctorId(fromDoc);
-            target.setReferredToDoctorId(toDoc);
-            target.setReason(reasonText);
 
-            if (addMode) referrals.add(target);
-            refreshTable();
-            formDialogController.close();
-            toastSuccess(addMode ? "Referral added." : "Referral updated.");
+            try {
+                referralService.create(new CreateReferralDTO(appt, fromDoc, toDoc, reasonText));
+                refreshTable();
+                formDialogController.close();
+                toastSuccess("Referral added.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save referral: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
@@ -163,7 +188,7 @@ public class ReferralsController extends BasePageController {
      *  spinner while its data is in flight and keeping the rest of the form disabled until
      *  both the appointment list and the (shared) doctor list have finished loading. */
     private void loadReferralDropdowns(LoadingIdComboBox appointmentIdField, LoadingIdComboBox referringDoctorIdField,
-                                        LoadingIdComboBox referredToDoctorIdField, List<Control> otherFields, Referral existing) {
+                                        LoadingIdComboBox referredToDoctorIdField, List<Control> otherFields, ReferralDTO existing) {
         EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
         EntityIdComboBox referringDoctorId = referringDoctorIdField.getComboBox();
         EntityIdComboBox referredToDoctorId = referredToDoctorIdField.getComboBox();
@@ -222,11 +247,11 @@ public class ReferralsController extends BasePageController {
     }
 
     /** Minimal single-field dialog for changing an existing referral's status, kept out of the main Add/Edit form. */
-    private void openReferralStatusDialog(Referral referral) {
+    private void openReferralStatusDialog(ReferralDTO referral) {
         ComboBox<String> status = new ComboBox<>();
         status.getStyleClass().add("form-combo");
-        status.getItems().addAll("Pending", "Accepted", "Completed", "Declined");
-        status.setValue(referral.getStatus());
+        status.getItems().addAll("Pending", "Scheduled", "Completed");
+        status.setValue(referral.getStatus() == null ? null : ReferralStatus.fromDbValue(referral.getStatus()).getLabel());
 
         formDialogController.open("Change Status", "fas-flag", false, v -> {
             if (status.getValue() == null) {
@@ -234,11 +259,18 @@ public class ReferralsController extends BasePageController {
                 formDialogController.setLoading(false);
                 return;
             }
-            referral.setStatus(status.getValue());
-            referral.setUpdatedAt(LocalDateTime.now());
-            refreshTable();
-            formDialogController.close();
-            toastSuccess("Referral status updated.");
+            try {
+                referralService.updateStatus(referral.getReferralId(), status.getValue());
+                refreshTable();
+                formDialogController.close();
+                toastSuccess("Referral status updated.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to update referral status: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("Status", "fas-flag", status);

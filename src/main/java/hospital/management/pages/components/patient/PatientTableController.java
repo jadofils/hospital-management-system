@@ -1,7 +1,7 @@
 package hospital.management.pages.components.patient;
 
 import hospital.management.pages.components.PaginatedTableController;
-import hospital.management.backend.model.patient.Patient;
+import hospital.management.backend.dto.patient.PatientDTO;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
@@ -11,15 +11,15 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.time.LocalDate;
 import java.time.Period;
 
-public class PatientTableController extends PaginatedTableController<Patient> {
+public class PatientTableController extends PaginatedTableController<PatientDTO> {
 
-    @FXML private TableColumn<Patient, String>  idColumn;
-    @FXML private TableColumn<Patient, String>  nameColumn;
-    @FXML private TableColumn<Patient, Integer> ageColumn;
-    @FXML private TableColumn<Patient, String>  genderColumn;
-    @FXML private TableColumn<Patient, String>  phoneColumn;
-    @FXML private TableColumn<Patient, String>  statusColumn;
-    @FXML private TableColumn<Patient, Void>    actionsColumn;
+    @FXML private TableColumn<PatientDTO, String>  idColumn;
+    @FXML private TableColumn<PatientDTO, String>  nameColumn;
+    @FXML private TableColumn<PatientDTO, Integer> ageColumn;
+    @FXML private TableColumn<PatientDTO, String>  genderColumn;
+    @FXML private TableColumn<PatientDTO, String>  phoneColumn;
+    @FXML private TableColumn<PatientDTO, String>  statusColumn;
+    @FXML private TableColumn<PatientDTO, Void>    actionsColumn;
 
     @Override
     protected void configureColumns() {
@@ -38,7 +38,7 @@ public class PatientTableController extends PaginatedTableController<Patient> {
     }
 
     @Override
-    protected boolean matches(Patient patient, String lowerQuery) {
+    protected boolean matches(PatientDTO patient, String lowerQuery) {
         return patient.getFullName().toLowerCase().contains(lowerQuery)
                 || patient.getPatientId().toLowerCase().contains(lowerQuery);
     }
