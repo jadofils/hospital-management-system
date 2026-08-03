@@ -31,6 +31,12 @@
                 <HBox spacing="12" alignment="CENTER_LEFT">
                     <FontIcon iconLiteral="fas-prescription" iconSize="18" styleClass="page-title-icon"/>
                     <Label text="Prescriptions" styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="importBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Import">
+                        <graphic><FontIcon iconLiteral="fas-file-import" iconSize="13"/></graphic>
+                    </Button>
+                    <Button fx:id="exportBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Export">
+                        <graphic><FontIcon iconLiteral="fas-file-export" iconSize="13"/></graphic>
+                    </Button>
                     <Button fx:id="newPrescriptionBtn" styleClass="primary-button" contentDisplay="LEFT" text="New Prescription">
                         <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
                     </Button>

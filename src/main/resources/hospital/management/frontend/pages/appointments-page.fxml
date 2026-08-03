@@ -52,6 +52,14 @@
                         <FontIcon iconLiteral="fas-list-ul" iconSize="14" styleClass="page-title-icon"/>
                         <Label text="Appointments for selected date" styleClass="subheading"
                                HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="importBtn" styleClass="secondary-button"
+                                contentDisplay="LEFT" text="Import">
+                            <graphic><FontIcon iconLiteral="fas-file-import" iconSize="13"/></graphic>
+                        </Button>
+                        <Button fx:id="exportBtn" styleClass="secondary-button"
+                                contentDisplay="LEFT" text="Export">
+                            <graphic><FontIcon iconLiteral="fas-file-export" iconSize="13"/></graphic>
+                        </Button>
                         <Button fx:id="addAppointmentBtn" styleClass="primary-button"
                                 contentDisplay="LEFT" text="New Appointment">
                             <graphic><FontIcon iconLiteral="fas-calendar-plus" iconSize="13"/></graphic>

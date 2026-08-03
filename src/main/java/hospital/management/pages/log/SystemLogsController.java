@@ -88,8 +88,13 @@ public class SystemLogsController extends BasePageController {
                 return;
             }
 
+            List<SystemLogDTO> source = chooseExportSource();
+            if (source == null || source.isEmpty()) {
+                return;
+            }
+
             List<Map<String, Object>> rows = new ArrayList<>();
-            for (SystemLogDTO log : logs) {
+            for (SystemLogDTO log : source) {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("log_id", log.getLogId());
                 row.put("log_level", log.getLogLevel());
@@ -107,5 +112,20 @@ public class SystemLogsController extends BasePageController {
         } catch (Exception e) {
             toastError("Failed to export system logs: " + e.getMessage());
         }
+    }
+
+    private List<SystemLogDTO> chooseExportSource() {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("All loaded rows", "All loaded rows", "Current table view");
+        dialog.setTitle("Export System Logs");
+        dialog.setHeaderText("Choose what to export");
+        dialog.setContentText("Export scope:");
+        String choice = dialog.showAndWait().orElse(null);
+        if (choice == null) {
+            return List.of();
+        }
+        if ("Current table view".equals(choice)) {
+            return new ArrayList<>(systemLogTableController.getTable().getItems());
+        }
+        return logs;
     }
 }
