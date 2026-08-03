@@ -37,21 +37,56 @@
                     </Button>
                 </HBox>
 
-                <HBox spacing="12" alignment="CENTER_LEFT">
-                    <HBox styleClass="search-input-box" alignment="CENTER_LEFT" spacing="6">
-                        <FontIcon iconLiteral="fas-search" iconSize="13" styleClass="search-icon"/>
-                        <TextField fx:id="searchField" promptText="Search by username or email..."
-                                   styleClass="search-field" prefWidth="280" HBox.hgrow="ALWAYS"/>
-                    </HBox>
-                    <Label text="Role:" styleClass="filter-label"/>
-                    <ComboBox fx:id="roleFilter" promptText="All Roles" prefWidth="150" styleClass="filter-combo"/>
-                    <Label text="Status:" styleClass="filter-label"/>
-                    <ComboBox fx:id="statusFilter" promptText="All" prefWidth="120" styleClass="filter-combo"/>
-                </HBox>
+                <TabPane tabClosingPolicy="UNAVAILABLE" styleClass="page-tab-pane">
+                    <Tab text="Users">
+                        <VBox spacing="12">
+                            <HBox spacing="12" alignment="CENTER_LEFT">
+                                <HBox styleClass="search-input-box" alignment="CENTER_LEFT" spacing="6">
+                                    <FontIcon iconLiteral="fas-search" iconSize="13" styleClass="search-icon"/>
+                                    <TextField fx:id="searchField" promptText="Search by username or email..."
+                                               styleClass="search-field" prefWidth="280" HBox.hgrow="ALWAYS"/>
+                                </HBox>
+                                <Label text="Role:" styleClass="filter-label"/>
+                                <ComboBox fx:id="roleFilter" promptText="All Roles" prefWidth="150" styleClass="filter-combo"/>
+                                <Label text="Status:" styleClass="filter-label"/>
+                                <ComboBox fx:id="statusFilter" promptText="All" prefWidth="120" styleClass="filter-combo"/>
+                            </HBox>
+                            <fx:include fx:id="userTable" source="/hospital/management/frontend/components/table/user-table.fxml" VBox.vgrow="ALWAYS"/>
+                        </VBox>
+                    </Tab>
 
-                <fx:include fx:id="userTable"
-                            source="/hospital/management/frontend/components/table/user-table.fxml"
-                            VBox.vgrow="ALWAYS"/>
+                    <Tab text="Roles">
+                        <VBox spacing="12">
+                            <HBox spacing="12" alignment="CENTER_LEFT">
+                                <HBox styleClass="search-input-box" alignment="CENTER_LEFT" spacing="6">
+                                    <FontIcon iconLiteral="fas-search" iconSize="13" styleClass="search-icon"/>
+                                    <TextField fx:id="roleSearchField" promptText="Search roles..."
+                                               styleClass="search-field" prefWidth="280" HBox.hgrow="ALWAYS"/>
+                                </HBox>
+                                <Button fx:id="addRoleBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Role">
+                                    <graphic><FontIcon iconLiteral="fas-user-shield" iconSize="13"/></graphic>
+                                </Button>
+                            </HBox>
+                            <fx:include fx:id="roleTable" source="/hospital/management/frontend/components/table/role-table.fxml" VBox.vgrow="ALWAYS"/>
+                        </VBox>
+                    </Tab>
+
+                    <Tab text="Permissions">
+                        <VBox spacing="12">
+                            <HBox spacing="12" alignment="CENTER_LEFT">
+                                <HBox styleClass="search-input-box" alignment="CENTER_LEFT" spacing="6">
+                                    <FontIcon iconLiteral="fas-search" iconSize="13" styleClass="search-icon"/>
+                                    <TextField fx:id="permissionSearchField" promptText="Search permissions..."
+                                               styleClass="search-field" prefWidth="280" HBox.hgrow="ALWAYS"/>
+                                </HBox>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                            </HBox>
+                            <fx:include fx:id="permissionTable" source="/hospital/management/frontend/components/table/permission-cards.fxml" VBox.vgrow="ALWAYS"/>
+                        </VBox>
+                    </Tab>
+                </TabPane>
 
             </VBox>
         </ScrollPane>
