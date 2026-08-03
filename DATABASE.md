@@ -5,6 +5,9 @@
 **Total tables:** 25  
 **Script execution order:** `hospital_schema.sql` → `hospital_objects.sql` → `hospital_rbac_seed_postgresql.sql` → `hospital_indexes_postgresql.sql`
 
+Conceptual diagrams: `CONCEPTUAL_LEVEL_DIAGRAMS.md`
+Root sample-data entrypoint: `sample_data_postgresql.sql`
+
 ---
 
 ## Execution Order

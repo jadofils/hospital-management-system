@@ -12,6 +12,10 @@ This report maps current repository state to the requirements defined in README.
 - Status: Completed
 - Evidence:
   - ERD: hmserd.pdf
+  - Conceptual diagrams: CONCEPTUAL_LEVEL_DIAGRAMS.md
+  - Logical diagrams: LOGICAL_LEVEL_DIAGRAMS.md
+  - Physical diagrams: PHYSICAL_LEVEL_DIAGRAMS.md
+  - Root physical SQL model: hmserd-postgresql.sql
   - SQL schema and objects: src/main/resources/hospital/management/sql/hospital_schema.sql, hospital_objects.sql
   - Reference documentation: DATABASE.md
 
