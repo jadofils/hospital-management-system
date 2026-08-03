@@ -68,7 +68,7 @@
                 </HBox>
 
                 <!-- Quick actions -->
-                <HBox styleClass="quick-actions" spacing="10" alignment="CENTER_LEFT">
+                <HBox fx:id="quickActionsBox" styleClass="quick-actions" spacing="10" alignment="CENTER_LEFT">
                     <HBox spacing="4" alignment="CENTER_LEFT">
                         <FontIcon iconLiteral="fas-bolt" iconSize="13" styleClass="label-tag-icon"/>
                         <Label text="Quick Actions:" styleClass="label-tag"/>

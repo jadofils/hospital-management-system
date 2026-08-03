@@ -1,9 +1,14 @@
 package hospital.management.pages.dashboard;
 
+import hospital.management.backend.config.security.PermissionGate;
 import hospital.management.pages.BasePageController;
 import hospital.management.pages.QuickAddCapable;
 import hospital.management.pages.components.shared.widgets.StatsWidgetController;
-import hospital.management.backend.model.patient.Patient;
+import hospital.management.backend.dto.patient.PatientDTO;
+import hospital.management.backend.dao.patient.PatientDAOImpl;
+import hospital.management.backend.service.patient.PatientServiceImpl;
+import hospital.management.backend.service.patient.interfaces.PatientService;
+import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -17,6 +22,7 @@ import javafx.scene.Scene;
 import javafx.scene.chart.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.layout.HBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -29,6 +35,7 @@ import java.time.Period;
 public class DashboardController extends BasePageController {
 
     @FXML private BorderPane dashboardRoot;
+    @FXML private HBox quickActionsBox;
 
     @FXML private StatsWidgetController statsWidgetController;
 
@@ -38,37 +45,78 @@ public class DashboardController extends BasePageController {
 
     @FXML private PieChart statusChart;
 
-    @FXML private TableView<Patient> recentTable;
-    @FXML private TableColumn<Patient, String> recentIdCol;
-    @FXML private TableColumn<Patient, String> recentNameCol;
-    @FXML private TableColumn<Patient, Integer> recentAgeCol;
-    @FXML private TableColumn<Patient, String> recentStatusCol;
+    @FXML private TableView<PatientDTO> recentTable;
+    @FXML private TableColumn<PatientDTO, String> recentIdCol;
+    @FXML private TableColumn<PatientDTO, String> recentNameCol;
+    @FXML private TableColumn<PatientDTO, Integer> recentAgeCol;
+    @FXML private TableColumn<PatientDTO, String> recentStatusCol;
+    @FXML private Button newPatientBtn;
+    @FXML private Button newAppointmentBtn;
+    @FXML private Button generateReportBtn;
+    @FXML private Button processBillingBtn;
+
+    private final PatientService patientService = new PatientServiceImpl(new PatientDAOImpl());
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.DASHBOARD);
+
+        if (!PermissionGate.isAllowed(PageRoute.DASHBOARD)) {
+            if (quickActionsBox != null) {
+                quickActionsBox.setVisible(false);
+                quickActionsBox.setManaged(false);
+            }
+            toastError("You don't have permission to view the dashboard.");
+        }
+
+        applyQuickActionPermissions();
 
         setupAdmissionsChart();
         setupStatusChart();
         setupRecentTable();
     }
 
+    private void applyQuickActionPermissions() {
+        setVisibleIfAllowed(newPatientBtn, PageRoute.PATIENTS);
+        setVisibleIfAllowed(newAppointmentBtn, PageRoute.APPOINTMENTS);
+        setVisibleIfAllowed(generateReportBtn, PageRoute.ANALYTICS);
+        setVisibleIfAllowed(processBillingBtn, PageRoute.BILLING);
+
+        if (quickActionsBox != null) {
+            boolean any = quickActionsBox.getChildren().stream().anyMatch(node -> node instanceof Button b && b.isVisible());
+            quickActionsBox.setVisible(any);
+            quickActionsBox.setManaged(any);
+        }
+    }
+
+    private void setVisibleIfAllowed(Button button, PageRoute route) {
+        if (button == null) return;
+        boolean allowed = PermissionGate.isAllowed(route);
+        button.setVisible(allowed);
+        button.setManaged(allowed);
+        button.setDisable(!allowed);
+    }
+
     @FXML
     private void handleNewPatient(javafx.event.ActionEvent e) {
+        if (!PermissionGate.isAllowed(PageRoute.PATIENTS)) { toastError("Access denied."); return; }
         navigateAndOpenAdd(PageRoute.PATIENTS, (Button) e.getSource());
     }
 
     @FXML
     private void handleNewAppointment(javafx.event.ActionEvent e) {
+        if (!PermissionGate.isAllowed(PageRoute.APPOINTMENTS)) { toastError("Access denied."); return; }
         navigateAndOpenAdd(PageRoute.APPOINTMENTS, (Button) e.getSource());
     }
 
     @FXML
     private void handleProcessBilling(javafx.event.ActionEvent e) {
+        if (!PermissionGate.isAllowed(PageRoute.BILLING)) { toastError("Access denied."); return; }
         navigateAndOpenAdd(PageRoute.BILLING, (Button) e.getSource());
     }
 
     @FXML
     private void handleGenerateReport(javafx.event.ActionEvent e) {
+        if (!PermissionGate.isAllowed(PageRoute.ANALYTICS)) { toastError("Access denied."); return; }
         navigateTo(PageRoute.ANALYTICS, (Button) e.getSource());
     }
 
@@ -133,7 +181,12 @@ public class DashboardController extends BasePageController {
             return new SimpleIntegerProperty(age).asObject();
         });
         recentStatusCol.setCellValueFactory(cell -> new SimpleStringProperty("—"));
-        recentTable.setItems(FXCollections.observableArrayList());
+        try {
+            var patients = patientService.findAll(CursorPagination.firstPage(10)).getItems();
+            recentTable.setItems(FXCollections.observableArrayList(patients));
+        } catch (Exception e) {
+            recentTable.setItems(FXCollections.observableArrayList());
+        }
         recentTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
     }
 }

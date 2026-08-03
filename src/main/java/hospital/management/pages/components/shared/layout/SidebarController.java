@@ -26,6 +26,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -110,6 +111,14 @@ public class SidebarController {
         expandedState.put(pharmacyItems,  true);
         expandedState.put(analyticsItems, true);
         expandedState.put(adminItems,     true);
+
+        // Centralized permission gate: only show pages this user can actually access.
+        try {
+            configureForRole(PermissionGate.currentRole());
+        } catch (Exception e) {
+            // No active session: hide navigable items except profile/logout.
+            configureForRole(null);
+        }
     }
 
     // ── Section accordion toggles ─────────────────────────────────────────
@@ -157,7 +166,7 @@ public class SidebarController {
         // and logout must always stay reachable regardless of role.
 
         buttonRoutes.forEach((btn, route) -> {
-            boolean allowed = route.isAllowedFor(role);
+            boolean allowed = PermissionGate.isAllowed(route);
             btn.setVisible(allowed);
             btn.setManaged(allowed);
         });
@@ -292,21 +301,31 @@ public class SidebarController {
     @FXML private void handleProfile()        { navigate(PageRoute.PROFILE, profileBtn); }
     @FXML
     private void handleLogout() {
-        try {
-            String sessionId = SessionManager.getCurrentSessionId();
-            if (sessionId != null) authService.logout(sessionId);
-        } catch (Exception e) {
-            System.err.println("Logout cleanup failed: " + e.getMessage());
-            showErrorAlert("You've been signed out locally, but the server-side session couldn't be closed cleanly.");
-        } finally {
-            SessionManager.logout();
+        // Try to obtain the backing session id even if the token is expired.
+        String sessionId = SessionManager.peekCurrentSessionId();
+        // Clear local session immediately so the UI reflects sign-out.
+        SessionManager.logout();
+
+        if (sessionId != null) {
+            // Deactivate the server-side session asynchronously so the UI doesn't block.
+            AsyncJobRunner.submit(() -> {
+                authService.logout(sessionId);
+                return Boolean.TRUE;
+            }, ok -> {
+                // no-op on success; server-side logout publishes events already
+            }, err -> {
+                System.err.println("Logout cleanup failed: " + err.getMessage());
+                showErrorAlert("Server-side logout failed: " + err.getMessage());
+            });
         }
+
         navigate(PageRoute.HOME, logoutBtn);
     }
 
     /** Swaps the clicked button's icon for a spinner until the target page has loaded. */
     private void navigate(PageRoute route, Button sourceBtn) {
-        if (!PermissionGate.isAllowed(route)) {
+        // HOME is the public landing page — allow navigating there even if session was just cleared.
+        if (route != PageRoute.HOME && !PermissionGate.isAllowed(route)) {
             showErrorAlert("You don't have permission to access this page.");
             return;
         }
@@ -354,11 +373,16 @@ public class SidebarController {
     // ── Private helpers ───────────────────────────────────────────────────
 
     private List<Button> allNavButtons() {
-        return List.of(dashboardBtn, patientsBtn, appointmentsBtn, billingBtn,
-                doctorsBtn, appointmentsDoctorBtn, medicalRecordsBtn, prescriptionsBtn,
-                labOrdersBtn, referralsBtn, scheduleBtn, prescriptionsQueueBtn,
-                inventoryBtn, analyticsBtn, feedbackBtn, usersBtn, rolesBtn, departmentsBtn,
-                systemLogsBtn, auditLogsBtn, retentionBtn, profileBtn, logoutBtn);
+        java.util.List<Button> buttons = new java.util.ArrayList<>();
+        Button[] candidates = new Button[] {
+            dashboardBtn, patientsBtn, appointmentsBtn, billingBtn,
+            doctorsBtn, appointmentsDoctorBtn, medicalRecordsBtn, prescriptionsBtn,
+            labOrdersBtn, referralsBtn, scheduleBtn, prescriptionsQueueBtn,
+            inventoryBtn, analyticsBtn, feedbackBtn, usersBtn, rolesBtn, departmentsBtn,
+            systemLogsBtn, auditLogsBtn, retentionBtn, profileBtn, logoutBtn
+        };
+        for (Button b : candidates) if (b != null) buttons.add(b);
+        return buttons;
     }
 
     private void show(VBox... sections) {

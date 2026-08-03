@@ -51,6 +51,7 @@ public final class SessionManager {
         currentRole      = JwtConfig.getRole(token);
         currentToken     = token;
         currentSessionId = sessionId;
+        PermissionGate.invalidateCache();
     }
 
     /** Clears all session state. Call on logout button or when a token expires mid-session. */
@@ -60,6 +61,7 @@ public final class SessionManager {
         currentRole      = null;
         currentToken     = null;
         currentSessionId = null;
+        PermissionGate.invalidateCache();
     }
 
     // ── Session state ─────────────────────────────────────────────────────────
@@ -124,6 +126,15 @@ public final class SessionManager {
      */
     public static String getCurrentSessionId() {
         requireLoggedIn();
+        return currentSessionId;
+    }
+
+    /**
+     * Returns the session id without enforcing the "logged in" guard.
+     * Useful for cleanup paths where the token may already be expired but
+     * the underlying session row should still be deactivated.
+     */
+    public static String peekCurrentSessionId() {
         return currentSessionId;
     }
 
