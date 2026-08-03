@@ -42,11 +42,27 @@ public class FeedbackServiceImpl implements FeedbackService {
 
         // A single INSERT is already atomic — no TransactionManager needed here.
         CacheService.evict(CacheKey.feedback(patientId));
+        CacheService.evict(CacheKey.feedbackList());
         PatientFeedback saved = feedbackDAO.save(PatientFeedbackMapper.toEntity(dto));
         // record audit and publish event
         ServiceAudit.record("patient_feedback", "create", saved.getFeedbackId());
         EventBus.publish(AppEventType.PATIENT_FEEDBACK_SUBMITTED, saved.getFeedbackId());
         return PatientFeedbackMapper.toDTO(saved);
+    }
+
+    @Override
+    public List<PatientFeedbackDTO> findAll() throws Exception {
+        Optional<List<PatientFeedbackDTO>> cached = CacheService.get(
+            CacheKey.feedbackList(),
+            new TypeReference<List<PatientFeedbackDTO>>() {});
+        if (cached.isPresent()) return cached.get();
+
+        List<PatientFeedbackDTO> dtos = new ArrayList<>();
+        for (PatientFeedback feedback : feedbackDAO.findAll()) {
+            dtos.add(PatientFeedbackMapper.toDTO(feedback));
+        }
+        CacheService.set(CacheKey.feedbackList(), dtos, CacheDomain.PATIENT);
+        return dtos;
     }
 
     @Override
@@ -72,6 +88,7 @@ public class FeedbackServiceImpl implements FeedbackService {
         // No PATIENT_FEEDBACK_REMOVED event exists in AppEventType — only SUBMITTED
         // is defined for this domain, so deletion is cache-invalidation only.
         CacheService.evict(CacheKey.feedback(feedback.getPatientId()));
+        CacheService.evict(CacheKey.feedbackList());
         feedbackDAO.softDelete(feedbackId);
         ServiceAudit.record("patient_feedback", "delete", feedbackId);
     }

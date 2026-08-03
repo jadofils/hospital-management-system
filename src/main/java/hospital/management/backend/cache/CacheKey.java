@@ -42,6 +42,7 @@ public final class CacheKey {
     public static String vitalsByPatient(String patientId) { return "vital:patient:" + patientId; }
     public static String allergies(String patientId)       { return "allergy:" + patientId; }
     public static String feedback(String patientId)        { return "feedback:" + patientId; }
+    public static String feedbackList()                    { return "feedback:list"; }
 
     // ── Clinical ──────────────────────────────────────────────────────────
     public static String appointment(String id)            { return "appointment:" + id; }
@@ -78,6 +79,7 @@ public final class CacheKey {
     public static final String ALL_DEPARTMENTS  = "department:*";
     public static final String ALL_DOCTORS      = "doctor:*";
     public static final String ALL_PATIENTS     = "patient:*";
+    public static final String ALL_FEEDBACK     = "feedback:*";
     public static final String ALL_APPOINTMENTS = "appointment:*";
     public static final String ALL_RECORDS      = "record:*";
     public static final String ALL_LAB          = "lab*";

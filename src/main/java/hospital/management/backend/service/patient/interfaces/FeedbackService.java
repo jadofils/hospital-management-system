@@ -7,6 +7,7 @@ import java.util.List;
 
 public interface FeedbackService {
     PatientFeedbackDTO submit(CreatePatientFeedbackDTO dto) throws Exception;
+    List<PatientFeedbackDTO> findAll() throws Exception;
     List<PatientFeedbackDTO> findByPatient(String patientId) throws Exception;
     void delete(String feedbackId) throws Exception;
 }
