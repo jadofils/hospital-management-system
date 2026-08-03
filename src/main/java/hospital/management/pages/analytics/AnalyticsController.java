@@ -26,6 +26,7 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import javafx.fxml.FXML;
 import javafx.scene.chart.*;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
 
 import java.math.BigDecimal;
@@ -171,11 +172,30 @@ public class AnalyticsController extends BasePageController {
             }
 
             List<Map<String, Object>> rows = new java.util.ArrayList<>();
-            addRows(rows, "admissions_by_month", currentSnapshot.admissionsByMonth());
-            addRows(rows, "revenue_by_month", currentSnapshot.revenueByMonth());
-            addRows(rows, "appointment_status", currentSnapshot.appointmentStatus());
-            addRows(rows, "feedback_ratings", currentSnapshot.feedbackRatings());
-            addRows(rows, "lab_status", currentSnapshot.labStatus());
+            String section = chooseAnalyticsSection();
+            if (section == null) {
+                return;
+            }
+
+            if ("All sections".equals(section) || "Admissions by month".equals(section)) {
+                addRows(rows, "admissions_by_month", currentSnapshot.admissionsByMonth());
+            }
+            if ("All sections".equals(section) || "Revenue by month".equals(section)) {
+                addRows(rows, "revenue_by_month", currentSnapshot.revenueByMonth());
+            }
+            if ("All sections".equals(section) || "Appointment status".equals(section)) {
+                addRows(rows, "appointment_status", currentSnapshot.appointmentStatus());
+            }
+            if ("All sections".equals(section) || "Feedback ratings".equals(section)) {
+                addRows(rows, "feedback_ratings", currentSnapshot.feedbackRatings());
+            }
+            if ("All sections".equals(section) || "Lab status".equals(section)) {
+                addRows(rows, "lab_status", currentSnapshot.labStatus());
+            }
+            if (rows.isEmpty()) {
+                toastError("No analytics rows available for selected export.");
+                return;
+            }
 
             String suffix = periodFilter.getValue() == null ? "analytics" : periodFilter.getValue().toLowerCase().replace(' ', '-');
             boolean saved = CsvUiIO.exportRows(exportBtn.getScene().getWindow(), suffix + "-analytics.csv", rows);
@@ -185,6 +205,21 @@ public class AnalyticsController extends BasePageController {
         } catch (Exception e) {
             toastError("Failed to export analytics: " + e.getMessage());
         }
+    }
+
+    private String chooseAnalyticsSection() {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(
+                "All sections",
+                "All sections",
+                "Admissions by month",
+                "Revenue by month",
+                "Appointment status",
+                "Feedback ratings",
+                "Lab status");
+        dialog.setTitle("Export Analytics");
+        dialog.setHeaderText("Choose what to export");
+        dialog.setContentText("Section:");
+        return dialog.showAndWait().orElse(null);
     }
 
     private void addRows(List<Map<String, Object>> rows, String section, Map<?, ?> values) {

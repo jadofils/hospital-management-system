@@ -46,7 +46,7 @@
                     <graphic><FontIcon iconLiteral="fas-file-import" iconSize="13"/></graphic>
                 </Button>
                 <Button fx:id="exportBtn" styleClass="secondary-button"
-                        contentDisplay="LEFT" text="Download Report">
+                        contentDisplay="LEFT" text="Export">
                     <graphic><FontIcon iconLiteral="fas-file-export" iconSize="13"/></graphic>
                 </Button>
                 <Button fx:id="addPatientBtn" styleClass="primary-button"

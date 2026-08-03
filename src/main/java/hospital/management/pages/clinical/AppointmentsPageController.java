@@ -24,6 +24,7 @@ import hospital.management.pages.components.clinical.AppointmentTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import hospital.management.pages.components.shared.widgets.CalendarController;
+import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -52,6 +53,8 @@ public class AppointmentsPageController extends BasePageController implements Qu
     @FXML private AppointmentTableController appointmentTableController;
 
     @FXML private Button addAppointmentBtn;
+    @FXML private Button importBtn;
+    @FXML private Button exportBtn;
 
     private final List<AppointmentDTO> appointments = new ArrayList<>();
     private LocalDate selectedDate;
@@ -60,7 +63,14 @@ public class AppointmentsPageController extends BasePageController implements Qu
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.APPOINTMENTS);
 
         applyCreateVisibility(addAppointmentBtn, PageRoute.APPOINTMENTS);
+        applyCreateVisibility(importBtn, PageRoute.APPOINTMENTS);
+        boolean canExport = canRead(PageRoute.APPOINTMENTS);
+        exportBtn.setVisible(canExport);
+        exportBtn.setManaged(canExport);
+
         addAppointmentBtn.setOnAction(e -> openAppointmentDialog(null));
+        importBtn.setOnAction(e -> withSpinner(importBtn, this::importAppointments));
+        exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportAppointments));
         appointmentTableController.setRowActions(
             allowUpdate(PageRoute.APPOINTMENTS, this::openAppointmentDialog),
             allowDelete(PageRoute.APPOINTMENTS, this::confirmDeleteAppointment),
@@ -101,6 +111,96 @@ public class AppointmentsPageController extends BasePageController implements Qu
                             && a.getAppointmentDate().toLocalDate().equals(selectedDate)))
                 .toList();
         appointmentTableController.setItems(visible);
+    }
+
+    private void exportAppointments() {
+        try {
+            if (appointments.isEmpty()) {
+                toastError("No appointments available to export.");
+                return;
+            }
+
+            List<AppointmentDTO> source = chooseAppointmentExportSource();
+            if (source.isEmpty()) {
+                return;
+            }
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (AppointmentDTO appointment : source) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("appointment_id", appointment.getAppointmentId());
+                row.put("patient_id", appointment.getPatientId());
+                row.put("doctor_id", appointment.getDoctorId());
+                row.put("appointment_date", appointment.getAppointmentDate());
+                row.put("status", appointment.getStatus());
+                row.put("reason", appointment.getReason());
+                rows.add(row);
+            }
+
+            boolean saved = CsvUiIO.exportRows(exportBtn.getScene().getWindow(), "appointments.csv", rows);
+            if (saved) {
+                toastSuccess("Appointments exported successfully.");
+            }
+        } catch (Exception e) {
+            toastError("Failed to export appointments: " + e.getMessage());
+        }
+    }
+
+    private List<AppointmentDTO> chooseAppointmentExportSource() {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("Current table view", "Current table view", "All loaded rows");
+        dialog.setTitle("Export Appointments");
+        dialog.setHeaderText("Choose what to export");
+        dialog.setContentText("Export scope:");
+        String choice = dialog.showAndWait().orElse(null);
+        if (choice == null) {
+            return List.of();
+        }
+        if ("Current table view".equals(choice)) {
+            return new ArrayList<>(appointmentTableController.getTable().getItems());
+        }
+        return appointments;
+    }
+
+    private void importAppointments() {
+        try {
+            List<Map<String, String>> rows = CsvUiIO.importRows(importBtn.getScene().getWindow(), "Import Appointments");
+            if (rows.isEmpty()) {
+                return;
+            }
+
+            int ok = 0;
+            int failed = 0;
+            for (Map<String, String> row : rows) {
+                try {
+                    String patientId = value(row, "patient_id");
+                    String doctorId = value(row, "doctor_id");
+                    LocalDateTime dateTime = LocalDateTime.parse(value(row, "appointment_date", "appointment_datetime"));
+                    String reason = value(row, "reason");
+                    appointmentService.book(new CreateAppointmentDTO(patientId, doctorId, dateTime, reason));
+                    ok++;
+                } catch (Exception ex) {
+                    failed++;
+                }
+            }
+
+            refreshTable();
+            if (failed == 0) {
+                toastSuccess("Imported " + ok + " appointment(s).");
+            } else {
+                toastError("Imported " + ok + " appointment(s), failed " + failed + ".");
+            }
+        } catch (Exception e) {
+            toastError("Failed to import appointments: " + e.getMessage());
+        }
+    }
+
+    private String value(Map<String, String> row, String... keys) {
+        for (String key : keys) {
+            if (row.containsKey(key) && row.get(key) != null) {
+                return row.get(key).trim();
+            }
+        }
+        return "";
     }
 
     private void viewAppointmentDetail(AppointmentDTO appointment) {

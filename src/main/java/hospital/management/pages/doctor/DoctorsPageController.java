@@ -16,6 +16,7 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.doctor.DoctorTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -37,6 +38,8 @@ public class DoctorsPageController extends BasePageController {
     @FXML private TextField searchField;
     @FXML private ComboBox<String> departmentFilter;
     @FXML private Button addDoctorBtn;
+    @FXML private Button importBtn;
+    @FXML private Button exportBtn;
     @FXML private Label totalLabel;
 
     private List<DoctorDTO> doctors = new ArrayList<>();
@@ -48,7 +51,14 @@ public class DoctorsPageController extends BasePageController {
         departmentFilter.setOnAction(e -> applyFilter());
 
         applyCreateVisibility(addDoctorBtn, PageRoute.DOCTORS);
+        applyCreateVisibility(importBtn, PageRoute.DOCTORS);
+        boolean canExport = canRead(PageRoute.DOCTORS);
+        exportBtn.setVisible(canExport);
+        exportBtn.setManaged(canExport);
+
         addDoctorBtn.setOnAction(e -> openDoctorDialog(null));
+        importBtn.setOnAction(e -> withSpinner(importBtn, this::importDoctors));
+        exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportDoctors));
         doctorTableController.setRowActions(
             allowUpdate(PageRoute.DOCTORS, this::openDoctorDialog),
             allowDelete(PageRoute.DOCTORS, this::confirmDeleteDoctor),
@@ -69,6 +79,99 @@ public class DoctorsPageController extends BasePageController {
         } catch (Exception e) {
             toastError("Failed to load doctors: " + e.getMessage());
         }
+    }
+
+    private void exportDoctors() {
+        try {
+            if (doctors.isEmpty()) {
+                toastError("No doctors available to export.");
+                return;
+            }
+            List<DoctorDTO> source = chooseDoctorExportSource();
+            if (source.isEmpty()) {
+                return;
+            }
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (DoctorDTO doctor : source) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("doctor_id", doctor.getDoctorId());
+                row.put("department_id", doctor.getDepartmentId());
+                row.put("first_name", doctor.getFirstName());
+                row.put("last_name", doctor.getLastName());
+                row.put("specialization", doctor.getSpecialization());
+                row.put("phone", doctor.getPhone());
+                row.put("email", doctor.getEmail());
+                rows.add(row);
+            }
+
+            boolean saved = CsvUiIO.exportRows(exportBtn.getScene().getWindow(), "doctors.csv", rows);
+            if (saved) {
+                toastSuccess("Doctors exported successfully.");
+            }
+        } catch (Exception e) {
+            toastError("Failed to export doctors: " + e.getMessage());
+        }
+    }
+
+    private List<DoctorDTO> chooseDoctorExportSource() {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("All loaded rows", "All loaded rows", "Current table view");
+        dialog.setTitle("Export Doctors");
+        dialog.setHeaderText("Choose what to export");
+        dialog.setContentText("Export scope:");
+        String choice = dialog.showAndWait().orElse(null);
+        if (choice == null) {
+            return List.of();
+        }
+        if ("Current table view".equals(choice)) {
+            return new ArrayList<>(doctorTableController.getTable().getItems());
+        }
+        return doctors;
+    }
+
+    private void importDoctors() {
+        try {
+            List<Map<String, String>> rows = CsvUiIO.importRows(importBtn.getScene().getWindow(), "Import Doctors");
+            if (rows.isEmpty()) {
+                return;
+            }
+
+            int ok = 0;
+            int failed = 0;
+            for (Map<String, String> row : rows) {
+                try {
+                    CreateDoctorDTO dto = new CreateDoctorDTO(
+                            value(row, "department_id"),
+                            value(row, "first_name", "firstname"),
+                            value(row, "last_name", "lastname"),
+                            value(row, "specialization"),
+                            value(row, "phone"),
+                            value(row, "email"));
+                    doctorService.create(dto);
+                    ok++;
+                } catch (Exception ex) {
+                    failed++;
+                }
+            }
+
+            refreshTable();
+            if (failed == 0) {
+                toastSuccess("Imported " + ok + " doctor(s).");
+            } else {
+                toastError("Imported " + ok + " doctor(s), failed " + failed + ".");
+            }
+        } catch (Exception e) {
+            toastError("Failed to import doctors: " + e.getMessage());
+        }
+    }
+
+    private String value(Map<String, String> row, String... keys) {
+        for (String key : keys) {
+            if (row.containsKey(key) && row.get(key) != null) {
+                return row.get(key).trim();
+            }
+        }
+        return "";
     }
 
     private void viewDoctorDetail(DoctorDTO doctor) {

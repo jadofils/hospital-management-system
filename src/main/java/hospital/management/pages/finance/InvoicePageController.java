@@ -26,6 +26,7 @@ import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.print.PrinterJob;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
@@ -283,8 +284,13 @@ public class InvoicePageController extends BasePageController implements QuickAd
                 return;
             }
 
+            List<InvoiceDTO> source = chooseInvoiceExportSource();
+            if (source == null || source.isEmpty()) {
+                return;
+            }
+
             List<Map<String, Object>> rows = new ArrayList<>();
-            for (InvoiceDTO invoice : invoices) {
+            for (InvoiceDTO invoice : source) {
                 Map<String, Object> row = new LinkedHashMap<>();
                 row.put("invoice_id", invoice.getInvoiceId());
                 row.put("appointment_id", invoice.getAppointmentId());
@@ -302,6 +308,21 @@ public class InvoicePageController extends BasePageController implements QuickAd
         } catch (Exception e) {
             toastError("Failed to export invoices: " + e.getMessage());
         }
+    }
+
+    private List<InvoiceDTO> chooseInvoiceExportSource() {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("All loaded rows", "All loaded rows", "Current table view");
+        dialog.setTitle("Export Invoices");
+        dialog.setHeaderText("Choose what to export");
+        dialog.setContentText("Export scope:");
+        String choice = dialog.showAndWait().orElse(null);
+        if (choice == null) {
+            return List.of();
+        }
+        if ("Current table view".equals(choice)) {
+            return new ArrayList<>(invoiceTableController.getTable().getItems());
+        }
+        return invoices;
     }
 
     private void importInvoicesCsv() {
