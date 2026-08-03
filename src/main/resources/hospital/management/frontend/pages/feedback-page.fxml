@@ -34,6 +34,9 @@
                             <TextField fx:id="searchField" promptText="Search by patient, appointment, rating, comments"
                                        styleClass="search-field" prefWidth="320"/>
                         </HBox>
+                        <Button fx:id="submitFeedbackBtn" styleClass="primary-button" contentDisplay="LEFT" text="Submit Feedback">
+                            <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
+                        </Button>
                         <Button fx:id="refreshBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Refresh">
                             <graphic><FontIcon iconLiteral="fas-sync-alt" iconSize="13"/></graphic>
                         </Button>
