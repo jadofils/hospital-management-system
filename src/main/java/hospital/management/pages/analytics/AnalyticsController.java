@@ -19,14 +19,13 @@ import hospital.management.backend.service.lab.LabServiceImpl;
 import hospital.management.backend.service.patient.FeedbackServiceImpl;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.pages.BasePageController;
+import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
-import hospital.management.pages.utils.CsvUiIO;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import javafx.fxml.FXML;
 import javafx.scene.chart.*;
 import javafx.scene.control.Button;
-import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
 
 import java.math.BigDecimal;
@@ -34,6 +33,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +51,6 @@ public class AnalyticsController extends BasePageController {
     private final LabServiceImpl labService = new LabServiceImpl(new LabOrderDAOImpl(), new LabResultDAOImpl());
 
     private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("MMM yyyy");
-    private AnalyticsSnapshot currentSnapshot;
 
     @FXML private ComboBox<String> periodFilter;
     @FXML private Button exportBtn;
@@ -82,7 +83,7 @@ public class AnalyticsController extends BasePageController {
         reloadData();
 
         periodFilter.setOnAction(e -> reloadData());
-        exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportCsv));
+        exportBtn.setOnAction(e -> toast("Export not yet implemented.", NotificationType.INFO));
     }
 
     private void setupCharts() {
@@ -154,7 +155,6 @@ public class AnalyticsController extends BasePageController {
     }
 
     private void applySnapshot(AnalyticsSnapshot snapshot) {
-        currentSnapshot = snapshot;
         admissionsChart.getData().setAll(toMonthlySeries("Admissions", snapshot.admissionsByMonth()));
         revenueChart.getData().setAll(toMonthlyMoneySeries("Revenue", snapshot.revenueByMonth()));
         apptStatusChart.getData().setAll(snapshot.appointmentStatus().entrySet().stream()
@@ -162,74 +162,6 @@ public class AnalyticsController extends BasePageController {
                 .toList());
         feedbackChart.getData().setAll(toIntegerSeries("Feedback Ratings", snapshot.feedbackRatings()));
         labStatusChart.getData().setAll(toMonthlySeries("Lab Orders", snapshot.labStatus()));
-    }
-
-    private void exportCsv() {
-        try {
-            if (currentSnapshot == null) {
-                toastError("No analytics data loaded yet.");
-                return;
-            }
-
-            List<Map<String, Object>> rows = new java.util.ArrayList<>();
-            String section = chooseAnalyticsSection();
-            if (section == null) {
-                return;
-            }
-
-            if ("All sections".equals(section) || "Admissions by month".equals(section)) {
-                addRows(rows, "admissions_by_month", currentSnapshot.admissionsByMonth());
-            }
-            if ("All sections".equals(section) || "Revenue by month".equals(section)) {
-                addRows(rows, "revenue_by_month", currentSnapshot.revenueByMonth());
-            }
-            if ("All sections".equals(section) || "Appointment status".equals(section)) {
-                addRows(rows, "appointment_status", currentSnapshot.appointmentStatus());
-            }
-            if ("All sections".equals(section) || "Feedback ratings".equals(section)) {
-                addRows(rows, "feedback_ratings", currentSnapshot.feedbackRatings());
-            }
-            if ("All sections".equals(section) || "Lab status".equals(section)) {
-                addRows(rows, "lab_status", currentSnapshot.labStatus());
-            }
-            if (rows.isEmpty()) {
-                toastError("No analytics rows available for selected export.");
-                return;
-            }
-
-            String suffix = periodFilter.getValue() == null ? "analytics" : periodFilter.getValue().toLowerCase().replace(' ', '-');
-            boolean saved = CsvUiIO.exportRows(exportBtn.getScene().getWindow(), suffix + "-analytics.csv", rows);
-            if (saved) {
-                toastSuccess("Analytics exported successfully.");
-            }
-        } catch (Exception e) {
-            toastError("Failed to export analytics: " + e.getMessage());
-        }
-    }
-
-    private String chooseAnalyticsSection() {
-        ChoiceDialog<String> dialog = new ChoiceDialog<>(
-                "All sections",
-                "All sections",
-                "Admissions by month",
-                "Revenue by month",
-                "Appointment status",
-                "Feedback ratings",
-                "Lab status");
-        dialog.setTitle("Export Analytics");
-        dialog.setHeaderText("Choose what to export");
-        dialog.setContentText("Section:");
-        return dialog.showAndWait().orElse(null);
-    }
-
-    private void addRows(List<Map<String, Object>> rows, String section, Map<?, ?> values) {
-        values.forEach((label, value) -> {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("section", section);
-            row.put("label", label);
-            row.put("value", value);
-            rows.add(row);
-        });
     }
 
     private XYChart.Series<String, Number> toMonthlySeries(String name, Map<String, Long> values) {
