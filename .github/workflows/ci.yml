@@ -74,7 +74,7 @@ jobs:
         run: xvfb-run --auto-servernum ./mvnw -B test
 
       - name: Publish test results
-        if: always()
+        if: ${{ always() && hashFiles('target/surefire-reports/*.xml') != '' }}
         uses: dorny/test-reporter@v1
         with:
           name: JUnit Results
