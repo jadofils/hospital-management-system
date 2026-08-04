@@ -70,6 +70,16 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
+    public PatientDTO findByEmail(String email) throws Exception {
+        if (email == null || email.isBlank()) {
+            throw new ValidationException("email", "Email is required.");
+        }
+        Patient patient = patientDAO.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient with email", email));
+        return PatientMapper.toDTO(patient);
+    }
+
+    @Override
     public PageResult<PatientDTO> findAll(PageRequest request) throws Exception {
         // Cursor-paginated results are intentionally not cached here — PageResult's
         // constructor is package-private to hospital.management.backend.utils.pagination,

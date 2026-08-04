@@ -22,8 +22,6 @@ import java.util.Properties;
 public final class RetentionPolicyStore {
 
     private static final AppLogger logger = AppLogger.getLogger(RetentionPolicyStore.class);
-    private static final Path STORE_PATH  =
-        Paths.get(System.getProperty("user.home"), ".hms", "retention.properties");
 
     private static final String KEY_INACTIVE_USER    = "inactive.user.days";
     private static final String KEY_DB_LOG           = "db.log.retention.days";
@@ -33,13 +31,18 @@ public final class RetentionPolicyStore {
 
     private RetentionPolicyStore() {}
 
+    private static Path getStorePath() {
+        return Paths.get(System.getProperty("user.home"), ".hms", "retention.properties");
+    }
+
     /**
      * Loads the policy from disk. Creates the file with defaults if it does not exist.
      */
     public static RetentionPolicy load() {
         ensureFileExists();
+        Path storePath = getStorePath();
         Properties props = new Properties();
-        try (InputStream in = Files.newInputStream(STORE_PATH)) {
+        try (InputStream in = Files.newInputStream(storePath)) {
             props.load(in);
         } catch (IOException e) {
             logger.warn("Could not read retention policy — using defaults: " + e.getMessage());
@@ -63,6 +66,7 @@ public final class RetentionPolicyStore {
      */
     public static void save(RetentionPolicy policy) {
         ensureFileExists();
+        Path storePath = getStorePath();
         Properties props = new Properties();
         props.setProperty(KEY_INACTIVE_USER,  String.valueOf(policy.getInactiveUserDays()));
         props.setProperty(KEY_DB_LOG,         String.valueOf(policy.getDbLogRetentionDays()));
@@ -70,7 +74,7 @@ public final class RetentionPolicyStore {
         props.setProperty(KEY_ARCHIVE_DAYS,   String.valueOf(policy.getArchiveRetentionDays()));
         props.setProperty(KEY_INTERVAL_HOURS, String.valueOf(policy.getCleanupIntervalHours()));
 
-        try (OutputStream out = Files.newOutputStream(STORE_PATH)) {
+        try (OutputStream out = Files.newOutputStream(storePath)) {
             props.store(out, "HMS Retention Policy — managed by admin settings");
             logger.info("Retention policy saved: " + policy);
         } catch (IOException e) {
@@ -79,13 +83,27 @@ public final class RetentionPolicyStore {
     }
 
     private static void ensureFileExists() {
+        Path storePath = getStorePath();
         try {
-            Files.createDirectories(STORE_PATH.getParent());
-            if (!Files.exists(STORE_PATH)) {
-                save(new RetentionPolicy());
+            Files.createDirectories(storePath.getParent());
+            if (!Files.exists(storePath)) {
+                writeDefaults(storePath);
             }
         } catch (IOException e) {
             logger.warn("Could not create retention policy file: " + e.getMessage());
+        }
+    }
+
+    private static void writeDefaults(Path storePath) throws IOException {
+        Properties props = new Properties();
+        props.setProperty(KEY_INACTIVE_USER, String.valueOf(RetentionPolicy.DEFAULT_INACTIVE_USER_DAYS));
+        props.setProperty(KEY_DB_LOG, String.valueOf(RetentionPolicy.DEFAULT_DB_LOG_RETENTION_DAYS));
+        props.setProperty(KEY_FILE_LOG_MB, String.valueOf(RetentionPolicy.DEFAULT_FILE_LOG_MAX_SIZE_MB));
+        props.setProperty(KEY_ARCHIVE_DAYS, String.valueOf(RetentionPolicy.DEFAULT_ARCHIVE_RETENTION_DAYS));
+        props.setProperty(KEY_INTERVAL_HOURS, String.valueOf(RetentionPolicy.DEFAULT_CLEANUP_INTERVAL_HOURS));
+
+        try (OutputStream out = Files.newOutputStream(storePath)) {
+            props.store(out, "HMS Retention Policy — managed by admin settings");
         }
     }
 

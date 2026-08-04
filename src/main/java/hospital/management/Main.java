@@ -1,6 +1,7 @@
 package hospital.management;
 
 import hospital.management.backend.config.AppConfig;
+import hospital.management.backend.daemon.DatabaseCleanupDaemon;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Rectangle2D;
@@ -26,6 +27,8 @@ public class Main extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
+        DatabaseCleanupDaemon.start();
+
         FXMLLoader loader = new FXMLLoader(
             getClass().getResource(AppConfig.HOME_FXML_PATH)
         );
@@ -44,6 +47,11 @@ public class Main extends Application {
         stage.setMinWidth(900);
         stage.setMinHeight(600);
         stage.show();
+    }
+
+    @Override
+    public void stop() {
+        DatabaseCleanupDaemon.stop();
     }
 
     public static void main(String[] args) {

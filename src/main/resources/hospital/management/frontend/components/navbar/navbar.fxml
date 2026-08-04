@@ -29,7 +29,7 @@
     <Button styleClass="navbar-icon-btn" onAction="#handleNotifications">
         <graphic><FontIcon iconLiteral="fas-bell" iconSize="16"/></graphic>
     </Button>
-    <Button styleClass="navbar-btn" onAction="#handleProfile" contentDisplay="LEFT" text="Dr. Admin">
+    <Button fx:id="profileBtn" styleClass="navbar-btn" onAction="#handleProfile" contentDisplay="LEFT" text="User">
         <graphic><FontIcon iconLiteral="fas-user-circle" iconSize="15"/></graphic>
     </Button>
 </HBox>

@@ -10,6 +10,7 @@ public class PatientFeedbackMapper {
         if (f == null) return null;
         return new PatientFeedbackDTO(
             f.getFeedbackId(),
+            f.getSubmittedBy(),
             f.getPatientId(),
             f.getAppointmentId(),
             f.getRating(),
@@ -22,6 +23,7 @@ public class PatientFeedbackMapper {
     public static PatientFeedback toEntity(CreatePatientFeedbackDTO dto) {
         if (dto == null) return null;
         PatientFeedback f = new PatientFeedback();
+        // submittedBy is set by the service layer based on current user context
         f.setPatientId(dto.getPatientId());
         f.setAppointmentId(dto.getAppointmentId());
         f.setRating(dto.getRating());

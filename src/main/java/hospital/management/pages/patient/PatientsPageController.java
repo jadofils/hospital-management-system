@@ -22,7 +22,10 @@ import javafx.scene.control.*;
 import javafx.stage.Stage;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,13 +102,19 @@ public class PatientsPageController extends BasePageController implements QuickA
     private void exportPatients() {
         try {
             if (patients.isEmpty()) {
-                toastError("No patients available to export.");
+                toastError("No patients available to include in the report.");
                 return;
             }
             List<PatientDTO> source = choosePatientExportSource();
             if (source.isEmpty()) {
                 return;
             }
+
+            // Deterministic ordering keeps the exported report consistent across runs.
+            source.sort(Comparator
+                .comparing((PatientDTO p) -> safe(p.getLastName()))
+                .thenComparing(p -> safe(p.getFirstName()))
+                .thenComparing(PatientDTO::getPatientId));
 
             List<Map<String, Object>> rows = new ArrayList<>();
             for (PatientDTO patient : source) {
@@ -121,13 +130,19 @@ public class PatientsPageController extends BasePageController implements QuickA
                 rows.add(row);
             }
 
-            boolean saved = CsvUiIO.exportRows(exportBtn.getScene().getWindow(), "patients.csv", rows);
+            String timestamp = DateTimeFormatter.ofPattern("yyyyMMdd_HHmm").format(LocalDateTime.now());
+            String fileName = "patients_report_" + timestamp + ".csv";
+            boolean saved = CsvUiIO.exportRows(exportBtn.getScene().getWindow(), fileName, rows);
             if (saved) {
-                toastSuccess("Patients exported successfully.");
+                toastSuccess("Patients report downloaded successfully.");
             }
         } catch (Exception e) {
-            toastError("Failed to export patients: " + e.getMessage());
+            toastError("Failed to download patients report: " + e.getMessage());
         }
+    }
+
+    private String safe(String value) {
+        return value == null ? "" : value.trim().toLowerCase();
     }
 
     private List<PatientDTO> choosePatientExportSource() {

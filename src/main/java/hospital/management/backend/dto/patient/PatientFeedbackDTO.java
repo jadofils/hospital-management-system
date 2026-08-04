@@ -6,7 +6,8 @@ import java.time.LocalDateTime;
 public class PatientFeedbackDTO {
 
     private String        feedbackId;
-    private String        patientId;
+    private String        submittedBy;    // User who submitted feedback
+    private String        patientId;      // Patient feedback is about (nullable)
     private String        appointmentId;
     private Integer       rating;
     private String        comments;
@@ -15,10 +16,11 @@ public class PatientFeedbackDTO {
 
     public PatientFeedbackDTO() {}
 
-    public PatientFeedbackDTO(String feedbackId, String patientId, String appointmentId,
+    public PatientFeedbackDTO(String feedbackId, String submittedBy, String patientId, String appointmentId,
                               Integer rating, String comments, LocalDate dateSubmitted,
                               LocalDateTime createdAt) {
         this.feedbackId    = feedbackId;
+        this.submittedBy   = submittedBy;
         this.patientId     = patientId;
         this.appointmentId = appointmentId;
         this.rating        = rating;
@@ -29,6 +31,9 @@ public class PatientFeedbackDTO {
 
     public String getFeedbackId() { return feedbackId; }
     public void setFeedbackId(String feedbackId) { this.feedbackId = feedbackId; }
+
+    public String getSubmittedBy() { return submittedBy; }
+    public void setSubmittedBy(String submittedBy) { this.submittedBy = submittedBy; }
 
     public String getPatientId() { return patientId; }
     public void setPatientId(String patientId) { this.patientId = patientId; }

@@ -11,6 +11,7 @@ import java.util.List;
 public interface DoctorService {
     DoctorDTO create(CreateDoctorDTO dto) throws Exception;
     DoctorDTO findById(String doctorId) throws Exception;
+    DoctorDTO findByEmail(String email) throws Exception;
     PageResult<DoctorDTO> findAll(PageRequest request) throws Exception;
     List<DoctorSummaryDTO> findByDepartment(String departmentId) throws Exception;
     DoctorDTO update(String doctorId, CreateDoctorDTO dto) throws Exception;

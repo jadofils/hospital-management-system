@@ -10,6 +10,7 @@ import hospital.management.backend.utils.pagination.PageResult;
 public interface PatientService {
     PatientDTO create(CreatePatientDTO dto) throws Exception;
     PatientDTO findById(String patientId) throws Exception;
+    PatientDTO findByEmail(String email) throws Exception;
     PageResult<PatientDTO> findAll(PageRequest request) throws Exception;
     PageResult<PatientSummaryDTO> search(String query, PageRequest request) throws Exception;
     PatientDTO update(UpdatePatientDTO dto) throws Exception;
