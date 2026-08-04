@@ -1,0 +1,81 @@
+name: Auto Merge
+
+on:
+  pull_request_target:
+    branches: [master]
+    types: [opened, reopened, synchronize, labeled, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  statuses: read
+
+jobs:
+  automerge:
+    if: ${{ !github.event.pull_request.draft && contains(github.event.pull_request.labels.*.name, 'automerge') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge when checks and approvals are ready
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const reviews = await github.paginate(github.rest.pulls.listReviews, {
+              owner,
+              repo,
+              pull_number: pr.number,
+              per_page: 100,
+            });
+            const hasApproval = reviews.some(r => r.state === 'APPROVED');
+            if (!hasApproval) {
+              core.info('Skipping: no approval yet.');
+              return;
+            }
+
+            const checks = await github.rest.checks.listForRef({
+              owner,
+              repo,
+              ref: pr.head.sha,
+              per_page: 100,
+            });
+
+            const statuses = await github.rest.repos.listCommitStatusesForRef({
+              owner,
+              repo,
+              ref: pr.head.sha,
+              per_page: 100,
+            });
+
+            const checkRuns = checks.data.check_runs || [];
+            const failedChecks = checkRuns.filter(c => c.status === 'completed' && c.conclusion !== 'success' && c.conclusion !== 'skipped' && c.conclusion !== 'neutral');
+            const pendingChecks = checkRuns.filter(c => c.status !== 'completed');
+
+            const failedStatuses = (statuses.data || []).filter(s => s.state === 'failure' || s.state === 'error');
+            const pendingStatuses = (statuses.data || []).filter(s => s.state === 'pending');
+
+            if (failedChecks.length || failedStatuses.length) {
+              core.info('Skipping: one or more checks failed.');
+              return;
+            }
+            if (pendingChecks.length || pendingStatuses.length) {
+              core.info('Skipping: checks still pending.');
+              return;
+            }
+
+            const prFresh = await github.rest.pulls.get({ owner, repo, pull_number: pr.number });
+            if (!prFresh.data.mergeable || ['dirty', 'blocked'].includes(prFresh.data.mergeable_state)) {
+              core.info(`Skipping: PR is not mergeable yet (state: ${prFresh.data.mergeable_state}).`);
+              return;
+            }
+
+            await github.rest.pulls.merge({
+              owner,
+              repo,
+              pull_number: pr.number,
+              merge_method: 'squash',
+            });
+            core.info('PR auto-merged.');
