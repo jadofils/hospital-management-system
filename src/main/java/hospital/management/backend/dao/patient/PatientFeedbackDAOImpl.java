@@ -95,20 +95,6 @@ public class PatientFeedbackDAOImpl implements PatientFeedbackDAO {
     }
 
     @Override
-    public List<PatientFeedback> findAll() throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM patient_feedback WHERE deleted_at IS NULL ORDER BY date_submitted DESC, created_at DESC";
-        List<PatientFeedback> feedbacks = new ArrayList<>();
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-            while (rs.next()) feedbacks.add(mapRow(rs));
-        } catch (SQLException e) {
-            throw new DatabaseException("Failed to list patient feedback: " + e.getMessage(), e);
-        }
-        return feedbacks;
-    }
-
-    @Override
     public List<PatientFeedback> findByPatientId(String patientId) throws Exception {
         try {
             List<PatientFeedback> feedbacks = new ArrayList<>();

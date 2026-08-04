@@ -3,6 +3,8 @@ package hospital.management.pages.components.pharmacy;
 import hospital.management.pages.components.PaginatedTableController;
 import hospital.management.backend.dto.pharmacy.MedicalInventoryDTO;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 
@@ -20,6 +22,7 @@ public class MedicalInventoryTableController extends PaginatedTableController<Me
     @FXML private TableColumn<MedicalInventoryDTO, Integer>   quantityInStockColumn;
     @FXML private TableColumn<MedicalInventoryDTO, Integer>   reorderLevelColumn;
     @FXML private TableColumn<MedicalInventoryDTO, String>    supplierColumn;
+    @FXML private TableColumn<MedicalInventoryDTO, String>    stockAlertColumn;
     @FXML private TableColumn<MedicalInventoryDTO, Void>      actionsColumn;
 
     @Override
@@ -31,6 +34,22 @@ public class MedicalInventoryTableController extends PaginatedTableController<Me
         quantityInStockColumn.setCellValueFactory(new PropertyValueFactory<>("quantityInStock"));
         reorderLevelColumn.setCellValueFactory(new PropertyValueFactory<>("reorderLevel"));
         supplierColumn.setCellValueFactory(new PropertyValueFactory<>("supplier"));
+        stockAlertColumn.setCellValueFactory(new PropertyValueFactory<>("stockAlert"));
+        stockAlertColumn.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(String alert, boolean empty) {
+                super.updateItem(alert, empty);
+                if (empty || alert == null) { setGraphic(null); return; }
+                Label badge = new Label(alert);
+                badge.getStyleClass().add("status-badge");
+                badge.getStyleClass().add(switch (alert) {
+                    case "Out of Stock", "Critical" -> "status-cancelled";
+                    case "Low"                      -> "status-pending";
+                    default                         -> "status-discharged";
+                });
+                setGraphic(badge);
+            }
+        });
         wireActionsColumn(actionsColumn);
     }
 

@@ -53,6 +53,15 @@ public class MedicalInventoryDTO {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
+    public String getStockAlert() {
+        if (quantityInStock == null || quantityInStock <= 0) return "Out of Stock";
+        if (reorderLevel != null && quantityInStock <= reorderLevel) {
+            if (reorderLevel > 0 && quantityInStock <= reorderLevel / 2) return "Critical";
+            return "Low";
+        }
+        return "OK";
+    }
+
     @Override
     public String toString() {
         return "MedicalInventoryDTO{inventoryId='" + inventoryId + "', medicationId='" + medicationId + "'}";

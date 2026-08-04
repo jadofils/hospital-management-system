@@ -133,6 +133,90 @@
                         </columns>
                     </TableView>
                 </VBox>
+
+                <!-- Patient Feedback Submission (for patients) -->
+                <VBox fx:id="feedbackSubmissionBox" styleClass="recent-table-panel" spacing="14">
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-comment-dots" iconSize="15" styleClass="page-title-icon"/>
+                        <Label text="Submit Feedback" styleClass="section-title"/>
+                    </HBox>
+                    <VBox spacing="10" styleClass="card">
+                        <Label text="We value your feedback! Please share your experience with us." styleClass="body-text"/>
+                        
+                        <VBox spacing="4">
+                            <Label text="Appointment (Optional)" styleClass="form-field-label"/>
+                            <ComboBox fx:id="feedbackAppointmentDropdown" promptText="Select an appointment (or leave blank for general feedback)" maxWidth="Infinity"/>
+                        </VBox>
+                        
+                        <VBox spacing="4">
+                            <Label text="Rating" styleClass="form-field-label"/>
+                            <Spinner fx:id="feedbackRating" prefWidth="120" editable="true"/>
+                        </VBox>
+                        
+                        <VBox spacing="4">
+                            <Label text="Comments" styleClass="form-field-label"/>
+                            <TextArea fx:id="feedbackComments" promptText="Tell us about your experience..." 
+                                      wrapText="true" prefRowCount="4" styleClass="form-input"/>
+                        </VBox>
+                        
+                        <HBox alignment="CENTER_RIGHT">
+                            <Button fx:id="submitFeedbackBtn" styleClass="primary-button" text="Submit Feedback" contentDisplay="LEFT">
+                                <graphic><FontIcon iconLiteral="fas-paper-plane" iconSize="13"/></graphic>
+                            </Button>
+                        </HBox>
+                    </VBox>
+                </VBox>
+
+                <!-- Feedback Display (for admin/doctor) -->
+                <VBox fx:id="feedbackDisplayBox" styleClass="recent-table-panel" spacing="10">
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-comments" iconSize="15" styleClass="page-title-icon"/>
+                        <Label text="Patient Feedback" styleClass="section-title"/>
+                    </HBox>
+                    
+                    <!-- Admin/Doctor Feedback Creation Form -->
+                    <VBox spacing="10" styleClass="card">
+                        <Label text="Submit New Feedback" styleClass="subsection-title"/>
+                        
+                        <VBox spacing="4">
+                            <Label text="Patient" styleClass="form-field-label"/>
+                            <ComboBox fx:id="adminFeedbackPatientDropdown" promptText="Select a patient" maxWidth="Infinity"/>
+                        </VBox>
+                        
+                        <VBox spacing="4">
+                            <Label text="Appointment (Optional)" styleClass="form-field-label"/>
+                            <ComboBox fx:id="adminFeedbackAppointmentDropdown" promptText="Select an appointment (optional)" maxWidth="Infinity"/>
+                        </VBox>
+                        
+                        <VBox spacing="4">
+                            <Label text="Rating" styleClass="form-field-label"/>
+                            <Spinner fx:id="adminFeedbackRating" prefWidth="120" editable="true"/>
+                        </VBox>
+                        
+                        <VBox spacing="4">
+                            <Label text="Comments" styleClass="form-field-label"/>
+                            <TextArea fx:id="adminFeedbackComments" promptText="Enter feedback comments..." 
+                                      wrapText="true" prefRowCount="3" styleClass="form-input"/>
+                        </VBox>
+                        
+                        <HBox alignment="CENTER_RIGHT">
+                            <Button fx:id="submitAdminFeedbackBtn" styleClass="primary-button" text="Submit Feedback" contentDisplay="LEFT">
+                                <graphic><FontIcon iconLiteral="fas-paper-plane" iconSize="13"/></graphic>
+                            </Button>
+                        </HBox>
+                    </VBox>
+                    
+                    <TableView fx:id="feedbackTable" prefHeight="250">
+                        <columns>
+                            <TableColumn fx:id="feedbackSubmitterCol" text="Submitted By" prefWidth="150"/>
+                            <TableColumn fx:id="feedbackPatientCol" text="About Patient" prefWidth="150"/>
+                            <TableColumn fx:id="feedbackAppointmentCol" text="Appointment" prefWidth="130"/>
+                            <TableColumn fx:id="feedbackRatingCol" text="Rating" prefWidth="70"/>
+                            <TableColumn fx:id="feedbackCommentsCol" text="Comments" prefWidth="250"/>
+                            <TableColumn fx:id="feedbackDateCol" text="Date" prefWidth="100"/>
+                        </columns>
+                    </TableView>
+                </VBox>
             </VBox>
         </ScrollPane>
     </center>

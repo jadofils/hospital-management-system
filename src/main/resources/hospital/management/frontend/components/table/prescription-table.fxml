@@ -17,6 +17,7 @@
             <TableColumn fx:id="prescriptionIdColumn" text="ID"            prefWidth="120"/>
             <TableColumn fx:id="appointmentIdColumn"   text="Appointment"  prefWidth="160"/>
             <TableColumn fx:id="dateIssuedColumn"      text="Date Issued"  prefWidth="130"/>
+            <TableColumn fx:id="statusColumn"          text="Status"       prefWidth="100"/>
             <TableColumn fx:id="actionsColumn"         text="Actions"      prefWidth="90"/>
         </columns>
     </TableView>

@@ -121,10 +121,6 @@
                             maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleAnalytics">
                         <graphic><FontIcon iconLiteral="fas-chart-bar" iconSize="14"/></graphic>
                     </Button>
-                    <Button fx:id="feedbackBtn" text="Patient Feedback" styleClass="sidebar-item"
-                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleFeedback">
-                        <graphic><FontIcon iconLiteral="fas-star" iconSize="14"/></graphic>
-                    </Button>
                 </VBox>
             </VBox>
 

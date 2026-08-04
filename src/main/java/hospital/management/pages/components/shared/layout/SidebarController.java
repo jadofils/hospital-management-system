@@ -88,7 +88,6 @@ public class SidebarController {
     @FXML private Button prescriptionsQueueBtn;
     @FXML private Button inventoryBtn;
     @FXML private Button analyticsBtn;
-    @FXML private Button feedbackBtn;
     @FXML private Button usersBtn;
     @FXML private Button rolesBtn;
     @FXML private Button departmentsBtn;
@@ -155,7 +154,6 @@ public class SidebarController {
         buttonRoutes.put(prescriptionsQueueBtn, PageRoute.PRESCRIPTIONS);
         buttonRoutes.put(inventoryBtn, PageRoute.PHARMACY);
         buttonRoutes.put(analyticsBtn, PageRoute.ANALYTICS);
-        buttonRoutes.put(feedbackBtn, PageRoute.FEEDBACK);
         buttonRoutes.put(usersBtn, PageRoute.USERS);
         buttonRoutes.put(rolesBtn, PageRoute.ROLES);
         buttonRoutes.put(departmentsBtn, PageRoute.DEPARTMENTS);
@@ -212,7 +210,6 @@ public class SidebarController {
             case MY_SCHEDULE     -> scheduleBtn;
             case PHARMACY        -> inventoryBtn;
             case ANALYTICS -> analyticsBtn;
-            case FEEDBACK -> feedbackBtn;
             case USERS           -> usersBtn;
             case ROLES            -> rolesBtn;
             case DEPARTMENTS     -> departmentsBtn;
@@ -303,7 +300,6 @@ public class SidebarController {
     @FXML private void handleSchedule()       { navigate(PageRoute.MY_SCHEDULE, scheduleBtn); }
     @FXML private void handlePharmacy()       { navigate(PageRoute.PHARMACY, inventoryBtn); }
     @FXML private void handleAnalytics()      { navigate(PageRoute.ANALYTICS, analyticsBtn); }
-    @FXML private void handleFeedback()       { navigate(PageRoute.FEEDBACK, feedbackBtn); }
     @FXML private void handleUsers()          { navigate(PageRoute.USERS, usersBtn); }
     @FXML private void handleRoles()          { navigate(PageRoute.ROLES, rolesBtn); }
     @FXML private void handleDepartments()    { navigate(PageRoute.DEPARTMENTS, departmentsBtn); }
@@ -390,7 +386,7 @@ public class SidebarController {
             dashboardBtn, patientsBtn, appointmentsBtn, billingBtn,
             doctorsBtn, appointmentsDoctorBtn, medicalRecordsBtn, prescriptionsBtn,
             labOrdersBtn, referralsBtn, scheduleBtn, prescriptionsQueueBtn,
-            inventoryBtn, analyticsBtn, feedbackBtn, usersBtn, rolesBtn, departmentsBtn,
+            inventoryBtn, analyticsBtn, usersBtn, rolesBtn, departmentsBtn,
             systemLogsBtn, auditLogsBtn, retentionBtn, profileBtn, logoutBtn
         };
         for (Button b : candidates) if (b != null) buttons.add(b);

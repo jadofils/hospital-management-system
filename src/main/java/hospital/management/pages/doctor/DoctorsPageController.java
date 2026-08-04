@@ -45,10 +45,10 @@ public class DoctorsPageController extends BasePageController {
 
     private final DepartmentServiceImpl departmentService = new DepartmentServiceImpl(new DepartmentDAOImpl());
     private final DoctorService doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
-        private final UserService userService = new UserServiceImpl(new UserDAOImpl());
-        private final RoleService roleService = new RoleServiceImpl(
+    private final UserService userService = new UserServiceImpl(new UserDAOImpl());
+    private final RoleService roleService = new RoleServiceImpl(
             new RoleDAOImpl(), new UserRoleDAOImpl(), new RolePermissionDAOImpl(), new PermissionDAOImpl());
-        private final UserDAOImpl userDAO = new UserDAOImpl();
+    private final UserDAOImpl userDAO = new UserDAOImpl();
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private DoctorTableController doctorTableController;
@@ -61,6 +61,7 @@ public class DoctorsPageController extends BasePageController {
     @FXML private Label totalLabel;
 
     private List<DoctorDTO> doctors = new ArrayList<>();
+    private final Map<String, String> roleNameByDoctorId = new LinkedHashMap<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.DOCTORS);
@@ -77,11 +78,11 @@ public class DoctorsPageController extends BasePageController {
         addDoctorBtn.setOnAction(e -> openDoctorDialog(null));
         importBtn.setOnAction(e -> withSpinner(importBtn, this::importDoctors));
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportDoctors));
-        doctorTableController.setRowActions(
+        doctorTableController.setDoctorRowActions(
             allowUpdate(PageRoute.DOCTORS, this::openDoctorDialog),
-            private final Map<String, String> roleNameByDoctorId = new LinkedHashMap<>();
             allowDelete(PageRoute.DOCTORS, this::confirmDeleteDoctor),
-            allowRead(PageRoute.DOCTORS, this::viewDoctorDetail));
+            allowRead(PageRoute.DOCTORS, this::viewDoctorDetail),
+            allowUpdate(PageRoute.ROLES, this::openRoleAssignmentDialog));
 
         refreshTable();
     }
@@ -93,20 +94,19 @@ public class DoctorsPageController extends BasePageController {
     private void refreshTable() {
         try {
             doctors = doctorService.findAll(CursorPagination.firstPage(FETCH_SIZE)).getItems();
+            loadRoleMapForDoctors(doctors);
+            doctorTableController.setRoleByDoctorId(roleNameByDoctorId);
             doctorTableController.setItems(doctors);
             totalLabel.setText("Total: " + doctors.size() + " doctors");
         } catch (Exception e) {
-                doctorTableController.setDoctorRowActions(
+            toastError("Failed to load doctors: " + e.getMessage());
         }
     }
-                    allowRead(PageRoute.DOCTORS, this::viewDoctorDetail),
-                    allowUpdate(PageRoute.ROLES, this::openRoleAssignmentDialog));
+
     private void exportDoctors() {
         try {
             if (doctors.isEmpty()) {
                 toastError("No doctors available to export.");
-                    loadRoleMapForDoctors(doctors);
-                    doctorTableController.setRoleByDoctorId(roleNameByDoctorId);
                 return;
             }
             List<DoctorDTO> source = chooseDoctorExportSource();
@@ -117,7 +117,6 @@ public class DoctorsPageController extends BasePageController {
             List<Map<String, Object>> rows = new ArrayList<>();
             for (DoctorDTO doctor : source) {
                 Map<String, Object> row = new LinkedHashMap<>();
-                fields.put("Role", roleNameByDoctorId.getOrDefault(doctor.getDoctorId(), "—"));
                 row.put("doctor_id", doctor.getDoctorId());
                 row.put("department_id", doctor.getDepartmentId());
                 row.put("first_name", doctor.getFirstName());
@@ -125,42 +124,8 @@ public class DoctorsPageController extends BasePageController {
                 row.put("specialization", doctor.getSpecialization());
                 row.put("phone", doctor.getPhone());
                 row.put("email", doctor.getEmail());
+                row.put("role", roleNameByDoctorId.getOrDefault(doctor.getDoctorId(), "—"));
                 rows.add(row);
-            }
-
-            private void openRoleAssignmentDialog(DoctorDTO doctor) {
-                if (doctor.getEmail() == null || doctor.getEmail().isBlank()) {
-                    toastError("Doctor email is required before assigning a role.");
-                    return;
-                }
-
-                LoadingIdComboBox roleField = new LoadingIdComboBox();
-                EntityIdComboBox role = roleField.getComboBox();
-                role.getStyleClass().add("form-combo");
-
-                formDialogController.open("Assign/Reassign Role", "fas-user-tag", false, v -> {
-                    String selectedRoleId = role.getSelectedId();
-                    if (selectedRoleId == null) {
-                        formDialogController.setError("Role is required.");
-                        formDialogController.setLoading(false);
-                        return;
-                    }
-                    try {
-                        assignOrReassignRoleForDoctor(doctor, selectedRoleId);
-                        refreshTable();
-                        formDialogController.close();
-                        toastSuccess("Role updated for " + doctor.getFullName() + ".");
-                    } catch (AppException ex) {
-                        formDialogController.setError(ex.getMessage());
-                        formDialogController.setLoading(false);
-                    } catch (Exception ex) {
-                        formDialogController.setError("Failed to assign role: " + ex.getMessage());
-                        formDialogController.setLoading(false);
-                    }
-                });
-
-                formDialogController.addField("Role", "fas-user-tag", roleField);
-                loadRoleDropdownOnly(roleField, doctor);
             }
 
             boolean saved = CsvUiIO.exportRows(exportBtn.getScene().getWindow(), "doctors.csv", rows);
@@ -224,57 +189,6 @@ public class DoctorsPageController extends BasePageController {
     }
 
     private String value(Map<String, String> row, String... keys) {
-
-            private void loadRoleDropdownOnly(LoadingIdComboBox roleField, DoctorDTO doctor) {
-                EntityIdComboBox role = roleField.getComboBox();
-                roleField.setLoading(true);
-                formDialogController.setLoading(true);
-
-                AsyncJobRunner.submit(
-                    roleService::findAll,
-                    items -> {
-                        role.setOptions(items.stream()
-                                .map(r -> new EntityIdComboBox.Option(r.getRoleId(), r.getRoleName()))
-                                .toList());
-                        if (doctor != null && doctor.getEmail() != null && !doctor.getEmail().isBlank()) {
-                            try {
-                                Optional<UserDTO> user = findUserByEmail(doctor.getEmail());
-                                if (user.isPresent()) {
-                                    List<RoleDTO> roles = roleService.findRolesForUser(user.get().getUserId());
-                                    if (!roles.isEmpty()) role.selectById(roles.get(0).getRoleId());
-                                }
-                            } catch (Exception ignored) {
-                                // best-effort pre-selection only
-                            }
-                        }
-                        roleField.setLoading(false);
-                        formDialogController.setLoading(false);
-                    },
-                    ex -> {
-                        roleField.setLoading(false);
-                        toastError("Failed to load roles: " + ex.getMessage());
-                        formDialogController.setLoading(false);
-                    });
-            }
-
-            private void loadRoleMapForDoctors(List<DoctorDTO> items) {
-                roleNameByDoctorId.clear();
-                for (DoctorDTO doctor : items) {
-                    String roleName = "—";
-                    try {
-                        if (doctor.getEmail() != null && !doctor.getEmail().isBlank()) {
-                            Optional<UserDTO> user = findUserByEmail(doctor.getEmail());
-                            if (user.isPresent()) {
-                                List<RoleDTO> roles = roleService.findRolesForUser(user.get().getUserId());
-                                if (!roles.isEmpty()) roleName = roles.get(0).getRoleName();
-                            }
-                        }
-                    } catch (Exception ignored) {
-                        roleName = "—";
-                    }
-                    roleNameByDoctorId.put(doctor.getDoctorId(), roleName);
-                }
-            }
         for (String key : keys) {
             if (row.containsKey(key) && row.get(key) != null) {
                 return row.get(key).trim();
@@ -283,9 +197,45 @@ public class DoctorsPageController extends BasePageController {
         return "";
     }
 
+    private void openRoleAssignmentDialog(DoctorDTO doctor) {
+        if (doctor.getEmail() == null || doctor.getEmail().isBlank()) {
+            toastError("Doctor email is required before assigning a role.");
+            return;
+        }
+
+        LoadingIdComboBox roleField = new LoadingIdComboBox();
+        EntityIdComboBox role = roleField.getComboBox();
+        role.getStyleClass().add("form-combo");
+
+        formDialogController.open("Assign/Reassign Role", "fas-user-tag", false, v -> {
+            String selectedRoleId = role.getSelectedId();
+            if (selectedRoleId == null) {
+                formDialogController.setError("Role is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            try {
+                assignOrReassignRoleForDoctor(doctor, selectedRoleId);
+                refreshTable();
+                formDialogController.close();
+                toastSuccess("Role updated for " + doctor.getFullName() + ".");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to assign role: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
+        });
+
+        formDialogController.addField("Role", "fas-user-tag", roleField);
+        loadRoleDropdownOnly(roleField, doctor);
+    }
+
     private void viewDoctorDetail(DoctorDTO doctor) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Full Name", doctor.getFullName());
+        fields.put("Role", roleNameByDoctorId.getOrDefault(doctor.getDoctorId(), "—"));
         fields.put("Specialization", doctor.getSpecialization());
         try {
             fields.put("Department", entityLookupService.departmentLabel(doctor.getDepartmentId()));
@@ -446,6 +396,57 @@ public class DoctorsPageController extends BasePageController {
                 toastError("Failed to load roles: " + ex.getMessage());
                 onOneLoaded.run();
             });
+    }
+
+    private void loadRoleDropdownOnly(LoadingIdComboBox roleField, DoctorDTO doctor) {
+        EntityIdComboBox role = roleField.getComboBox();
+        roleField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        AsyncJobRunner.submit(
+            roleService::findAll,
+            items -> {
+                role.setOptions(items.stream()
+                        .map(r -> new EntityIdComboBox.Option(r.getRoleId(), r.getRoleName()))
+                        .toList());
+                if (doctor != null && doctor.getEmail() != null && !doctor.getEmail().isBlank()) {
+                    try {
+                        Optional<UserDTO> user = findUserByEmail(doctor.getEmail());
+                        if (user.isPresent()) {
+                            List<RoleDTO> roles = roleService.findRolesForUser(user.get().getUserId());
+                            if (!roles.isEmpty()) role.selectById(roles.get(0).getRoleId());
+                        }
+                    } catch (Exception ignored) {
+                        // best-effort pre-selection only
+                    }
+                }
+                roleField.setLoading(false);
+                formDialogController.setLoading(false);
+            },
+            ex -> {
+                roleField.setLoading(false);
+                toastError("Failed to load roles: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            });
+    }
+
+    private void loadRoleMapForDoctors(List<DoctorDTO> items) {
+        roleNameByDoctorId.clear();
+        for (DoctorDTO doctor : items) {
+            String roleName = "—";
+            try {
+                if (doctor.getEmail() != null && !doctor.getEmail().isBlank()) {
+                    Optional<UserDTO> user = findUserByEmail(doctor.getEmail());
+                    if (user.isPresent()) {
+                        List<RoleDTO> roles = roleService.findRolesForUser(user.get().getUserId());
+                        if (!roles.isEmpty()) roleName = roles.get(0).getRoleName();
+                    }
+                }
+            } catch (Exception ignored) {
+                roleName = "—";
+            }
+            roleNameByDoctorId.put(doctor.getDoctorId(), roleName);
+        }
     }
 
     private Optional<UserDTO> findUserByEmail(String email) throws Exception {

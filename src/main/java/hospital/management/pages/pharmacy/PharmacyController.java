@@ -80,6 +80,8 @@ public class PharmacyController extends BasePageController {
             allowUpdate(PageRoute.PHARMACY, this::openInventoryDialog),
             allowDelete(PageRoute.PHARMACY, this::confirmDeleteInventory),
             allowRead(PageRoute.PHARMACY, this::viewInventoryDetail));
+        pendingPrescriptionsTableController.setRowActions(
+            null, null, allowRead(PageRoute.PHARMACY, this::viewPrescriptionDetail));
 
         refreshInventoryTables();
         refreshPendingPrescriptions();
@@ -130,6 +132,16 @@ public class PharmacyController extends BasePageController {
         } catch (Exception e) {
             toastError("Failed to load prescriptions: " + e.getMessage());
         }
+    }
+
+    private void viewPrescriptionDetail(PrescriptionDTO p) {
+        Map<String, String> fields = new LinkedHashMap<>();
+        fields.put("Prescription ID", p.getPrescriptionId());
+        fields.put("Appointment ID", p.getAppointmentId());
+        fields.put("Date Issued", p.getDateIssued() == null ? null : p.getDateIssued().toString());
+        fields.put("Status", p.getStatus());
+        if (p.getItems() != null) fields.put("Items", String.valueOf(p.getItems().size()));
+        detailViewController.show("Prescription Details", "fas-prescription", fields);
     }
 
     private void viewInventoryDetail(MedicalInventoryDTO item) {

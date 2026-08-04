@@ -11,6 +11,7 @@ public class PrescriptionDTO {
     private LocalDate            dateIssued;
     private LocalDateTime        createdAt;
     private List<PrescriptionItemDTO> items;
+    private String               status = "PENDING";
 
     public PrescriptionDTO() {}
 
@@ -38,6 +39,9 @@ public class PrescriptionDTO {
 
     public List<PrescriptionItemDTO> getItems() { return items; }
     public void setItems(List<PrescriptionItemDTO> items) { this.items = items; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     @Override
     public String toString() {

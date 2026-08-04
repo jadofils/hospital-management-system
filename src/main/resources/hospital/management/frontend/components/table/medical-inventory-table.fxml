@@ -20,7 +20,8 @@
             <TableColumn fx:id="expiryDateColumn"       text="Expiry"        prefWidth="110"/>
             <TableColumn fx:id="quantityInStockColumn"  text="In Stock"      prefWidth="90"/>
             <TableColumn fx:id="reorderLevelColumn"     text="Reorder Level" prefWidth="110"/>
-            <TableColumn fx:id="supplierColumn"         text="Supplier"      prefWidth="160"/>
+            <TableColumn fx:id="supplierColumn"         text="Supplier"      prefWidth="140"/>
+            <TableColumn fx:id="stockAlertColumn"       text="Alert"         prefWidth="100"/>
             <TableColumn fx:id="actionsColumn"          text="Actions"       prefWidth="90"/>
         </columns>
     </TableView>
