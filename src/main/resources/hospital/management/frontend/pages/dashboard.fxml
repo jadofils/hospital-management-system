@@ -106,6 +106,33 @@
                         </columns>
                     </TableView>
                 </VBox>
+
+                <!-- Team directory (admin-only; lets you see every account/doctor to test with) -->
+                <VBox fx:id="teamDirectoryBox" styleClass="recent-table-panel" spacing="10">
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-users" iconSize="15" styleClass="page-title-icon"/>
+                        <Label text="System Users" styleClass="section-title"/>
+                    </HBox>
+                    <TableView fx:id="usersTable" prefHeight="200">
+                        <columns>
+                            <TableColumn fx:id="userUsernameCol" text="Username" prefWidth="220"/>
+                            <TableColumn fx:id="userEmailCol"    text="Email"    prefWidth="240"/>
+                            <TableColumn fx:id="userRoleCol"     text="Role"     prefWidth="140"/>
+                        </columns>
+                    </TableView>
+
+                    <HBox spacing="8" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-user-md" iconSize="15" styleClass="page-title-icon"/>
+                        <Label text="Doctors" styleClass="section-title"/>
+                    </HBox>
+                    <TableView fx:id="doctorsTable" prefHeight="200">
+                        <columns>
+                            <TableColumn fx:id="doctorNameCol"  text="Name"           prefWidth="220"/>
+                            <TableColumn fx:id="doctorEmailCol" text="Login Email"    prefWidth="240"/>
+                            <TableColumn fx:id="doctorSpecCol"  text="Specialization" prefWidth="180"/>
+                        </columns>
+                    </TableView>
+                </VBox>
             </VBox>
         </ScrollPane>
     </center>

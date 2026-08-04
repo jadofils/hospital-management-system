@@ -76,6 +76,7 @@ public final class PermissionGate {
     public static boolean isAllowed(PageRoute route) {
         if (route == PageRoute.HOME || route == PageRoute.PROFILE) return true;
         if (isAdmin()) return true;
+        if (route == PageRoute.MY_SCHEDULE && isDoctor()) return true;
 
         if (route == PageRoute.DASHBOARD) {
             return isAllowed(PageRoute.PATIENTS)
@@ -185,6 +186,22 @@ public final class PermissionGate {
 
     private static boolean isAdmin() {
         String role = currentRole();
-        return role != null && "admin".equalsIgnoreCase(role);
+        if (role == null) return false;
+        String normalized = role.trim().toLowerCase(Locale.ROOT)
+            .replace('-', ' ')
+            .replace('_', ' ');
+        return normalized.equals("admin")
+            || normalized.equals("administrator")
+            || normalized.contains("admin");
+    }
+
+    private static boolean isDoctor() {
+        String role = currentRole();
+        if (role == null) return false;
+        String normalized = role.trim().toLowerCase(Locale.ROOT)
+            .replace('-', ' ')
+            .replace('_', ' ');
+        return normalized.equals("doctor")
+            || normalized.contains("doctor");
     }
 }

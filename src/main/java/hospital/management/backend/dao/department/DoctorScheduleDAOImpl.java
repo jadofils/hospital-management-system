@@ -83,6 +83,21 @@ public class DoctorScheduleDAOImpl implements DoctorScheduleDAO {
     }
 
     @Override
+    public List<DoctorSchedule> findAll() throws Exception {
+        String sql = "SELECT " + SELECT_COLUMNS + " FROM doctor_schedules WHERE deleted_at IS NULL "
+                   + "ORDER BY doctor_id, " + DAY_ORDER_CLAUSE;
+        List<DoctorSchedule> schedules = new ArrayList<>();
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) schedules.add(mapRow(rs));
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to list doctor schedules: " + e.getMessage(), e);
+        }
+        return schedules;
+    }
+
+    @Override
     public DoctorSchedule update(DoctorSchedule schedule) throws Exception {
         String sql = "UPDATE doctor_schedules SET day_of_week = ?, start_time = ?, end_time = ?, is_available = ? "
                    + "WHERE schedule_id = ? AND deleted_at IS NULL RETURNING updated_at";

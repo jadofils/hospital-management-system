@@ -14,6 +14,7 @@
 
     <TableView fx:id="table" VBox.vgrow="ALWAYS">
         <columns>
+            <TableColumn fx:id="doctorNameColumn" text="Doctor"    prefWidth="160"/>
             <TableColumn fx:id="dayOfWeekColumn" text="Day"       prefWidth="120"/>
             <TableColumn fx:id="startTimeColumn" text="Start Time" prefWidth="120"/>
             <TableColumn fx:id="endTimeColumn"   text="End Time"   prefWidth="120"/>
