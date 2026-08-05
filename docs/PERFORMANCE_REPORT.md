@@ -1,5 +1,5 @@
 # Performance Report: Relational vs NoSQL for Unstructured Clinical Data
-
+https://info.enterprisedb.com/rs/069-ALB-339/images/PostgreSQL_MongoDB_Benchmark-WhitepaperFinal.pdf
 ## 1. Report Metadata
 - Project: Hospital/Healthcare Management System
 - Date: 2026-08-03
