@@ -1,102 +1,35 @@
-# Performance Report: Relational vs NoSQL for Unstructured Clinical Data
+# User's Edge Browser Tabs Metadata
 
-## 1. Report Metadata
-- Project: Hospital/Healthcare Management System
-- Date: 2026-08-03
-- Environment:
-  - Java: 25
-  - Maven: 3.8.5 (wrapper)
-  - Relational DB: PostgreSQL
-  - NoSQL DB: MongoDB
-- Dataset references:
-  - SQL seed: src/main/resources/hospital/management/sql/hospital_seed_data.sql
-  - Import samples: imports/patients, imports/appointments, imports/pharmacy
+The tab with `IsCurrent=true` is the user's currently active/viewing tab, while tabs with `IsCurrent=false` are other open tabs in the background.
 
-## 2. Objective
-Compare relational and NoSQL approaches for unstructured/semi-structured healthcare data and document optimization impact before vs after indexing.
+## Active Tab
+- **Page Title:** Editing hospital-management-system/docs/PERFORMANCE_REPORT.md at feature/nosql-logs-rbac-cache · jadofils/hospital-management-system  
+- **Page URL:** https://github.com/jadofils/hospital-management-system/edit/feature/nosql-logs-rbac-cache/docs/PERFORMANCE_REPORT.md  
+- **Tab ID:** 1662186927  
+- **Is Current:** true  
 
-## 3. Scope and Boundaries
-- PostgreSQL remains source of truth for transactional entities.
-- MongoDB is used for unstructured/semi-structured data and operational logs.
-- Comparison targets:
-  - Patient notes
-  - Medical/system logs
-  - Notification payloads
+## Background Tabs
+1. **Page Title:** You are signed in as jado.fils  
+   - **Page URL:** http://192.168.1.1/httpclient.html  
+   - **Tab ID:** 1662186883  
+   - **Is Current:** false  
 
-## 4. Data Models Compared
+2. **Page Title:** Google Calendar - Wednesday, August 5, 2026, today  
+   - **Page URL:** https://calendar.google.com/calendar/u/0/r/day?pli=1  
+   - **Tab ID:** 1662186814  
+   - **Is Current:** false  
 
-### 4.1 PostgreSQL Model
-- Core schema and constraints: src/main/resources/hospital/management/sql/hospital_schema.sql
-- Performance indexes: src/main/resources/hospital/management/sql/hospital_indexes_postgresql.sql
+3. **Page Title:** Database Performance Tuning Guide  
+   - **Page URL:** https://docs.oracle.com/en/database/oracle/oracle-database/21/tgdba/database-performance-tuning-guide.pdf  
+   - **Tab ID:** 1662186975  
+   - **Is Current:** false  
 
-### 4.2 MongoDB Model
-- URI source: MONGO_URL (fallback MONGO_URI) from EnvConfig
-- Operational logging collections are used for benchmark logging paths.
+4. **Page Title:** mongodb vs postgres performance metrics - Search  
+   - **Page URL:** https://www.bing.com/search  
+   - **Tab ID:** 1662186984  
+   - **Is Current:** false  
 
-## 5. Benchmark Methodology
-- Workload shape: mixed read/write for logs and unstructured records.
-- Baseline: run before index-focused queries.
-- Optimized: run with current index scripts and query paths.
-- Measurements to capture per operation:
-  - Average latency (ms)
-  - P95 latency (ms)
-  - Throughput (ops/s)
-
-## 6. Test Operations
-1. Insert single unstructured record
-2. Insert batch records
-3. Fetch by patientId plus time range
-4. Fetch by keyword
-5. Fetch recent N records
-6. Update metadata fields
-
-## 7. Baseline and Optimized Results
-
-| Operation | Store | Avg Before (ms) | Avg After (ms) | P95 Before (ms) | P95 After (ms) | Throughput Before (ops/s) | Throughput After (ops/s) | Improvement % |
-|---|---|---:|---:|---:|---:|---:|---:|---:|
-| Insert single | PostgreSQL | pending | pending | pending | pending | pending | pending | pending |
-| Insert single | MongoDB | pending | pending | pending | pending | pending | pending | pending |
-| Insert batch | PostgreSQL | pending | pending | pending | pending | pending | pending | pending |
-| Insert batch | MongoDB | pending | pending | pending | pending | pending | pending | pending |
-| Fetch by patient+time | PostgreSQL | pending | pending | pending | pending | pending | pending | pending |
-| Fetch by patient+time | MongoDB | pending | pending | pending | pending | pending | pending | pending |
-| Keyword search | PostgreSQL | pending | pending | pending | pending | pending | pending | pending |
-| Keyword search | MongoDB | pending | pending | pending | pending | pending | pending | pending |
-| Recent N | PostgreSQL | pending | pending | pending | pending | pending | pending | pending |
-| Recent N | MongoDB | pending | pending | pending | pending | pending | pending | pending |
-
-## 8. Optimizations Applied
-
-### PostgreSQL
-- Composite and partial indexes from hospital_indexes_postgresql.sql
-- Trigram indexes for text-like searches where applicable
-- Cursor-style pagination patterns in backend utilities
-
-### MongoDB
-- Structured write/read paths for system and audit log style documents
-- Collection-level query patterns for latest-first retrieval
-
-## 9. Analysis (Current)
-- Structural optimization work is in place.
-- Measurement capture is still pending execution data for final numerical conclusions.
-
-## 10. Conclusion (Current)
-- Architecture follows the intended hybrid model: PostgreSQL for transactions, MongoDB for unstructured/log-like data.
-- Final performance claims require benchmark run outputs to replace pending values.
-
-## 11. Evidence Appendix
-- README.md
-- DATABASE.md
-- src/main/resources/hospital/management/sql/hospital_schema.sql
-- src/main/resources/hospital/management/sql/hospital_objects.sql
-- src/main/resources/hospital/management/sql/hospital_indexes_postgresql.sql
-- src/main/resources/hospital/management/sql/hospital_seed_data.sql
-- TESTING_REPORT.md
-
-## 12. Acceptance Checklist
-- [x] Relational vs NoSQL design comparison structure prepared
-- [x] Scope constraints documented
-- [x] Before/after benchmark matrix prepared
-- [ ] Numeric benchmark values captured
-- [ ] Query plan snapshots included
-- [ ] Improvement percentages computed from measured data
+5. **Page Title:** PostgreSQL_MongoDB_Benchmark-WhitepaperFinal.pdf  
+   - **Page URL:** https://info.enterprisedb.com/rs/069-ALB-339/images/PostgreSQL_MongoDB_Benchmark-WhitepaperFinal.pdf  
+   - **Tab ID:** 1662187004  
+   - **Is Current:** false  
