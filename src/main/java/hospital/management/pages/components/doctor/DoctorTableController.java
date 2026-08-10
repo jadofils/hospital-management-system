@@ -111,9 +111,13 @@ public class DoctorTableController extends PaginatedTableController<DoctorDTO> {
 
     @Override
     protected boolean matches(DoctorDTO doctor, String lowerQuery) {
-        String specialization = doctor.getSpecialization();
         return doctor.getFullName().toLowerCase().contains(lowerQuery)
             || roleByDoctorId.getOrDefault(doctor.getDoctorId(), "").toLowerCase().contains(lowerQuery)
-                || (specialization != null && specialization.toLowerCase().contains(lowerQuery));
+            || safe(doctor.getSpecialization()).contains(lowerQuery)
+            || safe(doctor.getEmail()).contains(lowerQuery)
+            || safe(doctor.getPhone()).contains(lowerQuery)
+            || safe(doctor.getDepartmentId()).contains(lowerQuery);
     }
+
+    private static String safe(String s) { return s == null ? "" : s.toLowerCase(); }
 }

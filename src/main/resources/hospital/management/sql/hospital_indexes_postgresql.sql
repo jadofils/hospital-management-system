@@ -123,6 +123,18 @@ CREATE INDEX IF NOT EXISTS idx_inventory_active
     ON medical_inventory(inventory_id)
     WHERE deleted_at IS NULL;
 
+CREATE INDEX IF NOT EXISTS idx_patient_notes_active
+    ON patient_notes(note_id)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_notifications_active
+    ON notifications(notification_id)
+    WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS idx_feedback_active
+    ON patient_feedback(feedback_id)
+    WHERE deleted_at IS NULL;
+
 -- =====================================================================
 -- REFERENCE — indexes already in hospital_schema.sql
 -- Listed for completeness; do NOT re-create (no IF NOT EXISTS there).

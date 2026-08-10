@@ -34,6 +34,7 @@ import hospital.management.backend.service.auth.interfaces.RoleService;
 import hospital.management.backend.service.auth.interfaces.UserService;
 import hospital.management.backend.service.department.DoctorServiceImpl;
 import hospital.management.backend.service.department.interfaces.DoctorService;
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pagination.PageRequest;
 import hospital.management.enums.PageRoute;
@@ -379,6 +380,11 @@ public class DashboardController extends BasePageController {
         return doctors;
     }
 
+    /** Safe cross-table user lookup: patients → doctors → users (returns null if not found). */
+    private PatientDTO findPatientByEmailSafe(String email) {
+        try { return patientService.findByEmail(email); } catch (Exception ignored) { return null; }
+    }
+
     private List<UserDTO> fetchAllUsers() throws Exception {
         List<UserDTO> all = new java.util.ArrayList<>();
         var page = userService.findAll(CursorPagination.firstPage(DIRECTORY_PAGE_SIZE));
@@ -440,12 +446,16 @@ public class DashboardController extends BasePageController {
             feedbackRating.setValueFactory(valueFactory);
             feedbackRating.setEditable(true);
         }
+        if (feedbackComments != null) {
+            feedbackComments.setPromptText("e.g. The doctor was very attentive and helpful. (required)");
+            FxFormValidator.attachRequired(feedbackComments, null, "Comments");
+        }
 
         // Load patient's appointments into dropdown
         if (feedbackAppointmentDropdown != null) {
             try {
                 UserDTO user = userService.findById(userId);
-                PatientDTO patient = patientService.findByEmail(user.getEmail());
+                PatientDTO patient = findPatientByEmailSafe(user.getEmail());
                 
                 if (patient != null) {
                     List<AppointmentDTO> appointments = appointmentService.findByPatient(patient.getPatientId());
@@ -499,24 +509,24 @@ public class DashboardController extends BasePageController {
         if (feedbackRating == null || feedbackComments == null) return;
 
         Integer rating = feedbackRating.getValue();
-        String comments = feedbackComments.getText().trim();
+        String comments = feedbackComments.getText() == null ? "" : feedbackComments.getText().trim();
 
         if (comments.isEmpty()) {
-            toastError("Please enter your feedback comments");
+            toastError("Please enter your feedback comments.");
+            FxFormValidator.applyStyle(feedbackComments, false);
+            return;
+        }
+        if (rating == null || rating < 1 || rating > 5) {
+            toastError("Please select a rating between 1 and 5.");
             return;
         }
 
         withSpinner(submitFeedbackBtn, () -> {
             try {
-                // Get the patient ID associated with this user
                 UserDTO user = userService.findById(userId);
-                PatientDTO patient = patientService.findByEmail(user.getEmail());
-                
-                if (patient == null) {
-                    toastError("No patient profile found for this user");
-                    return;
-                }
-                String patientId = patient.getPatientId();
+                // A user may exist in users, doctors, or patients table — look up safely
+                PatientDTO patient = findPatientByEmailSafe(user.getEmail());
+                String patientId = patient != null ? patient.getPatientId() : null;
 
                 PatientFeedbackDTO feedback = new PatientFeedbackDTO();
                 feedback.setSubmittedBy(userId);  // Track who submitted the feedback
@@ -549,77 +559,67 @@ public class DashboardController extends BasePageController {
     }
 
     private void setupAdminFeedbackCreation(String userId) {
-        // Setup patient dropdown
+        // Wire appointment dropdown cell factories once (reused every time patient changes)
+        if (adminFeedbackAppointmentDropdown != null) {
+            adminFeedbackAppointmentDropdown.setCellFactory(lv -> new javafx.scene.control.ListCell<AppointmentDTO>() {
+                @Override protected void updateItem(AppointmentDTO item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) { setText(null); return; }
+                    String d = item.getAppointmentDate() != null
+                        ? item.getAppointmentDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm")) : "No date";
+                    setText(d + "  ·  " + (item.getReason() != null ? item.getReason() : "—"));
+                }
+            });
+            adminFeedbackAppointmentDropdown.setButtonCell(new javafx.scene.control.ListCell<AppointmentDTO>() {
+                @Override protected void updateItem(AppointmentDTO item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setText(empty || item == null ? "Select appointment (optional)"
+                        : (item.getAppointmentDate() != null
+                            ? item.getAppointmentDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy")) : "—"));
+                }
+            });
+        }
+
+        // Setup patient dropdown — show "Full Name  ·  ID-prefix" for easy identification
         if (adminFeedbackPatientDropdown != null) {
             try {
                 List<PatientDTO> patients = patientService.findAll(CursorPagination.firstPage(1000)).getItems();
-                
+
                 adminFeedbackPatientDropdown.setCellFactory(lv -> new javafx.scene.control.ListCell<PatientDTO>() {
-                    @Override
-                    protected void updateItem(PatientDTO item, boolean empty) {
+                    @Override protected void updateItem(PatientDTO item, boolean empty) {
                         super.updateItem(item, empty);
-                        if (empty || item == null) {
-                            setText(null);
-                        } else {
-                            setText(item.getFullName() + " - " + item.getEmail());
-                        }
+                        if (empty || item == null) { setText(null); return; }
+                        String shortId = item.getPatientId() != null && item.getPatientId().length() >= 8
+                            ? item.getPatientId().substring(0, 8) + "…" : item.getPatientId();
+                        setText(item.getFullName() + "  ·  ID: " + shortId);
                     }
                 });
-                
+
                 adminFeedbackPatientDropdown.setButtonCell(new javafx.scene.control.ListCell<PatientDTO>() {
-                    @Override
-                    protected void updateItem(PatientDTO item, boolean empty) {
+                    @Override protected void updateItem(PatientDTO item, boolean empty) {
                         super.updateItem(item, empty);
-                        if (empty || item == null) {
-                            setText("Select a patient");
-                        } else {
-                            setText(item.getFullName());
-                        }
+                        if (empty || item == null) { setText("Select a patient"); return; }
+                        String shortId = item.getPatientId() != null && item.getPatientId().length() >= 8
+                            ? item.getPatientId().substring(0, 8) + "…" : item.getPatientId();
+                        setText(item.getFullName() + " (" + shortId + ")");
                     }
                 });
-                
+
                 adminFeedbackPatientDropdown.setItems(FXCollections.observableArrayList(patients));
-                
-                // When patient is selected, load their appointments
+
+                // When patient changes: clear appointment list then reload for selected patient
                 adminFeedbackPatientDropdown.setOnAction(e -> {
                     PatientDTO selected = adminFeedbackPatientDropdown.getValue();
+                    if (adminFeedbackAppointmentDropdown != null) {
+                        adminFeedbackAppointmentDropdown.getSelectionModel().clearSelection();
+                        adminFeedbackAppointmentDropdown.setItems(FXCollections.observableArrayList());
+                    }
                     if (selected != null && adminFeedbackAppointmentDropdown != null) {
                         try {
                             List<AppointmentDTO> appointments = appointmentService.findByPatient(selected.getPatientId());
-                            
-                            adminFeedbackAppointmentDropdown.setCellFactory(lv -> new javafx.scene.control.ListCell<AppointmentDTO>() {
-                                @Override
-                                protected void updateItem(AppointmentDTO item, boolean empty) {
-                                    super.updateItem(item, empty);
-                                    if (empty || item == null) {
-                                        setText(null);
-                                    } else {
-                                        String dateStr = item.getAppointmentDate() != null 
-                                            ? item.getAppointmentDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"))
-                                            : "No date";
-                                        setText(dateStr + " - " + (item.getReason() != null ? item.getReason() : "No reason"));
-                                    }
-                                }
-                            });
-                            
-                            adminFeedbackAppointmentDropdown.setButtonCell(new javafx.scene.control.ListCell<AppointmentDTO>() {
-                                @Override
-                                protected void updateItem(AppointmentDTO item, boolean empty) {
-                                    super.updateItem(item, empty);
-                                    if (empty || item == null) {
-                                        setText("Select an appointment (optional)");
-                                    } else {
-                                        String dateStr = item.getAppointmentDate() != null 
-                                            ? item.getAppointmentDate().format(DateTimeFormatter.ofPattern("dd MMM yyyy HH:mm"))
-                                            : "No date";
-                                        setText(dateStr);
-                                    }
-                                }
-                            });
-                            
                             adminFeedbackAppointmentDropdown.setItems(FXCollections.observableArrayList(appointments));
                         } catch (Exception ex) {
-                            System.err.println("Failed to load appointments: " + ex.getMessage());
+                            System.err.println("Failed to load appointments for patient: " + ex.getMessage());
                         }
                     }
                 });
@@ -633,6 +633,10 @@ public class DashboardController extends BasePageController {
             SpinnerValueFactory<Integer> valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 5, 5);
             adminFeedbackRating.setValueFactory(valueFactory);
             adminFeedbackRating.setEditable(true);
+        }
+        if (adminFeedbackComments != null) {
+            adminFeedbackComments.setPromptText("e.g. Patient responded well to treatment. (required)");
+            FxFormValidator.attachRequired(adminFeedbackComments, null, "Comments");
         }
         
         // Setup submit button
@@ -648,28 +652,28 @@ public class DashboardController extends BasePageController {
 
         PatientDTO selectedPatient = adminFeedbackPatientDropdown.getValue();
         Integer rating = adminFeedbackRating.getValue();
-        String comments = adminFeedbackComments.getText();
+        String commentsRaw = adminFeedbackComments.getText();
+        String comments    = commentsRaw == null ? "" : commentsRaw.trim();
 
         if (selectedPatient == null) {
-            toastError("Please select a patient");
+            toastError("Please select a patient.");
             return;
         }
-
         if (rating == null || rating < 1 || rating > 5) {
-            toastError("Please select a rating between 1 and 5");
+            toastError("Please select a rating between 1 and 5.");
             return;
         }
-
-        if (comments == null || comments.trim().isEmpty()) {
-            toastError("Please enter comments");
+        if (comments.isEmpty()) {
+            toastError("Please enter comments.");
+            FxFormValidator.applyStyle(adminFeedbackComments, false);
             return;
         }
 
         withSpinner(submitAdminFeedbackBtn, () -> {
             try {
                 PatientFeedbackDTO feedback = new PatientFeedbackDTO();
-                feedback.setSubmittedBy(userId);  // Track who submitted (admin/doctor)
-                feedback.setPatientId(selectedPatient.getPatientId());  // Patient feedback is about
+                feedback.setSubmittedBy(userId);
+                feedback.setPatientId(selectedPatient.getPatientId());
                 feedback.setRating(rating);
                 feedback.setComments(comments);
                 feedback.setDateSubmitted(LocalDate.now());
@@ -738,18 +742,20 @@ public class DashboardController extends BasePageController {
             });
         }
         
-        // Patient column - show who the feedback is about (can be null)
+        // Patient column — "Full Name (ID: xxxxxxxx…)" or "General" when null
         if (feedbackPatientCol != null) {
             feedbackPatientCol.setCellValueFactory(cell -> {
                 String patientId = cell.getValue().getPatientId();
                 if (patientId == null || patientId.isEmpty()) {
                     return new SimpleStringProperty("General");
                 }
+                String shortId = patientId.length() >= 8 ? patientId.substring(0, 8) + "…" : patientId;
                 try {
                     PatientDTO patient = patientService.findById(patientId);
-                    return new SimpleStringProperty(patient != null ? patient.getFullName() : "Unknown");
+                    String name = (patient != null && patient.getFullName() != null) ? patient.getFullName() : "Unknown";
+                    return new SimpleStringProperty(name + " (ID: " + shortId + ")");
                 } catch (Exception e) {
-                    return new SimpleStringProperty("Error");
+                    return new SimpleStringProperty("ID: " + shortId);
                 }
             });
         }

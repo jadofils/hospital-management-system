@@ -1,5 +1,6 @@
 package hospital.management.pages.patient;
 
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.pages.BasePageController;
 import hospital.management.pages.QuickAddCapable;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
@@ -254,10 +255,28 @@ public class PatientsPageController extends BasePageController implements QuickA
         TextField email     = new TextField();
         TextField address   = new TextField();
 
+        // Placeholders with examples
+        firstName.setPromptText("e.g. Jane");
+        lastName.setPromptText("e.g. Doe");
+        dob.setPromptText("e.g. 1990-05-15");
+        phone.setPromptText("e.g. +250 788 000 000 (optional)");
+        email.setPromptText("e.g. jane.doe@hospital.com (optional)");
+        address.setPromptText("e.g. 123 Main Street, Kigali (optional)");
+
         List.of(firstName, lastName, phone, email, address).forEach(f -> f.getStyleClass().add("form-input"));
         dob.getStyleClass().add("form-date-picker");
         gender.getStyleClass().add("form-combo");
-        gender.getItems().addAll("Male", "Female", "Other");
+        gender.getItems().addAll("Male", "Female", "Other", "Prefer not to say");
+
+        // Real-time validation
+        FxFormValidator.attachRequired(firstName, null, "First name");
+        FxFormValidator.attachRequired(lastName,  null, "Last name");
+        FxFormValidator.attachDateRequired(dob,   null, "Date of birth");
+        FxFormValidator.attachPastDate(dob,       null, "Date of birth");
+        FxFormValidator.attachRequired(gender,    null, "Gender");
+        FxFormValidator.attachPhone(phone,        null);
+        FxFormValidator.attachEmail(email,        null);
+        FxFormValidator.attachMaxLength(address,  null, 255, "Address");
 
         if (!addMode) {
             firstName.setText(patient.getFirstName());
@@ -267,13 +286,50 @@ public class PatientsPageController extends BasePageController implements QuickA
             phone.setText(patient.getPhone());
             email.setText(patient.getEmail());
             address.setText(patient.getAddress());
+            // Trigger validation state for pre-filled values
+            FxFormValidator.applyStyle(firstName, firstName.getText() != null && !firstName.getText().isBlank());
+            FxFormValidator.applyStyle(lastName,  lastName.getText()  != null && !lastName.getText().isBlank());
         }
 
         formDialogController.open(addMode ? "Add Patient" : "Update Patient", "fas-user-injured", addMode, v -> {
             String fn = firstName.getText() == null ? "" : firstName.getText().trim();
             String ln = lastName.getText() == null ? "" : lastName.getText().trim();
-            if (fn.isEmpty() || ln.isEmpty() || dob.getValue() == null || gender.getValue() == null) {
-                formDialogController.setError("First name, last name, date of birth and gender are required.");
+
+            if (fn.isEmpty()) {
+                formDialogController.setError("First name is required.");
+                FxFormValidator.applyStyle(firstName, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (ln.isEmpty()) {
+                formDialogController.setError("Last name is required.");
+                FxFormValidator.applyStyle(lastName, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (dob.getValue() == null) {
+                formDialogController.setError("Date of birth is required.");
+                FxFormValidator.applyStyle(dob, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (gender.getValue() == null) {
+                formDialogController.setError("Gender is required.");
+                FxFormValidator.applyStyle(gender, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            String phoneVal = phone.getText() == null ? "" : phone.getText().trim();
+            if (!phoneVal.isEmpty() && !hospital.management.backend.utils.ValidatorUtils.isValidPhone(phoneVal)) {
+                formDialogController.setError("Phone number format is invalid (e.g. +250 788 000 000).");
+                FxFormValidator.applyStyle(phone, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            String emailVal = email.getText() == null ? "" : email.getText().trim();
+            if (!emailVal.isEmpty() && !hospital.management.backend.utils.ValidatorUtils.isValidEmail(emailVal)) {
+                formDialogController.setError("Email address format is invalid.");
+                FxFormValidator.applyStyle(email, false);
                 formDialogController.setLoading(false);
                 return;
             }

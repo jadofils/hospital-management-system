@@ -69,4 +69,12 @@ public enum AppEventType {
     DATA_CLEANING_FAILED,
     AUDIT_LOG_RECORDED,
     SYSTEM_LOG_RECORDED,
+    BACKUP_STARTED,
+    BACKUP_PROGRESS,
+    BACKUP_COMPLETED,
+    BACKUP_FAILED,
+
+    // ── Developer Dashboard (admin-audit) ───────────────────────────────────
+    DB_OBJECT_CHANGED,
+    MAINTENANCE_ACCESS_CHANGED,
 }

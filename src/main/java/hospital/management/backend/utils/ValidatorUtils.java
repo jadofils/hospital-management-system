@@ -1,5 +1,8 @@
 package hospital.management.backend.utils;
 
+import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Pattern;
 
 /**
@@ -15,6 +18,12 @@ public final class ValidatorUtils {
         Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
     private static final Pattern PHONE_PATTERN =
         Pattern.compile("^\\+?[\\d\\s\\-().]{7,20}$");
+    private static final Pattern PASSWORD_STRONG =
+        Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^a-zA-Z\\d]).{8,}$");
+    private static final List<String> VALID_GENDERS =
+        Arrays.asList("Male", "Female", "Other", "Prefer not to say");
+    private static final int MIN_AGE_YEARS = 0;
+    private static final int MAX_AGE_YEARS = 150;
 
     private ValidatorUtils() {}
 
@@ -114,5 +123,136 @@ public final class ValidatorUtils {
         if (!isValidUuid(uuid)) {
             throw new IllegalArgumentException(fieldName + " is not a valid UUID.");
         }
+    }
+
+    /**
+     * Throws {@link IllegalArgumentException} if {@code phone} fails the format check.
+     */
+    public static void requireValidPhone(String phone, String fieldName) {
+        if (!isValidPhone(phone)) {
+            throw new IllegalArgumentException(
+                fieldName + " is not a valid phone number. Expected format: +250 788 000 000.");
+        }
+    }
+
+    // ── Password ──────────────────────────────────────────────────────────────
+
+    /**
+     * Returns true if the password meets minimum strength requirements:
+     * at least 8 chars, one uppercase, one lowercase, one digit, one symbol.
+     */
+    public static boolean isPasswordStrong(String password) {
+        return password != null && PASSWORD_STRONG.matcher(password).matches();
+    }
+
+    /**
+     * Throws {@link IllegalArgumentException} if the password is too weak.
+     */
+    public static void requireStrongPassword(String password, String fieldName) {
+        requireMinLength(password, 8, fieldName);
+        if (!isPasswordStrong(password)) {
+            throw new IllegalArgumentException(
+                fieldName + " must contain uppercase, lowercase, digit, and special character.");
+        }
+    }
+
+    // ── Date of birth ─────────────────────────────────────────────────────────
+
+    /**
+     * Returns true if {@code dob} is a plausible date of birth:
+     * in the past and within MAX_AGE_YEARS years ago.
+     */
+    public static boolean isValidDateOfBirth(LocalDate dob) {
+        if (dob == null) return false;
+        LocalDate today = LocalDate.now();
+        if (!dob.isBefore(today)) return false;
+        return !dob.isBefore(today.minusYears(MAX_AGE_YEARS));
+    }
+
+    /**
+     * Throws {@link IllegalArgumentException} if {@code dob} is not a plausible date of birth.
+     */
+    public static void requireValidDateOfBirth(LocalDate dob, String fieldName) {
+        if (dob == null) throw new IllegalArgumentException(fieldName + " is required.");
+        if (!dob.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException(fieldName + " must be a past date.");
+        }
+        if (dob.isBefore(LocalDate.now().minusYears(MAX_AGE_YEARS))) {
+            throw new IllegalArgumentException(fieldName + " is not a plausible date of birth.");
+        }
+    }
+
+    // ── Date range ────────────────────────────────────────────────────────────
+
+    /**
+     * Throws {@link IllegalArgumentException} if {@code from} is after {@code to}.
+     * Either value may be null (range is open-ended when null).
+     */
+    public static void requireDateRange(LocalDate from, LocalDate to, String fromField, String toField) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new IllegalArgumentException(
+                fromField + " must not be after " + toField + ".");
+        }
+    }
+
+    // ── Gender ────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns true if {@code gender} is one of the accepted values (case-sensitive).
+     * Accepted: Male, Female, Other, Prefer not to say.
+     */
+    public static boolean isValidGender(String gender) {
+        return gender != null && VALID_GENDERS.contains(gender);
+    }
+
+    /**
+     * Throws {@link IllegalArgumentException} if {@code gender} is not a valid value.
+     */
+    public static void requireValidGender(String gender, String fieldName) {
+        if (!isValidGender(gender)) {
+            throw new IllegalArgumentException(
+                fieldName + " must be one of: " + String.join(", ", VALID_GENDERS) + ".");
+        }
+    }
+
+    // ── Feedback rating ───────────────────────────────────────────────────────
+
+    /**
+     * Returns true if {@code rating} is between 1 and 5 (inclusive).
+     */
+    public static boolean isValidRating(int rating) {
+        return rating >= 1 && rating <= 5;
+    }
+
+    /**
+     * Throws {@link IllegalArgumentException} if {@code rating} is not in [1, 5].
+     */
+    public static void requireValidRating(int rating, String fieldName) {
+        if (!isValidRating(rating)) {
+            throw new IllegalArgumentException(fieldName + " must be between 1 and 5.");
+        }
+    }
+
+    // ── Name / text ───────────────────────────────────────────────────────────
+
+    /**
+     * Validates a human name: non-blank, 1–100 chars, only letters/spaces/hyphens/apostrophes.
+     */
+    public static void requireValidName(String name, String fieldName) {
+        requireNonBlank(name, fieldName);
+        requireMaxLength(name, 100, fieldName);
+        if (!name.matches("[\\p{L}\\s'\\-]+")) {
+            throw new IllegalArgumentException(
+                fieldName + " may only contain letters, spaces, hyphens, and apostrophes.");
+        }
+    }
+
+    /**
+     * Validates a non-blank string with a max length.
+     */
+    public static String requireNonBlankMaxLength(String value, int max, String fieldName) {
+        String trimmed = requireNonBlank(value, fieldName);
+        requireMaxLength(trimmed, max, fieldName);
+        return trimmed;
     }
 }

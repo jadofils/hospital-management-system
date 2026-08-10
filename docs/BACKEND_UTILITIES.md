@@ -103,9 +103,12 @@ domain clarity and has built-in `.and()`, `.or()`, `.negate()`.
 **`FilterBuilder<T>`** — composes multiple `EntityFilter`s fluently. Use for in-memory
 filtering of a JavaFX `ObservableList` or `List`.
 
-**`SqlFilterBuilder`** — builds a parameterized SQL `WHERE` clause. Use in DAOs.
-Values are always bound as `?` parameters — never interpolated — so SQL injection
-is structurally impossible.
+**`QueryBuilder`** — fluent builder for a complete parameterized SQL `SELECT`
+statement (`SELECT`/`FROM`/`JOIN`/`WHERE`/`GROUP BY`/`HAVING`/`ORDER BY`/`LIMIT`/
+`OFFSET`). Use in DAOs. Every condition method (`.and()`, `.whereLike()`,
+`.whereSearchAny()`, ...) takes a raw SQL fragment with `?` placeholders — you
+bind the values yourself via `PreparedStatement`, exactly like hand-written SQL,
+just without re-typing the boilerplate around building up the string.
 
 ### In-Memory vs SQL Filtering
 
@@ -113,7 +116,7 @@ Use **`FilterBuilder`** when:
 - The full dataset is already in memory (e.g. a short lookup list)
 - Filtering a JavaFX `ObservableList` for a search box
 
-Use **`SqlFilterBuilder`** when:
+Use **`QueryBuilder`** when:
 - Querying the database — let PostgreSQL filter before rows cross the network
 - The table has thousands of rows
 
@@ -133,21 +136,14 @@ List<Patient> result = FilterBuilder.<Patient>all()
 
 tableItems.setAll(result);
 
-// ── SQL (SqlFilterBuilder) ────────────────────────────────────────────────
-SqlFilterBuilder filter = SqlFilterBuilder.start()
-    .andRaw("deleted_at IS NULL")
-    .andEquals("gender", selectedGender)        // null → not added to SQL
-    .andLike("first_name || ' ' || last_name", searchText)  // null/blank → skipped
-    .andFrom("created_at", fromDate)
-    .andTo("created_at", toDate);
+// ── SQL (QueryBuilder) — from PatientDAOImpl.findAll() ─────────────────────
+QueryBuilder qb = QueryBuilder.select(SELECT_COLUMNS).from("patients").whereActive();
+String cursorFrag = CursorPagination.whereClause(req, "created_at");
+if (!cursorFrag.isBlank()) qb.and(cursorFrag.trim().replaceFirst("(?i)^AND\\s+", ""));
+String sql = qb.orderBy("created_at", dir).limit(req.getPageSize() + 1).build();
 
-String sql = "SELECT * FROM patients "
-           + filter.buildWhere()
-           + CursorPagination.orderClause(req, "created_at")
-           + " LIMIT ?";
-
-List<Object> params = filter.getParams();
-params.add(req.getPageSize() + 1);   // fetch one extra to detect hasMore
+// bind cursor/search values via PreparedStatement in the usual order, then:
+// fetch one extra row beyond pageSize to detect hasMore
 ```
 
 ### `andIfPresent()` — Why It Exists
@@ -196,18 +192,12 @@ pages), a `hasMore()` boolean, and the item count.
 
 ```java
 public PageResult<Patient> getAll(PageRequest req) throws DatabaseException {
-    SqlFilterBuilder filter = SqlFilterBuilder.start()
-        .andRaw("deleted_at IS NULL")
-        .andRaw(CursorPagination.whereClause(req, "created_at"));  // cursor constraint
+    QueryBuilder qb = QueryBuilder.select("*").from("patients").whereActive();
+    String cursorFrag = CursorPagination.whereClause(req, "created_at");
+    if (!cursorFrag.isBlank()) qb.and(cursorFrag.trim().replaceFirst("(?i)^AND\\s+", ""));
+    String sql = qb.orderBy("created_at", dir).limit(req.getPageSize() + 1).build();
 
-    String sql = "SELECT * FROM patients "
-               + filter.buildWhere()
-               + CursorPagination.orderClause(req, "created_at")
-               + " LIMIT ?";
-
-    List<Object> params = filter.getParams();
-    params.add(req.getPageSize() + 1);   // fetch one extra row to detect hasMore
-
+    // bind any cursor-fragment placeholders, then execute
     List<Patient> rows = executeQuery(sql, params);
     return CursorPagination.toResult(rows, req, Patient::getCreatedAt);
 }
@@ -337,7 +327,7 @@ backend/utils/
 ├── filters/
 │   ├── EntityFilter.java           @FunctionalInterface: T → boolean (keep/discard)
 │   ├── FilterBuilder.java          composes EntityFilters; applies to a List
-│   └── SqlFilterBuilder.java       builds parameterized SQL WHERE clause for DAOs
+│   └── QueryBuilder.java           fluent parameterized SQL SELECT builder for DAOs
 │
 ├── pagination/
 │   ├── PageRequest.java            input: cursor + pageSize + direction

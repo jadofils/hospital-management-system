@@ -7,6 +7,8 @@ import hospital.management.backend.mapper.patient.PatientFeedbackMapper;
 import hospital.management.backend.model.patient.PatientFeedback;
 import hospital.management.backend.service.log.ServiceAudit;
 import hospital.management.backend.service.patient.interfaces.PatientFeedbackService;
+import hospital.management.backend.exceptions.ValidationException;
+import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.listeners.AppEventType;
 import hospital.management.backend.utils.listeners.EventBus;
 
@@ -27,8 +29,23 @@ public class PatientFeedbackServiceImpl implements PatientFeedbackService {
     
     @Override
     public PatientFeedbackDTO submitFeedback(PatientFeedbackDTO dto) throws Exception {
+        if (dto.getSubmittedBy() == null || dto.getSubmittedBy().isBlank()) {
+            throw new ValidationException("submittedBy", "Submitter is required.");
+        }
+        String comments = dto.getComments() == null ? "" : dto.getComments().trim();
+        if (comments.isBlank()) {
+            throw new ValidationException("comments", "Comments are required.");
+        }
+        if (dto.getRating() == null) {
+            throw new ValidationException("rating", "Rating is required.");
+        }
+        ValidatorUtils.requireValidRating(dto.getRating(), "Rating");
+        if (dto.getDateSubmitted() == null) {
+            throw new ValidationException("dateSubmitted", "Date submitted is required.");
+        }
+
         logger.info("Submitting feedback from user: " + dto.getSubmittedBy());
-        
+
         // Convert DTO to entity manually
         PatientFeedback feedback = new PatientFeedback();
         feedback.setSubmittedBy(dto.getSubmittedBy());

@@ -1,5 +1,6 @@
 package hospital.management.pages.doctor;
 
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.dao.department.DepartmentDAOImpl;
 import hospital.management.backend.dto.doctor.CreateDepartmentDTO;
@@ -88,12 +89,21 @@ public class DepartmentsPageController extends BasePageController {
         TextField location = new TextField();
         TextField phone    = new TextField();
 
+        name.setPromptText("e.g. Cardiology");
+        location.setPromptText("e.g. Building B, Floor 2 (optional)");
+        phone.setPromptText("e.g. +250 788 000 000 (optional)");
+
         List.of(name, location, phone).forEach(f -> f.getStyleClass().add("form-input"));
+
+        FxFormValidator.attachRequired(name,     null, "Department name");
+        FxFormValidator.attachMaxLength(location, null, 255, "Location");
+        FxFormValidator.attachPhone(phone,        null);
 
         if (!addMode) {
             name.setText(department.getName());
             location.setText(department.getLocation());
             phone.setText(department.getPhone());
+            FxFormValidator.applyStyle(name, department.getName() != null && !department.getName().isBlank());
         }
 
         formDialogController.open(addMode ? "Add Department" : "Update Department", "fas-hospital", addMode, v -> {
@@ -101,6 +111,7 @@ public class DepartmentsPageController extends BasePageController {
             String loc = location.getText() == null ? "" : location.getText().trim();
             if (nm.isEmpty()) {
                 formDialogController.setError("Department name is required.");
+                FxFormValidator.applyStyle(name, false);
                 formDialogController.setLoading(false);
                 return;
             }

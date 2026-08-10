@@ -17,6 +17,7 @@ import hospital.management.backend.service.department.DoctorServiceImpl;
 import hospital.management.backend.service.lab.LabServiceImpl;
 import hospital.management.backend.service.lab.interfaces.LabService;
 import hospital.management.backend.service.lookup.EntityLookupService;
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
@@ -234,8 +235,12 @@ public class LabOrdersController extends BasePageController {
         EntityIdComboBox doctorId      = doctorIdField.getComboBox();
         TextField testName      = new TextField();
 
+        testName.setPromptText("e.g. Complete Blood Count (CBC)");
         testName.getStyleClass().add("form-input");
         List.of(appointmentId, doctorId).forEach(f -> f.getStyleClass().add("form-combo"));
+
+        FxFormValidator.attachRequired(testName, null, "Test name");
+        FxFormValidator.attachMaxLength(testName, null, 200, "Test name");
 
         List<Control> otherFields = List.of(testName);
         otherFields.forEach(f -> f.setDisable(true));
@@ -244,8 +249,25 @@ public class LabOrdersController extends BasePageController {
             String apptId = appointmentId.getSelectedId();
             String docId  = doctorId.getSelectedId();
             String test   = testName.getText() == null ? "" : testName.getText().trim();
-            if (apptId == null || docId == null || test.isEmpty()) {
-                formDialogController.setError("Appointment, doctor and test name are required.");
+            if (apptId == null) {
+                formDialogController.setError("Appointment is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (docId == null) {
+                formDialogController.setError("Doctor is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (test.isEmpty()) {
+                formDialogController.setError("Test name is required.");
+                FxFormValidator.applyStyle(testName, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (test.length() > 200) {
+                formDialogController.setError("Test name must not exceed 200 characters.");
+                FxFormValidator.applyStyle(testName, false);
                 formDialogController.setLoading(false);
                 return;
             }

@@ -64,6 +64,7 @@ public final class PermissionGate {
         ROUTE_RESOURCES.put(PageRoute.SYSTEM_LOGS, Set.of("system_logs"));
         ROUTE_RESOURCES.put(PageRoute.AUDIT_LOGS, Set.of("audit_log"));
         ROUTE_RESOURCES.put(PageRoute.RETENTION, Set.of("user_sessions", "system_logs", "audit_log"));
+        ROUTE_RESOURCES.put(PageRoute.DEVELOPER_DASHBOARD, Set.of("developer_tools"));
     }
 
     private PermissionGate() {}

@@ -1,5 +1,6 @@
 package hospital.management.pages.doctor;
 
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
 import hospital.management.backend.dao.department.DepartmentDAOImpl;
@@ -133,14 +134,19 @@ public class ReferralsController extends BasePageController {
         EntityIdComboBox referredToDoctorId  = referredToDoctorIdField.getComboBox();
         TextField reason              = new TextField();
 
+        reason.setPromptText("e.g. Specialist consultation for chronic headaches");
         reason.getStyleClass().add("form-input");
         List.of(appointmentId, referringDoctorId, referredToDoctorId).forEach(f -> f.getStyleClass().add("form-combo"));
+
+        FxFormValidator.attachRequired(reason, null, "Reason");
+        FxFormValidator.attachMaxLength(reason, null, 500, "Reason");
 
         List<Control> otherFields = List.of(reason);
         otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
             reason.setText(referral.getReason());
+            FxFormValidator.applyStyle(reason, referral.getReason() != null && !referral.getReason().isBlank());
         }
 
         formDialogController.open(addMode ? "Add Referral" : "Update Referral", "fas-exchange-alt", addMode, v -> {
@@ -148,8 +154,24 @@ public class ReferralsController extends BasePageController {
             String fromDoc = referringDoctorId.getSelectedId();
             String toDoc = referredToDoctorId.getSelectedId();
             String reasonText = reason.getText() == null ? "" : reason.getText().trim();
-            if (appt == null || fromDoc == null || toDoc == null || reasonText.isEmpty()) {
-                formDialogController.setError("Appointment, referring doctor, referred-to doctor and reason are required.");
+            if (appt == null) {
+                formDialogController.setError("Appointment is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (fromDoc == null) {
+                formDialogController.setError("Referring doctor is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (toDoc == null) {
+                formDialogController.setError("Referred-to doctor is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (reasonText.isEmpty()) {
+                formDialogController.setError("Reason is required.");
+                FxFormValidator.applyStyle(reason, false);
                 formDialogController.setLoading(false);
                 return;
             }

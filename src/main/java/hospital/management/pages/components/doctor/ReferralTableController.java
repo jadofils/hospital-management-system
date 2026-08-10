@@ -47,9 +47,13 @@ public class ReferralTableController extends PaginatedTableController<ReferralDT
 
     @Override
     protected boolean matches(ReferralDTO referral, String lowerQuery) {
-        String reason = referral.getReason();
-        String status = referral.getStatus();
-        return (reason != null && reason.toLowerCase().contains(lowerQuery))
-                || (status != null && status.toLowerCase().contains(lowerQuery));
+        String dateStr = referral.getCreatedAt() != null ? referral.getCreatedAt().format(DATE_FORMAT) : "";
+        return safe(referral.getReason()).contains(lowerQuery)
+            || safe(referral.getStatus()).contains(lowerQuery)
+            || safe(referral.getReferringDoctorId()).contains(lowerQuery)
+            || safe(referral.getReferredToDoctorId()).contains(lowerQuery)
+            || dateStr.contains(lowerQuery);
     }
+
+    private static String safe(String s) { return s == null ? "" : s.toLowerCase(); }
 }

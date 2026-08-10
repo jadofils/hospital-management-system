@@ -72,6 +72,11 @@ public class UserDAOImpl implements UserDAO {
         return findOneWhere("email = ?", email);
     }
 
+    @Override
+    public Optional<User> findByDoctorId(String doctorId) throws Exception {
+        return findOneWhere("doctor_id = ?", UUID.fromString(doctorId));
+    }
+
     private Optional<User> findOneWhere(String predicate, Object param) throws Exception {
         String sql = "SELECT " + SELECT_COLUMNS + " FROM users WHERE " + predicate + " AND deleted_at IS NULL";
         try (Connection conn = DBConnection.getConnection();

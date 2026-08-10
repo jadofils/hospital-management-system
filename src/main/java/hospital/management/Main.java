@@ -1,7 +1,10 @@
 package hospital.management;
 
 import hospital.management.backend.config.AppConfig;
+import hospital.management.backend.daemon.BackupDaemon;
 import hospital.management.backend.daemon.DatabaseCleanupDaemon;
+import hospital.management.backend.mongo.config.MongoConfig;
+import hospital.management.backend.service.notification.NotificationEventListener;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.geometry.Rectangle2D;
@@ -28,6 +31,8 @@ public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         DatabaseCleanupDaemon.start();
+        BackupDaemon.start();
+        NotificationEventListener.start();
 
         FXMLLoader loader = new FXMLLoader(
             getClass().getResource(AppConfig.HOME_FXML_PATH)
@@ -52,6 +57,8 @@ public class Main extends Application {
     @Override
     public void stop() {
         DatabaseCleanupDaemon.stop();
+        BackupDaemon.stop();
+        MongoConfig.close();
     }
 
     public static void main(String[] args) {

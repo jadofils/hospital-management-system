@@ -11,6 +11,8 @@ import hospital.management.backend.dto.auth.LoginResponseDTO;
 import hospital.management.backend.exceptions.AppException;
 import hospital.management.backend.service.auth.AuthServiceImpl;
 import hospital.management.backend.service.auth.interfaces.AuthService;
+import hospital.management.backend.service.maintenance.MaintenanceGate;
+import hospital.management.enums.PageRoute;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -30,6 +32,8 @@ import hospital.management.backend.dao.auth.UserRoleDAOImpl;
 import hospital.management.backend.dao.auth.RoleDAOImpl;
 import hospital.management.backend.model.user.UserRole;
 import hospital.management.backend.model.user.Role;
+import hospital.management.backend.utils.FxFormValidator;
+import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pagination.PageResult;
 import java.util.ArrayList;
@@ -39,6 +43,9 @@ import java.util.Optional;
 public class AuthPageController {
 
     private static final int DEMO_USERS_PAGE_SIZE = 200;
+    private static final hospital.management.backend.config.AppLogger logger =
+        hospital.management.backend.config.AppLogger.getLogger(AuthPageController.class);
+    private static final javafx.util.Duration LOGIN_TIMEOUT = javafx.util.Duration.seconds(3);
 
     private final AuthService authService = new AuthServiceImpl(
         new UserDAOImpl(), new UserSessionDAOImpl(), new UserRoleDAOImpl(),
@@ -60,6 +67,20 @@ public class AuthPageController {
     public void initialize() {
         loginError.setText("");
         resetMessage.setText("");
+
+        // Real-time validation on login fields
+        FxFormValidator.attachRequired(loginEmail, loginError, "Email / username");
+        loginPassword.textProperty().addListener((obs, old, val) -> {
+            if (val != null && !val.isEmpty()) loginError.setText("");
+        });
+
+        // Real-time email format on reset tab
+        FxFormValidator.attachEmail(resetEmail, resetMessage);
+
+        // Enter key on password triggers login
+        loginPassword.setOnAction(e -> handleLogin());
+        resetEmail.setOnAction(e -> handleResetPassword());
+
         // start background load of demo users for quick selection
         loadUsersForDemo();
     }
@@ -157,12 +178,31 @@ public class AuthPageController {
     private void handleLogin() {
         String username = loginEmail.getText().trim();
         String password = loginPassword.getText();
-        if (username.isEmpty() || password.isEmpty()) {
-            loginError.setText("Email and password are required.");
+        if (username.isEmpty()) {
+            loginError.setText("Email / username is required.");
+            FxFormValidator.applyStyle(loginEmail, false);
+            return;
+        }
+        if (password.isEmpty()) {
+            loginError.setText("Password is required.");
+            FxFormValidator.applyStyle(loginPassword, false);
             return;
         }
         loginError.setText("");
+        FxFormValidator.clearStyle(loginEmail);
+        FxFormValidator.clearStyle(loginPassword);
         setLoading(true);
+
+        long loginStartNanos = System.nanoTime();
+        // AlgorithmUtils (mergeSort/binarySearch) has no bearing here — login is pure
+        // indexed DB point-lookups (findByUsername, findByUserId) + bcrypt + JWT
+        // generation, never an in-memory list to sort/search. What actually bounds the
+        // UI's wait to 3 seconds is this watcher: if authService.login(...) hasn't
+        // finished by then, the user sees a timeout instead of an indefinite spinner.
+        // The background thread itself isn't force-killed (Java has no safe way to do
+        // that) — if it finishes after the timeout already fired, timedOut short-circuits
+        // both onSucceeded/onFailed below so the UI is never touched twice.
+        java.util.concurrent.atomic.AtomicBoolean timedOut = new java.util.concurrent.atomic.AtomicBoolean(false);
 
         Task<LoginResponseDTO> loginTask = new Task<>() {
             @Override
@@ -171,7 +211,35 @@ public class AuthPageController {
             }
         };
 
+        javafx.animation.PauseTransition timeoutWatcher = new javafx.animation.PauseTransition(LOGIN_TIMEOUT);
+        timeoutWatcher.setOnFinished(e -> {
+            if (loginTask.isDone()) return; // finished just as the watcher fired — let the real handler run
+            timedOut.set(true);
+            setLoading(false);
+            loginError.setText("Login is taking longer than 3 seconds — please check your connection and try again.");
+            logger.warn("Login for \"" + username + "\" exceeded the 3s timeout.");
+            try {
+                Alert err = new Alert(Alert.AlertType.WARNING);
+                err.setTitle("Login Timeout");
+                err.setHeaderText(null);
+                err.setContentText("Sign-in didn't complete within 3 seconds. Please try again.");
+                err.initOwner(loginBtn.getScene().getWindow());
+                err.show();
+            } catch (Exception ignore) {}
+        });
+
         loginTask.setOnSucceeded(e -> {
+            timeoutWatcher.stop();
+            long elapsedMs = (System.nanoTime() - loginStartNanos) / 1_000_000;
+            logger.info("Login for \"" + username + "\" completed in " + elapsedMs + "ms.");
+            if (timedOut.get()) {
+                // Arrived after the 3s timeout already told the user it failed — the
+                // session this created is real but the UI already moved on; nothing
+                // to do here except note it for diagnostics.
+                logger.warn("Login for \"" + username + "\" succeeded after the timeout had already fired ("
+                    + elapsedMs + "ms total).");
+                return;
+            }
             LoginResponseDTO response = loginTask.getValue();
             SessionManager.login(response.getToken(), response.getSessionId());
             setLoading(false);
@@ -184,10 +252,19 @@ public class AuthPageController {
                 info.initOwner(loginBtn.getScene().getWindow());
                 info.show();
             } catch (Exception ignore) {}
-            navigateToDashboard();
+
+            boolean blocked = MaintenanceGate.isBlocked(
+                SessionManager.getCurrentUserId(), SessionManager.getCurrentRole());
+            if (blocked) {
+                navigateToStatusPage();
+            } else {
+                navigateToDashboard();
+            }
         });
 
         loginTask.setOnFailed(e -> {
+            timeoutWatcher.stop();
+            if (timedOut.get()) return; // already reported to the user by the watcher
             Throwable ex = loginTask.getException();
             setLoading(false);
             String msg = ex instanceof AppException ? ex.getMessage() : "Login failed. Please try again.";
@@ -204,6 +281,7 @@ public class AuthPageController {
 
         Thread t = new Thread(loginTask, "hms-login-thread");
         t.setDaemon(true);
+        timeoutWatcher.play();
         t.start();
     }
 
@@ -237,13 +315,22 @@ public class AuthPageController {
 
     @FXML
     private void handleResetPassword() {
-        String email = resetEmail.getText();
-        if (email == null || email.isBlank()) {
-            resetMessage.setText("Please enter your email address.");
+        String email = resetEmail.getText() == null ? "" : resetEmail.getText().trim();
+        if (email.isBlank()) {
+            resetMessage.setText("Email address is required.");
             resetMessage.getStyleClass().removeAll("text-success");
             resetMessage.getStyleClass().add("text-danger");
+            FxFormValidator.applyStyle(resetEmail, false);
             return;
         }
+        if (!ValidatorUtils.isValidEmail(email)) {
+            resetMessage.setText("Please enter a valid email address (e.g. jane@hospital.com).");
+            resetMessage.getStyleClass().removeAll("text-success");
+            resetMessage.getStyleClass().add("text-danger");
+            FxFormValidator.applyStyle(resetEmail, false);
+            return;
+        }
+        FxFormValidator.applyStyle(resetEmail, true);
 
         resetMessage.getStyleClass().removeAll("text-danger");
         resetMessage.getStyleClass().add("text-success");
@@ -297,6 +384,28 @@ public class AuthPageController {
         Thread th = new Thread(t, "hms-reset-email");
         th.setDaemon(true);
         th.start();
+    }
+
+    /** Shown instead of the Dashboard when {@link MaintenanceGate} blocks this user. */
+    private void navigateToStatusPage() {
+        try {
+            FXMLLoader loader = new FXMLLoader(
+                getClass().getResource(PageRoute.SYSTEM_STATUS.getFxmlPath())
+            );
+            Parent root = loader.load();
+            Scene scene = loginEmail.getScene();
+            Scene newScene = new Scene(root, scene.getWidth(), scene.getHeight());
+            newScene.getStylesheets().add(
+                getClass().getResource("/hospital/management/css/global.css").toExternalForm()
+            );
+            ((Stage) scene.getWindow()).setScene(newScene);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Fail open rather than stranding the user on a blank/broken screen if the
+            // status page itself fails to load — the Dashboard's own permission checks
+            // still apply normally, this only skips the maintenance notice.
+            navigateToDashboard();
+        }
     }
 
     private void navigateToDashboard() {

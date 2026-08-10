@@ -49,6 +49,7 @@ public class LabServiceImpl implements LabService {
         ValidatorUtils.requireNonBlank(dto.getAppointmentId(), "appointmentId");
         ValidatorUtils.requireNonBlank(dto.getDoctorId(), "doctorId");
         String testName = ValidatorUtils.requireNonBlank(dto.getTestName(), "testName");
+        ValidatorUtils.requireMaxLength(testName, 200, "testName");
         dto.setTestName(testName);
 
         LabOrder order = LabOrderMapper.toEntity(dto);

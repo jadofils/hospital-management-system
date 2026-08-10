@@ -14,6 +14,7 @@ import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.clinical.MedicalRecordServiceImpl;
 import hospital.management.backend.service.clinical.interfaces.MedicalRecordService;
 import hospital.management.backend.service.lookup.EntityLookupService;
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
@@ -119,9 +120,19 @@ public class MedicalRecordsController extends BasePageController {
         TextArea  notes         = new TextArea();
         notes.setPrefRowCount(3);
 
+        // Placeholders
+        diagnosis.setPromptText("e.g. Type 2 Diabetes, Hypertension");
+        symptoms.setPromptText("e.g. Frequent urination, fatigue (optional)");
+        notes.setPromptText("e.g. Patient advised to monitor blood sugar levels (optional)");
+
         List.of(diagnosis, symptoms).forEach(f -> f.getStyleClass().add("form-input"));
         appointmentId.getStyleClass().add("form-combo");
         notes.getStyleClass().add("form-input");
+
+        // Real-time validators
+        FxFormValidator.attachRequired(diagnosis, null, "Diagnosis");
+        FxFormValidator.attachMaxLength(diagnosis, null, 500, "Diagnosis");
+        FxFormValidator.attachRequired(notes, null, "Notes");
 
         List<Control> otherFields = List.of(diagnosis, symptoms, notes);
         otherFields.forEach(f -> f.setDisable(true));
@@ -130,13 +141,20 @@ public class MedicalRecordsController extends BasePageController {
             diagnosis.setText(record.getDiagnosis());
             symptoms.setText(record.getSymptoms());
             notes.setText(record.getNotes());
+            FxFormValidator.applyStyle(diagnosis, diagnosis.getText() != null && !diagnosis.getText().isBlank());
         }
 
         formDialogController.open(addMode ? "Add Record" : "Update Record", "fas-notes-medical", addMode, v -> {
             String appt = appointmentId.getSelectedId();
             String diag = diagnosis.getText() == null ? "" : diagnosis.getText().trim();
-            if (appt == null || diag.isEmpty()) {
-                formDialogController.setError("Appointment and diagnosis are required.");
+            if (appt == null) {
+                formDialogController.setError("Appointment is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (diag.isEmpty()) {
+                formDialogController.setError("Diagnosis is required.");
+                FxFormValidator.applyStyle(diagnosis, false);
                 formDialogController.setLoading(false);
                 return;
             }

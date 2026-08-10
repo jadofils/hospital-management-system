@@ -46,13 +46,14 @@ public class AppointmentTableController extends PaginatedTableController<Appoint
 
     @Override
     protected boolean matches(AppointmentDTO appointment, String lowerQuery) {
-        return containsIgnoreCase(appointment.getPatientId(), lowerQuery)
-                || containsIgnoreCase(appointment.getDoctorId(), lowerQuery)
-                || containsIgnoreCase(appointment.getStatus(), lowerQuery)
-                || containsIgnoreCase(appointment.getReason(), lowerQuery);
+        String dateStr = appointment.getAppointmentDate() != null
+            ? appointment.getAppointmentDate().format(DISPLAY_FMT) : "";
+        return safe(appointment.getPatientId()).contains(lowerQuery)
+            || safe(appointment.getDoctorId()).contains(lowerQuery)
+            || safe(appointment.getStatus()).contains(lowerQuery)
+            || safe(appointment.getReason()).contains(lowerQuery)
+            || dateStr.contains(lowerQuery);
     }
 
-    private boolean containsIgnoreCase(String value, String lowerQuery) {
-        return value != null && value.toLowerCase().contains(lowerQuery);
-    }
+    private static String safe(String s) { return s == null ? "" : s.toLowerCase(); }
 }

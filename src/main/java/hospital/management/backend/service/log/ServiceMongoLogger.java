@@ -2,17 +2,16 @@ package hospital.management.backend.service.log;
 
 import hospital.management.backend.config.AppLogger;
 import hospital.management.backend.config.security.SessionManager;
+import hospital.management.backend.dao.log.SystemLogDAOImpl;
+import hospital.management.backend.dao.log.interfaces.SystemLogDAO;
 import hospital.management.backend.model.user.SystemLog;
 
 import java.time.LocalDateTime;
 
-/**
- * Lightweight helper to persist operational service logs directly to Mongo.
- */
 public final class ServiceMongoLogger {
 
     private static final AppLogger logger = AppLogger.getLogger(ServiceMongoLogger.class);
-    private static final MongoLogStore STORE = new MongoLogStore();
+    private static final SystemLogDAO DAO = new SystemLogDAOImpl();
 
     private ServiceMongoLogger() {}
 
@@ -43,11 +42,9 @@ public final class ServiceMongoLogger {
             log.setMessage(full);
             log.setUserId(userId);
             log.setCreatedAt(LocalDateTime.now());
-            STORE.saveSystem(log);
-            logger.info("MongoLog saved level=" + level + " source=" + log.getSource());
+            DAO.save(log);
         } catch (Exception e) {
-            logger.warn("ServiceMongoLogger failed: " + e.getMessage());
-            System.err.println("ServiceMongoLogger failed: " + e.getMessage());
+            logger.warn("ServiceLogger failed: " + e.getMessage());
         }
     }
 }

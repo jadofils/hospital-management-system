@@ -37,8 +37,8 @@
 
         <!-- Footer -->
         <HBox styleClass="modal-footer" spacing="10">
-            <Button fx:id="cancelBtn" text="Cancel" styleClass="secondary-button" onAction="#handleClose"/>
-            <Button fx:id="submitBtn" text="Add" styleClass="primary-button" contentDisplay="LEFT">
+            <Button fx:id="cancelBtn" text="Cancel" styleClass="secondary-button" onAction="#handleClose" prefWidth="100"/>
+            <Button fx:id="submitBtn" text="Add" styleClass="primary-button" contentDisplay="LEFT" prefWidth="130">
                 <graphic>
                     <ProgressIndicator fx:id="submitSpinner" prefWidth="14" prefHeight="14"
                                        visible="false" managed="false"/>

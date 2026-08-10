@@ -55,6 +55,12 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             if (itemDto.getQuantity() == null || itemDto.getQuantity() <= 0) {
                 throw new ValidationException("quantity", "Quantity must be greater than zero.");
             }
+            if (itemDto.getDosage() != null) {
+                ValidatorUtils.requireMaxLength(itemDto.getDosage(), 200, "dosage");
+            }
+            if (itemDto.getInstructions() != null) {
+                ValidatorUtils.requireMaxLength(itemDto.getInstructions(), 500, "instructions");
+            }
         }
 
         Prescription prescription = PrescriptionMapper.toEntity(dto);

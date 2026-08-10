@@ -94,6 +94,7 @@ public class SidebarController {
     @FXML private Button systemLogsBtn;
     @FXML private Button auditLogsBtn;
     @FXML private Button retentionBtn;
+    @FXML private Button developerDashboardBtn;
     @FXML private Button profileBtn;
     @FXML private Button logoutBtn;
 
@@ -160,6 +161,7 @@ public class SidebarController {
         buttonRoutes.put(systemLogsBtn, PageRoute.SYSTEM_LOGS);
         buttonRoutes.put(auditLogsBtn, PageRoute.AUDIT_LOGS);
         buttonRoutes.put(retentionBtn, PageRoute.RETENTION);
+        buttonRoutes.put(developerDashboardBtn, PageRoute.DEVELOPER_DASHBOARD);
         // profileBtn/logoutBtn intentionally excluded: PROFILE has no role restriction
         // and logout must always stay reachable regardless of role.
 
@@ -215,9 +217,10 @@ public class SidebarController {
             case DEPARTMENTS     -> departmentsBtn;
             case SYSTEM_LOGS     -> systemLogsBtn;
             case AUDIT_LOGS      -> auditLogsBtn;
-            case RETENTION       -> retentionBtn;
-            case PROFILE         -> profileBtn;
-            default              -> null;
+            case RETENTION            -> retentionBtn;
+            case DEVELOPER_DASHBOARD -> developerDashboardBtn;
+            case PROFILE              -> profileBtn;
+            default                   -> null;
         };
         if (target != null) target.getStyleClass().add("active");
     }
@@ -305,8 +308,9 @@ public class SidebarController {
     @FXML private void handleDepartments()    { navigate(PageRoute.DEPARTMENTS, departmentsBtn); }
     @FXML private void handleSystemLogs()     { navigate(PageRoute.SYSTEM_LOGS, systemLogsBtn); }
     @FXML private void handleAuditLogs()      { navigate(PageRoute.AUDIT_LOGS, auditLogsBtn); }
-    @FXML private void handleRetention()      { navigate(PageRoute.RETENTION, retentionBtn); }
-    @FXML private void handleProfile()        { navigate(PageRoute.PROFILE, profileBtn); }
+    @FXML private void handleRetention()           { navigate(PageRoute.RETENTION, retentionBtn); }
+    @FXML private void handleDeveloperDashboard() { navigate(PageRoute.DEVELOPER_DASHBOARD, developerDashboardBtn); }
+    @FXML private void handleProfile()            { navigate(PageRoute.PROFILE, profileBtn); }
     @FXML
     private void handleLogout() {
         // Try to obtain the backing session id even if the token is expired.
@@ -387,7 +391,7 @@ public class SidebarController {
             doctorsBtn, appointmentsDoctorBtn, medicalRecordsBtn, prescriptionsBtn,
             labOrdersBtn, referralsBtn, scheduleBtn, prescriptionsQueueBtn,
             inventoryBtn, analyticsBtn, usersBtn, rolesBtn, departmentsBtn,
-            systemLogsBtn, auditLogsBtn, retentionBtn, profileBtn, logoutBtn
+            systemLogsBtn, auditLogsBtn, retentionBtn, developerDashboardBtn, profileBtn, logoutBtn
         };
         for (Button b : candidates) if (b != null) buttons.add(b);
         return buttons;

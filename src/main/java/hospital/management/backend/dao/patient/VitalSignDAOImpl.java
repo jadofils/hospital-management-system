@@ -6,6 +6,8 @@ import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.patient.VitalSign;
 
+import hospital.management.backend.utils.filters.QueryBuilder;
+
 import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
@@ -67,8 +69,13 @@ public class VitalSignDAOImpl implements VitalSignDAO {
     public Optional<VitalSign> findByAppointmentId(String appointmentId) throws Exception {
         // An appointment can in principle have more than one recorded reading over time;
         // the DAO contract returns a single Optional, so the most recent one wins.
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM vital_signs "
-                   + "WHERE appointment_id = ? AND deleted_at IS NULL ORDER BY recorded_at DESC LIMIT 1";
+        String sql = QueryBuilder.select(SELECT_COLUMNS)
+            .from("vital_signs")
+            .where("appointment_id = ?")
+            .whereActive()
+            .orderBy("recorded_at", QueryBuilder.SortDir.DESC)
+            .limit(1)
+            .build();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setObject(1, UUID.fromString(appointmentId));
@@ -82,14 +89,16 @@ public class VitalSignDAOImpl implements VitalSignDAO {
 
     @Override
     public List<VitalSign> findByPatientId(String patientId) throws Exception {
-        // vital_signs has no patient_id column — it is scoped to an appointment, which is
-        // scoped to a patient. Join through appointments to answer "all vitals for patient X".
-        String sql = "SELECT v.vital_id, v.appointment_id, v.blood_pressure_systolic, v.blood_pressure_diastolic, "
-                   + "v.heart_rate, v.temperature_celsius, v.weight_kg, v.height_cm, v.recorded_at, v.updated_at, v.deleted_at "
-                   + "FROM vital_signs v "
-                   + "JOIN appointments a ON a.appointment_id = v.appointment_id "
-                   + "WHERE a.patient_id = ? AND v.deleted_at IS NULL "
-                   + "ORDER BY v.recorded_at DESC";
+        // vital_signs has no patient_id column — join through appointments.
+        String sql = QueryBuilder.select(
+                "v.vital_id, v.appointment_id, v.blood_pressure_systolic, v.blood_pressure_diastolic, "
+              + "v.heart_rate, v.temperature_celsius, v.weight_kg, v.height_cm, v.recorded_at, v.updated_at, v.deleted_at")
+            .from("vital_signs v")
+            .join("appointments a ON a.appointment_id = v.appointment_id")
+            .where("a.patient_id = ?")
+            .whereActive("v")
+            .orderBy("v.recorded_at", QueryBuilder.SortDir.DESC)
+            .build();
         List<VitalSign> rows = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

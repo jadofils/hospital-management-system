@@ -22,6 +22,7 @@ import hospital.management.backend.service.department.DoctorServiceImpl;
 import hospital.management.backend.service.department.interfaces.DoctorScheduleService;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
@@ -265,9 +266,14 @@ public class AppointmentsPageController extends BasePageController implements Qu
         TimeField appointmentTime  = new TimeField();
         TextField reason = new TextField();
 
+        reason.setPromptText("e.g. Follow-up checkup, chest pain (optional)");
         reason.getStyleClass().add("form-input");
         List.of(patientId, doctorId).forEach(f -> f.getStyleClass().add("form-combo"));
         appointmentDate.getStyleClass().add("form-date-picker");
+
+        // Real-time: date must not be in the past for new appointments
+        if (addMode) FxFormValidator.attachNotPastDate(appointmentDate, null, "Appointment date");
+        FxFormValidator.attachMaxLength(reason, null, 500, "Reason");
 
         List<Node> otherFields = List.of(appointmentDate, appointmentTime, reason);
         otherFields.forEach(f -> f.setDisable(true));
@@ -291,8 +297,25 @@ public class AppointmentsPageController extends BasePageController implements Qu
             String pId = patientId.getSelectedId();
             String dId = doctorId.getSelectedId();
 
-            if (pId == null || dId == null || appointmentDate.getValue() == null) {
-                formDialogController.setError("Patient, doctor, date and time are required.");
+            if (pId == null) {
+                formDialogController.setError("Patient is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (dId == null) {
+                formDialogController.setError("Doctor is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (appointmentDate.getValue() == null) {
+                formDialogController.setError("Appointment date is required.");
+                FxFormValidator.applyStyle(appointmentDate, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (addMode && appointmentDate.getValue().isBefore(java.time.LocalDate.now())) {
+                formDialogController.setError("Appointment date must not be in the past.");
+                FxFormValidator.applyStyle(appointmentDate, false);
                 formDialogController.setLoading(false);
                 return;
             }

@@ -121,7 +121,7 @@
                                         <Label text="Email Address" styleClass="form-field-label"/>
                                     </HBox>
                                     <TextField fx:id="loginEmail"
-                                               promptText="you@hospital.com"
+                                               promptText="e.g. admin@hms.com"
                                                styleClass="home-input"/>
                                 </VBox>
                                 <VBox spacing="4">
@@ -130,7 +130,7 @@
                                         <Label text="Password" styleClass="form-field-label"/>
                                     </HBox>
                                     <PasswordField fx:id="loginPassword"
-                                                   promptText="••••••••"
+                                                   promptText="At least 8 characters"
                                                    styleClass="home-input"/>
                                 </VBox>
                                 <Label fx:id="loginError" text="" styleClass="validation-error"/>
@@ -158,7 +158,7 @@
                                         <Label text="Email Address" styleClass="form-field-label"/>
                                     </HBox>
                                     <TextField fx:id="resetEmail"
-                                               promptText="you@hospital.com"
+                                               promptText="e.g. jane.doe@hospital.com"
                                                styleClass="home-input"/>
                                 </VBox>
                                 <Label fx:id="resetMessage" text="" styleClass="body-text" wrapText="true"/>

@@ -19,6 +19,8 @@ import hospital.management.backend.service.auth.UserServiceImpl;
 import hospital.management.backend.service.auth.interfaces.AuthService;
 import hospital.management.backend.service.auth.interfaces.RoleService;
 import hospital.management.backend.service.auth.interfaces.UserService;
+import hospital.management.backend.utils.FxFormValidator;
+import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.config.AppConfig;
 import hospital.management.enums.NotificationType;
@@ -80,6 +82,16 @@ public class ProfilePageController extends BasePageController {
         changePassBtn.setOnAction(e -> handleChangePassword());
         revokeAllBtn.setOnAction(e -> confirmRevokeAllSessions());
         changePhotoBtn.setOnAction(e -> handleChangePhoto());
+
+        // Real-time email validation
+        FxFormValidator.attachEmail(emailField, null);
+
+        // Real-time password strength and confirmation matching
+        FxFormValidator.attachPasswordStrength(newPassField, passValidationMsg);
+        FxFormValidator.attachPasswordMatch(newPassField, confirmPassField, passValidationMsg);
+
+        // Enter key on confirm field submits password change
+        confirmPassField.setOnAction(e -> handleChangePassword());
 
         loadProfile();
     }
@@ -146,8 +158,17 @@ public class ProfilePageController extends BasePageController {
     }
 
     private void handleSaveProfile() {
-        String email = emailField.getText().trim();
-        if (email.isBlank()) return;
+        String email = emailField.getText() == null ? "" : emailField.getText().trim();
+        if (email.isBlank()) {
+            FxFormValidator.applyStyle(emailField, false);
+            toastError("Email is required.");
+            return;
+        }
+        if (!ValidatorUtils.isValidEmail(email)) {
+            FxFormValidator.applyStyle(emailField, false);
+            toastError("Please enter a valid email address.");
+            return;
+        }
         withSpinner(saveProfileBtn, () -> {
             try {
                 UpdateUserDTO dto = new UpdateUserDTO(currentUser.getUserId(), email, currentUser.getIsActive());
@@ -163,12 +184,36 @@ public class ProfilePageController extends BasePageController {
     }
 
     private void handleChangePassword() {
-        if (!newPassField.getText().equals(confirmPassField.getText())) {
-            passValidationMsg.setText("Passwords do not match.");
+        String currentPass = currentPassField.getText();
+        String newPass = newPassField.getText();
+        String confirmPass = confirmPassField.getText();
+
+        if (currentPass == null || currentPass.isBlank()) {
+            passValidationMsg.getStyleClass().removeAll("text-success");
+            passValidationMsg.getStyleClass().add("text-danger");
+            passValidationMsg.setText("Current password is required.");
+            FxFormValidator.applyStyle(currentPassField, false);
             return;
         }
-        if (newPassField.getText().length() < 8) {
-            passValidationMsg.setText("Password must be at least 8 characters.");
+        if (newPass == null || newPass.length() < 8) {
+            passValidationMsg.getStyleClass().removeAll("text-success");
+            passValidationMsg.getStyleClass().add("text-danger");
+            passValidationMsg.setText("New password must be at least 8 characters.");
+            FxFormValidator.applyStyle(newPassField, false);
+            return;
+        }
+        if (!ValidatorUtils.isPasswordStrong(newPass)) {
+            passValidationMsg.getStyleClass().removeAll("text-success");
+            passValidationMsg.getStyleClass().add("text-danger");
+            passValidationMsg.setText("Password must contain uppercase, lowercase, digit, and special character.");
+            FxFormValidator.applyStyle(newPassField, false);
+            return;
+        }
+        if (!newPass.equals(confirmPass)) {
+            passValidationMsg.getStyleClass().removeAll("text-success");
+            passValidationMsg.getStyleClass().add("text-danger");
+            passValidationMsg.setText("Passwords do not match.");
+            FxFormValidator.applyStyle(confirmPassField, false);
             return;
         }
         withSpinner(changePassBtn, () -> {

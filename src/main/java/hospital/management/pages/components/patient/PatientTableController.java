@@ -40,6 +40,12 @@ public class PatientTableController extends PaginatedTableController<PatientDTO>
     @Override
     protected boolean matches(PatientDTO patient, String lowerQuery) {
         return patient.getFullName().toLowerCase().contains(lowerQuery)
-                || patient.getPatientId().toLowerCase().contains(lowerQuery);
+            || patient.getPatientId().toLowerCase().contains(lowerQuery)
+            || safe(patient.getPhone()).contains(lowerQuery)
+            || safe(patient.getEmail()).contains(lowerQuery)
+            || safe(patient.getGender()).contains(lowerQuery)
+            || safe(patient.getAddress()).contains(lowerQuery);
     }
+
+    private static String safe(String s) { return s == null ? "" : s.toLowerCase(); }
 }

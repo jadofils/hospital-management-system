@@ -22,6 +22,7 @@ import hospital.management.backend.service.department.DoctorServiceImpl;
 import hospital.management.backend.service.department.interfaces.DoctorService;
 import hospital.management.backend.service.department.DepartmentServiceImpl;
 import hospital.management.backend.service.lookup.EntityLookupService;
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.enums.PageRoute;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
@@ -61,7 +62,8 @@ public class DoctorsPageController extends BasePageController {
     @FXML private Label totalLabel;
 
     private List<DoctorDTO> doctors = new ArrayList<>();
-    private final Map<String, String> roleNameByDoctorId = new LinkedHashMap<>();
+    private final Map<String, String> roleNameByDoctorId  = new LinkedHashMap<>();
+    private final Map<String, String> deptIdByName        = new LinkedHashMap<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.DOCTORS);
@@ -88,7 +90,21 @@ public class DoctorsPageController extends BasePageController {
     }
 
     private void applyFilter() {
-        doctorTableController.filter(searchField.getText());
+        String text    = searchField.getText();
+        String deptSel = departmentFilter.getValue();
+        boolean hasDept = deptSel != null && !deptSel.isEmpty() && !"All".equals(deptSel);
+        String deptId   = hasDept ? deptIdByName.getOrDefault(deptSel, "") : "";
+
+        if (text == null || text.isBlank()) text = "";
+        final String finalText = text;
+
+        if (finalText.isEmpty() && !hasDept) {
+            doctorTableController.filter("");
+            return;
+        }
+        doctorTableController.filterWith(doctor ->
+            doctorTableController.matchesQuery(doctor, finalText)
+            && (deptId.isEmpty() || deptId.equals(doctor.getDepartmentId())));
     }
 
     private void refreshTable() {
@@ -98,8 +114,26 @@ public class DoctorsPageController extends BasePageController {
             doctorTableController.setRoleByDoctorId(roleNameByDoctorId);
             doctorTableController.setItems(doctors);
             totalLabel.setText("Total: " + doctors.size() + " doctors");
+            loadDepartmentFilter();
         } catch (Exception e) {
             toastError("Failed to load doctors: " + e.getMessage());
+        }
+    }
+
+    private void loadDepartmentFilter() {
+        try {
+            deptIdByName.clear();
+            String saved = departmentFilter.getValue();
+            departmentFilter.getItems().setAll("All");
+            departmentService.findAll().stream()
+                .sorted(java.util.Comparator.comparing(d -> d.getName() == null ? "" : d.getName()))
+                .forEach(d -> {
+                    deptIdByName.put(d.getName(), d.getDepartmentId());
+                    departmentFilter.getItems().add(d.getName());
+                });
+            departmentFilter.setValue(saved != null && departmentFilter.getItems().contains(saved) ? saved : "All");
+        } catch (Exception e) {
+            // department filter is non-critical — silently skip on failure
         }
     }
 
@@ -275,9 +309,23 @@ public class DoctorsPageController extends BasePageController {
         TextField phone = new TextField();
         TextField email = new TextField();
 
+        // Placeholders with examples
+        firstName.setPromptText("e.g. John");
+        lastName.setPromptText("e.g. Doe");
+        specialization.setPromptText("e.g. Cardiology (optional)");
+        phone.setPromptText("e.g. +250 788 000 000 (optional)");
+        email.setPromptText("e.g. john.doe@hospital.com (optional)");
+
         List.of(firstName, lastName, specialization, phone, email)
                 .forEach(f -> f.getStyleClass().add("form-input"));
         List.of(departmentId, role).forEach(f -> f.getStyleClass().add("form-combo"));
+
+        // Real-time validators
+        FxFormValidator.attachRequired(firstName, null, "First name");
+        FxFormValidator.attachRequired(lastName,  null, "Last name");
+        FxFormValidator.attachPhone(phone,        null);
+        FxFormValidator.attachEmail(email,        null);
+        FxFormValidator.attachMaxLength(specialization, null, 200, "Specialization");
 
         List<Control> otherFields = List.of(firstName, lastName, specialization, phone, email);
         otherFields.forEach(f -> f.setDisable(true));
@@ -288,13 +336,36 @@ public class DoctorsPageController extends BasePageController {
             specialization.setText(doctor.getSpecialization());
             phone.setText(doctor.getPhone());
             email.setText(doctor.getEmail());
+            FxFormValidator.applyStyle(firstName, firstName.getText() != null && !firstName.getText().isBlank());
+            FxFormValidator.applyStyle(lastName,  lastName.getText()  != null && !lastName.getText().isBlank());
         }
 
         formDialogController.open(addMode ? "Add Doctor" : "Update Doctor", "fas-user-md", addMode, v -> {
             String fn = firstName.getText() == null ? "" : firstName.getText().trim();
             String ln = lastName.getText() == null ? "" : lastName.getText().trim();
-            if (fn.isEmpty() || ln.isEmpty()) {
-                formDialogController.setError("First name and last name are required.");
+            if (fn.isEmpty()) {
+                formDialogController.setError("First name is required.");
+                FxFormValidator.applyStyle(firstName, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (ln.isEmpty()) {
+                formDialogController.setError("Last name is required.");
+                FxFormValidator.applyStyle(lastName, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            String phoneVal = phone.getText() == null ? "" : phone.getText().trim();
+            if (!phoneVal.isEmpty() && !hospital.management.backend.utils.ValidatorUtils.isValidPhone(phoneVal)) {
+                formDialogController.setError("Phone number format is invalid.");
+                FxFormValidator.applyStyle(phone, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            String emailVal = email.getText() == null ? "" : email.getText().trim();
+            if (!emailVal.isEmpty() && !hospital.management.backend.utils.ValidatorUtils.isValidEmail(emailVal)) {
+                formDialogController.setError("Email address format is invalid.");
+                FxFormValidator.applyStyle(email, false);
                 formDialogController.setLoading(false);
                 return;
             }

@@ -8,7 +8,7 @@
 -- Execution order:
 --   PART 0  Departments + doctors  (FK prerequisites for users table)
 --   PART 1  Roles
---   PART 2  Permissions            (25 tables × 4 actions = 100 rows)
+--   PART 2  Permissions            (28 resources × 4 actions = 112 rows)
 --   PART 3  Role_permissions       (per-role access matrix)
 --   PART 4  Users + user_roles     (5 sample accounts, one per role)
 --   PART 5  Verification queries   (run after COMMIT to confirm mapping)
@@ -104,7 +104,13 @@ INSERT INTO permissions (resource, action) VALUES
   ('user_sessions','create'),     ('user_sessions','read'),
   ('user_sessions','update'),     ('user_sessions','delete'),
   ('system_logs','create'),       ('system_logs','read'),
-  ('system_logs','update'),       ('system_logs','delete')
+  ('system_logs','update'),       ('system_logs','delete'),
+  ('patient_notes','create'),     ('patient_notes','read'),
+  ('patient_notes','update'),     ('patient_notes','delete'),
+  ('notifications','create'),     ('notifications','read'),
+  ('notifications','update'),     ('notifications','delete'),
+  ('developer_tools','create'),   ('developer_tools','read'),
+  ('developer_tools','update'),   ('developer_tools','delete')
 ON CONFLICT (resource, action) DO NOTHING;
 
 -- =====================================================================
@@ -159,11 +165,12 @@ JOIN   permissions p ON (p.resource, p.action) IN (
 WHERE  r.role_name = 'Receptionist'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- Analyst: read-only on every table (reporting/oversight)
+-- Analyst: read-only on every table (reporting/oversight) — excluding developer_tools,
+--          which stays Admin-only regardless of the blanket "every read permission" grant below
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM   roles r
-JOIN   permissions p ON p.action = 'read'
+JOIN   permissions p ON p.action = 'read' AND p.resource <> 'developer_tools'
 WHERE  r.role_name = 'Analyst'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
@@ -251,11 +258,13 @@ GROUP  BY u.user_id, u.username, u.email, u.is_active
 ORDER  BY u.user_id;
 
 -- Expected result:
---   admin@hms.com        role_count=1  permission_count=100
+--   admin@hms.com        role_count=1  permission_count=112
 --   doctor@hms.com       role_count=1  permission_count=30
 --   receptionist@hms.com role_count=1  permission_count=15
---   analyst@hms.com      role_count=1  permission_count=25
+--   analyst@hms.com      role_count=1  permission_count=27  (every read except developer_tools)
 --   pharmacist@hms.com   role_count=1  permission_count=8
+-- Note: developer_tools (Developer Dashboard: bulk drop/regenerate DB objects,
+-- backups) is intentionally Admin-only — no other role's grant references it.
 
 -- 5b. Per-role permission count (quick sanity check)
 SELECT

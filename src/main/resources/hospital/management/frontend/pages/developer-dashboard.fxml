@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.chart.*?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<StackPane xmlns="http://javafx.com/javafx"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="hospital.management.pages.developer.DeveloperDashboardController">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/dashboard.css"/>
+        <URL value="@../../css/buttons.css"/>
+        <URL value="@../../css/stats.css"/>
+        <URL value="@../../css/alerts.css"/>
+        <URL value="@../../css/spinner.css"/>
+        <URL value="@../../css/table.css"/>
+    </stylesheets>
+
+    <BorderPane styleClass="page-root">
+
+        <top><fx:include source="/hospital/management/frontend/components/navbar/navbar.fxml"/></top>
+        <left><fx:include fx:id="sidebar" source="/hospital/management/frontend/components/sidebar/sidebar.fxml"/></left>
+        <right><fx:include fx:id="rightSidebar" source="/hospital/management/frontend/components/right-sidebar/right-sidebar.fxml"/></right>
+
+        <center>
+            <ScrollPane fitToWidth="true" styleClass="scroll-pane">
+                <VBox styleClass="page-content" spacing="20">
+
+                    <!-- ── Header ──────────────────────────────────────────── -->
+                    <HBox spacing="12" alignment="CENTER_LEFT">
+                        <FontIcon iconLiteral="fas-tachometer-alt" iconSize="18" styleClass="page-title-icon"/>
+                        <Label text="Developer Dashboard" styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                        <Button fx:id="runBenchmarkBtn" styleClass="primary-button" contentDisplay="LEFT" text="Run Benchmark">
+                            <graphic><FontIcon iconLiteral="fas-play" iconSize="13"/></graphic>
+                        </Button>
+                        <Button fx:id="downloadReportBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Download Report">
+                            <graphic><FontIcon iconLiteral="fas-download" iconSize="13"/></graphic>
+                        </Button>
+                        <Button fx:id="indexBenchmarkBtn" styleClass="primary-button" contentDisplay="LEFT" text="Index Impact Benchmark">
+                            <graphic><FontIcon iconLiteral="fas-tachometer-alt" iconSize="13"/></graphic>
+                        </Button>
+                    </HBox>
+
+                    <!-- ── Index Impact Benchmark — PostgreSQL vs MongoDB, before/after indexing ── -->
+                    <VBox styleClass="chart-panel" spacing="8">
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-tachometer-alt" iconSize="13" styleClass="chart-title-icon"/>
+                            <Label text="Index Impact — PostgreSQL vs MongoDB, Before/After Indexing" styleClass="chart-title"/>
+                        </HBox>
+                        <Label fx:id="indexBenchmarkLabel" text="Click &quot;Index Impact Benchmark&quot; above to run it." styleClass="stat-trend" wrapText="true"/>
+                        <BarChart fx:id="indexComparisonChart" prefHeight="220" animated="false">
+                            <xAxis><CategoryAxis fx:id="indexComparisonXAxis"/></xAxis>
+                            <yAxis><NumberAxis   fx:id="indexComparisonYAxis" label="ms"/></yAxis>
+                        </BarChart>
+                    </VBox>
+
+                    <!-- ── Connection status cards ──────────────────────────── -->
+                    <HBox spacing="16">
+                        <VBox styleClass="stat-card stat-card-green" spacing="4" HBox.hgrow="ALWAYS">
+                            <HBox spacing="8" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-database" iconSize="14"/>
+                                <Label text="PostgreSQL" styleClass="stat-label"/>
+                            </HBox>
+                            <Label fx:id="pgStatusValue"  text="Checking…" styleClass="stat-value"/>
+                            <Label fx:id="pgStatusTrend"  text=""          styleClass="stat-trend"/>
+                        </VBox>
+                        <VBox styleClass="stat-card stat-card-green" spacing="4" HBox.hgrow="ALWAYS">
+                            <HBox spacing="8" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-leaf" iconSize="14"/>
+                                <Label text="MongoDB" styleClass="stat-label"/>
+                            </HBox>
+                            <Label fx:id="mongoStatusValue"  text="Checking…" styleClass="stat-value"/>
+                            <Label fx:id="mongoStatusTrend"  text=""          styleClass="stat-trend"/>
+                        </VBox>
+                        <VBox styleClass="stat-card stat-card-blue" spacing="4" HBox.hgrow="ALWAYS">
+                            <HBox spacing="8" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-memory" iconSize="14"/>
+                                <Label text="Redis Cache" styleClass="stat-label"/>
+                            </HBox>
+                            <Label fx:id="redisStatusValue"  text="Checking…" styleClass="stat-value"/>
+                            <Label fx:id="redisStatusTrend"  text=""          styleClass="stat-trend"/>
+                        </VBox>
+                        <VBox styleClass="stat-card stat-card-yellow" spacing="4" HBox.hgrow="ALWAYS">
+                            <HBox spacing="8" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-stopwatch" iconSize="14"/>
+                                <Label text="Benchmarks Run" styleClass="stat-label"/>
+                            </HBox>
+                            <Label fx:id="benchmarkRunsValue"  text="0"            styleClass="stat-value"/>
+                            <Label fx:id="benchmarkRunsTrend"  text="this session" styleClass="stat-trend"/>
+                        </VBox>
+                    </HBox>
+
+                    <!-- ── Benchmark results table ──────────────────────────── -->
+                    <VBox styleClass="chart-panel" spacing="10">
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-table" iconSize="14" styleClass="chart-title-icon"/>
+                            <Label text="Benchmark Results — Before (Cold) vs After (Warm)" styleClass="chart-title" HBox.hgrow="ALWAYS"/>
+                            <Label fx:id="benchmarkStatusLabel" text="No benchmark run yet." styleClass="stat-trend"/>
+                        </HBox>
+                        <TableView fx:id="resultsTable" prefHeight="320">
+                            <columns>
+                                <TableColumn fx:id="operationCol"       text="Operation"           prefWidth="200"/>
+                                <TableColumn fx:id="storeCol"           text="Store"               prefWidth="90"/>
+                                <TableColumn fx:id="avgBeforeCol"       text="Avg Before (ms)"     prefWidth="115"/>
+                                <TableColumn fx:id="avgAfterCol"        text="Avg After (ms)"      prefWidth="115"/>
+                                <TableColumn fx:id="p95BeforeCol"       text="P95 Before (ms)"     prefWidth="115"/>
+                                <TableColumn fx:id="p95AfterCol"        text="P95 After (ms)"      prefWidth="115"/>
+                                <TableColumn fx:id="throughputBeforeCol" text="Tput Before (ops/s)" prefWidth="130"/>
+                                <TableColumn fx:id="throughputAfterCol"  text="Tput After (ops/s)"  prefWidth="130"/>
+                                <TableColumn fx:id="improvementCol"     text="Improvement %"        prefWidth="100"/>
+                            </columns>
+                        </TableView>
+                    </VBox>
+
+                    <!-- ── Side-by-side latency charts ─────────────────────── -->
+                    <HBox spacing="16">
+                        <VBox styleClass="chart-panel" HBox.hgrow="ALWAYS" spacing="8">
+                            <HBox spacing="6" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-chart-bar" iconSize="13" styleClass="chart-title-icon"/>
+                                <Label text="PostgreSQL — Avg Latency (ms)" styleClass="chart-title"/>
+                            </HBox>
+                            <BarChart fx:id="pgChart" prefHeight="240" animated="false" legendVisible="false">
+                                <xAxis><CategoryAxis fx:id="pgChartXAxis"/></xAxis>
+                                <yAxis><NumberAxis   fx:id="pgChartYAxis" label="ms"/></yAxis>
+                            </BarChart>
+                        </VBox>
+                        <VBox styleClass="chart-panel" HBox.hgrow="ALWAYS" spacing="8">
+                            <HBox spacing="6" alignment="CENTER_LEFT">
+                                <FontIcon iconLiteral="fas-chart-bar" iconSize="13" styleClass="chart-title-icon"/>
+                                <Label text="MongoDB — Avg Latency (ms)" styleClass="chart-title"/>
+                            </HBox>
+                            <BarChart fx:id="mongoChart" prefHeight="240" animated="false" legendVisible="false">
+                                <xAxis><CategoryAxis fx:id="mongoChartXAxis"/></xAxis>
+                                <yAxis><NumberAxis   fx:id="mongoChartYAxis" label="ms"/></yAxis>
+                            </BarChart>
+                        </VBox>
+                    </HBox>
+
+                    <!-- ── All-operations line chart ───────────────────────── -->
+                    <VBox styleClass="chart-panel" spacing="8">
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-chart-line" iconSize="13" styleClass="chart-title-icon"/>
+                            <Label text="Operation Latency — Before (Cold) vs After (Warm) in ms" styleClass="chart-title"/>
+                        </HBox>
+                        <LineChart fx:id="performanceLineChart" prefHeight="300" animated="false">
+                            <xAxis><CategoryAxis fx:id="lineChartXAxis"/></xAxis>
+                            <yAxis><NumberAxis fx:id="lineChartYAxis" label="Avg (ms)"/></yAxis>
+                        </LineChart>
+                    </VBox>
+
+                    <!-- ── System information ───────────────────────────────── -->
+                    <VBox styleClass="chart-panel" spacing="10">
+                        <HBox spacing="6" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-info-circle" iconSize="14" styleClass="chart-title-icon"/>
+                            <Label text="System Information" styleClass="chart-title"/>
+                        </HBox>
+                        <GridPane hgap="24" vgap="10">
+                            <columnConstraints>
+                                <ColumnConstraints prefWidth="200" minWidth="160"/>
+                                <ColumnConstraints hgrow="ALWAYS"/>
+                            </columnConstraints>
+                            <Label text="Java Runtime"       styleClass="stat-label" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                            <Label fx:id="javaVersionLabel"  text="—"               GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+                            <Label text="PostgreSQL Driver"  styleClass="stat-label" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                            <Label fx:id="pgVersionLabel"    text="—"               GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+                            <Label text="MongoDB Driver"     styleClass="stat-label" GridPane.columnIndex="0" GridPane.rowIndex="2"/>
+                            <Label fx:id="mongoVersionLabel" text="—"               GridPane.columnIndex="1" GridPane.rowIndex="2"/>
+
+                            <Label text="Redis Client"       styleClass="stat-label" GridPane.columnIndex="0" GridPane.rowIndex="3"/>
+                            <Label fx:id="redisVersionLabel" text="—"               GridPane.columnIndex="1" GridPane.rowIndex="3"/>
+
+                            <Label text="Cache Strategy"     styleClass="stat-label" GridPane.columnIndex="0" GridPane.rowIndex="4"/>
+                            <Label fx:id="cacheLayerLabel"   text="—"               GridPane.columnIndex="1" GridPane.rowIndex="4"/>
+
+                            <Label text="Algorithms"         styleClass="stat-label" GridPane.columnIndex="0" GridPane.rowIndex="5"/>
+                            <Label fx:id="algoLabel"         text="—"               GridPane.columnIndex="1" GridPane.rowIndex="5"/>
+                        </GridPane>
+                    </VBox>
+
+                    <!-- ── Database Objects ────────────────────────────────── -->
+                    <VBox styleClass="chart-panel" spacing="10">
+
+                        <!-- Header row -->
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-database" iconSize="14" styleClass="chart-title-icon"/>
+                            <Label text="Database Objects" styleClass="chart-title" HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="refreshDbObjectsBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Refresh">
+                                <graphic><FontIcon iconLiteral="fas-sync-alt" iconSize="13"/></graphic>
+                            </Button>
+                        </HBox>
+
+                        <!-- Tab pane -->
+                        <TabPane fx:id="dbObjectsTabPane" tabClosingPolicy="UNAVAILABLE">
+
+                            <!-- Tab 1: Indexes -->
+                            <Tab text="Indexes" closable="false">
+                                <VBox spacing="8">
+                                    <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
+                                    <HBox spacing="8" alignment="CENTER_LEFT">
+                                        <Button fx:id="regenerateIndexesBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Regenerate All">
+                                            <graphic><FontIcon iconLiteral="fas-redo" iconSize="13"/></graphic>
+                                        </Button>
+                                        <Button fx:id="dropIndexBtn" styleClass="danger-button" contentDisplay="LEFT" text="Drop Selected">
+                                            <graphic><FontIcon iconLiteral="fas-trash-alt" iconSize="13"/></graphic>
+                                        </Button>
+                                        <Label fx:id="indexActionLabel" text="" styleClass="stat-trend" HBox.hgrow="ALWAYS"/>
+                                    </HBox>
+                                    <TableView fx:id="indexesTable" prefHeight="240" editable="true">
+                                        <columns>
+                                            <TableColumn fx:id="indexSelectCol" text="" prefWidth="34" sortable="false" editable="true"/>
+                                            <TableColumn fx:id="indexNameCol"  text="Index Name"  prefWidth="220"/>
+                                            <TableColumn fx:id="indexTableCol" text="Table"       prefWidth="150"/>
+                                            <TableColumn fx:id="indexTypeCol"  text="Type"        prefWidth="70"/>
+                                            <TableColumn fx:id="indexDefCol"   text="Definition"  prefWidth="320"/>
+                                        </columns>
+                                    </TableView>
+                                </VBox>
+                            </Tab>
+
+                            <!-- Tab 2: Views -->
+                            <Tab text="Views" closable="false">
+                                <VBox spacing="8">
+                                    <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
+                                    <HBox spacing="8">
+                                        <Button fx:id="regenerateViewsBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Regenerate All">
+                                            <graphic><FontIcon iconLiteral="fas-redo" iconSize="13"/></graphic>
+                                        </Button>
+                                        <Button fx:id="dropViewBtn" styleClass="danger-button" contentDisplay="LEFT" text="Drop Selected">
+                                            <graphic><FontIcon iconLiteral="fas-trash-alt" iconSize="13"/></graphic>
+                                        </Button>
+                                        <Label fx:id="viewActionLabel" text="" styleClass="stat-trend" HBox.hgrow="ALWAYS"/>
+                                    </HBox>
+                                    <TableView fx:id="viewsTable" prefHeight="240" editable="true">
+                                        <columns>
+                                            <TableColumn fx:id="viewSelectCol" text="" prefWidth="34" sortable="false" editable="true"/>
+                                            <TableColumn fx:id="viewNameCol" text="View Name"           prefWidth="200"/>
+                                            <TableColumn fx:id="viewDefCol"  text="Definition (preview)" prefWidth="560"/>
+                                        </columns>
+                                    </TableView>
+                                </VBox>
+                            </Tab>
+
+                            <!-- Tab 3: Functions & Procedures -->
+                            <Tab text="Functions &amp; Procedures" closable="false">
+                                <VBox spacing="8">
+                                    <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
+                                    <HBox spacing="8">
+                                        <Button fx:id="regenerateRoutinesBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Regenerate All">
+                                            <graphic><FontIcon iconLiteral="fas-redo" iconSize="13"/></graphic>
+                                        </Button>
+                                        <Button fx:id="dropRoutineBtn" styleClass="danger-button" contentDisplay="LEFT" text="Drop Selected">
+                                            <graphic><FontIcon iconLiteral="fas-trash-alt" iconSize="13"/></graphic>
+                                        </Button>
+                                        <Label fx:id="routineActionLabel" text="" styleClass="stat-trend" HBox.hgrow="ALWAYS"/>
+                                    </HBox>
+                                    <TableView fx:id="routinesTable" prefHeight="240" editable="true">
+                                        <columns>
+                                            <TableColumn fx:id="routineSelectCol" text="" prefWidth="34" sortable="false" editable="true"/>
+                                            <TableColumn fx:id="routineNameCol" text="Name"                prefWidth="160"/>
+                                            <TableColumn fx:id="routineTypeCol" text="Type"                prefWidth="100"/>
+                                            <TableColumn fx:id="routineLangCol" text="Language"            prefWidth="80"/>
+                                            <TableColumn fx:id="routineDefCol"  text="Definition (preview)" prefWidth="420"/>
+                                        </columns>
+                                    </TableView>
+                                </VBox>
+                            </Tab>
+
+                            <!-- Tab 4: Backups -->
+                            <Tab text="Backups" closable="false">
+                                <VBox spacing="12">
+                                    <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
+
+                                    <!-- Manual trigger -->
+                                    <HBox spacing="8" alignment="CENTER_LEFT">
+                                        <Label text="Backup Type:"/>
+                                        <ComboBox fx:id="manualBackupTypeCombo" prefWidth="120"/>
+                                        <Button fx:id="backupNowBtn" styleClass="primary-button" contentDisplay="LEFT" text="Backup Now">
+                                            <graphic><FontIcon iconLiteral="fas-save" iconSize="13"/></graphic>
+                                        </Button>
+                                        <Label fx:id="backupStatusLabel" text="" styleClass="stat-trend" wrapText="true" HBox.hgrow="ALWAYS"/>
+                                    </HBox>
+
+                                    <!-- Schedule &amp; retention settings -->
+                                    <GridPane hgap="12" vgap="8">
+                                        <Label text="Default Backup Type"    GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                        <ComboBox fx:id="scheduledBackupTypeCombo" prefWidth="120" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                                        <Label text="Run Every (hours)"      GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                        <Spinner fx:id="backupIntervalHoursSpinner" prefWidth="120" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                                        <Label text="Keep Backups For (days)" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                                        <Spinner fx:id="backupRetentionDaysSpinner" prefWidth="120" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                                        <CheckBox fx:id="scheduledBackupsEnabledCheck" text="Enable scheduled backups"
+                                                  GridPane.rowIndex="3" GridPane.columnIndex="0" GridPane.columnSpan="2"/>
+                                    </GridPane>
+                                    <Button fx:id="saveBackupSettingsBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Save Settings">
+                                        <graphic><FontIcon iconLiteral="fas-check" iconSize="13"/></graphic>
+                                    </Button>
+
+                                    <!-- Live countdown to the next scheduled backup -->
+                                    <HBox spacing="8" alignment="CENTER_LEFT">
+                                        <FontIcon iconLiteral="fas-hourglass-half" iconSize="13" styleClass="chart-title-icon"/>
+                                        <Label text="Next scheduled backup:" styleClass="stat-label"/>
+                                        <Label fx:id="backupCountdownLabel" text="—" styleClass="stat-value"/>
+                                    </HBox>
+
+                                    <!-- History -->
+                                    <HBox spacing="8" alignment="CENTER_LEFT">
+                                        <Label text="Backup History" styleClass="chart-title" HBox.hgrow="ALWAYS"/>
+                                        <Button fx:id="refreshBackupHistoryBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Refresh">
+                                            <graphic><FontIcon iconLiteral="fas-sync-alt" iconSize="13"/></graphic>
+                                        </Button>
+                                    </HBox>
+                                    <TableView fx:id="backupHistoryTable" prefHeight="220">
+                                        <columns>
+                                            <TableColumn fx:id="backupTimeCol"   text="Timestamp"   prefWidth="150"/>
+                                            <TableColumn fx:id="backupTypeCol"   text="Type"        prefWidth="80"/>
+                                            <TableColumn fx:id="backupTablesCol" text="PG Tables"   prefWidth="80"/>
+                                            <TableColumn fx:id="backupCollsCol"  text="Mongo Colls" prefWidth="90"/>
+                                            <TableColumn fx:id="backupStatusCol" text="Status"      prefWidth="160"/>
+                                            <TableColumn fx:id="backupPathCol"   text="Saved To"    prefWidth="320"/>
+                                        </columns>
+                                    </TableView>
+                                </VBox>
+                            </Tab>
+
+                            <!-- Tab 5: Maintenance -->
+                            <Tab text="Maintenance" closable="false">
+                                <VBox spacing="12">
+                                    <padding><Insets top="8" right="8" bottom="8" left="8"/></padding>
+
+                                    <!-- Global switch + page variant + message -->
+                                    <CheckBox fx:id="maintenanceEnabledCheck" text="Enable maintenance for ALL users (Admins still bypass)"/>
+                                    <GridPane hgap="12" vgap="8">
+                                        <Label text="Status Page"      GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                                        <ComboBox fx:id="maintenanceStatusPageCombo" prefWidth="160" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                                        <Label text="Message"          GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                                        <TextField fx:id="maintenanceMessageField" promptText="It's not you, it's me."
+                                                   prefWidth="360" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                                    </GridPane>
+                                    <Button fx:id="saveMaintenanceBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Save Settings">
+                                        <graphic><FontIcon iconLiteral="fas-check" iconSize="13"/></graphic>
+                                    </Button>
+
+                                    <!-- Per-user revoke/grant -->
+                                    <HBox spacing="8" alignment="CENTER_LEFT">
+                                        <Label text="Per-User Access" styleClass="chart-title" HBox.hgrow="ALWAYS"/>
+                                        <Label fx:id="blockedCountLabel" text="Currently blocked: 0 user(s)" styleClass="stat-trend"/>
+                                    </HBox>
+                                    <HBox spacing="8" alignment="CENTER_LEFT">
+                                        <Button fx:id="revokeSelectedBtn" styleClass="danger-button" contentDisplay="LEFT" text="Revoke Selected">
+                                            <graphic><FontIcon iconLiteral="fas-user-slash" iconSize="13"/></graphic>
+                                        </Button>
+                                        <Button fx:id="grantSelectedBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Grant Selected">
+                                            <graphic><FontIcon iconLiteral="fas-user-check" iconSize="13"/></graphic>
+                                        </Button>
+                                    </HBox>
+                                    <TableView fx:id="maintenanceUsersTable" prefHeight="240" editable="true">
+                                        <columns>
+                                            <TableColumn fx:id="maintenanceUserSelectCol" text="" prefWidth="34" sortable="false" editable="true"/>
+                                            <TableColumn fx:id="maintenanceUsernameCol" text="Username" prefWidth="180"/>
+                                            <TableColumn fx:id="maintenanceEmailCol"    text="Email"    prefWidth="220"/>
+                                            <TableColumn fx:id="maintenanceStatusCol"   text="Access"   prefWidth="100"/>
+                                        </columns>
+                                    </TableView>
+                                </VBox>
+                            </Tab>
+
+                        </TabPane>
+                    </VBox>
+
+                </VBox>
+            </ScrollPane>
+        </center>
+
+        <bottom><fx:include source="/hospital/management/frontend/components/footer/footer.fxml"/></bottom>
+
+    </BorderPane>
+
+    <!-- Confirmation modal — required for confirm(...) to do anything; without this
+         include, BasePageController.confirmModalController stays null and every
+         "Drop Selected" (indexes/views/routines) silently no-ops. -->
+    <fx:include fx:id="confirmModal" source="/hospital/management/frontend/components/modal/modal.fxml"/>
+
+    <!-- Toast notifications -->
+    <StackPane StackPane.alignment="BOTTOM_RIGHT" styleClass="toast-anchor" pickOnBounds="false">
+        <fx:include fx:id="toast" source="/hospital/management/frontend/components/toast/toast.fxml"/>
+    </StackPane>
+
+</StackPane>

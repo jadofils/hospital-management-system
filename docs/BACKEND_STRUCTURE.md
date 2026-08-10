@@ -80,7 +80,7 @@ src/main/java/hospital/management/
     │   ├── filters/
     │   │   ├── EntityFilter<T>        @FunctionalInterface — in-memory predicate
     │   │   ├── FilterBuilder<T>       composes EntityFilters, applies to List<T>
-    │   │   └── SqlFilterBuilder       builds parameterized WHERE clauses
+    │   │   └── QueryBuilder           fluent parameterized SQL SELECT builder
     │   ├── pagination/
     │   │   ├── PageRequest            cursor + pageSize + direction
     │   │   ├── PageResult<T>          items + nextCursor + hasMore
@@ -220,7 +220,7 @@ src/main/java/hospital/management/
 │                                                                     │
 │  ┌──────────────────────────────────────────────────────────────┐   │
 │  │  Uses:  DBConnection.getConnection()                         │   │
-│  │  Uses:  SqlFilterBuilder (safe WHERE clauses)                │   │
+│  │  Uses:  QueryBuilder (fluent, parameterized SELECT builder)  │   │
 │  │  Uses:  CursorPagination.whereClause() / orderClause()       │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └───────────────────────────────┬─────────────────────────────────────┘

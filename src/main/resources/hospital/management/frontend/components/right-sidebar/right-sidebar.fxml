@@ -30,6 +30,7 @@
                 <FontIcon iconLiteral="fas-bell" iconSize="13" styleClass="rs-panel-icon"/>
                 <Label text="Notifications" styleClass="rs-panel-title" HBox.hgrow="ALWAYS"/>
                 <Label fx:id="unreadBadge" text="0" styleClass="rs-badge"/>
+                <Button fx:id="markAllReadBtn" text="Mark all read" styleClass="rs-mark-all-read-btn"/>
             </HBox>
             <VBox fx:id="notificationList" styleClass="rs-notification-list" spacing="4"/>
             <Label text="No new notifications" fx:id="emptyNotifLabel"

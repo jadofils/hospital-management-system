@@ -141,3 +141,51 @@
     -fx-border-color: transparent;
     -fx-padding: 0.571em 0;
 }
+
+/* ─── Form validation states ─────────────────────────────────────────────── */
+
+/* Red border — invalid field */
+.input-error,
+.input-error:focused {
+    -fx-border-color: #E74C3C;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+.input-error .text-field,
+.input-error > .text-field {
+    -fx-border-color: transparent;
+}
+
+/* Green border — valid / passes validation */
+.input-valid,
+.input-valid:focused {
+    -fx-border-color: #27AE60;
+    -fx-border-width: 1.5px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+/* Small hint / error text below a field */
+.input-hint {
+    -fx-font-size: 11px;
+    -fx-text-fill: #7F8C8D;
+    -fx-padding: 2 0 0 2;
+}
+.input-hint-error {
+    -fx-font-size: 11px;
+    -fx-text-fill: #E74C3C;
+    -fx-padding: 2 0 0 2;
+}
+
+/* Inline validation message labels (text-danger / text-success / text-warning) */
+.text-danger  { -fx-text-fill: #E74C3C; }
+.text-success { -fx-text-fill: #27AE60; }
+.text-warning { -fx-text-fill: #E67E22; }
+.text-muted   { -fx-text-fill: #95A5A6; }
+
+/* Required asterisk label */
+.field-required {
+    -fx-text-fill: #E74C3C;
+    -fx-font-weight: bold;
+}

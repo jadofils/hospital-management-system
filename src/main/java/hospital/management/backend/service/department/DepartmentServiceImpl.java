@@ -30,6 +30,13 @@ public class DepartmentServiceImpl implements DepartmentService {
     @Override
     public DepartmentDTO create(CreateDepartmentDTO dto) throws Exception {
         String name = ValidatorUtils.requireNonBlank(dto.getName(), "name");
+        ValidatorUtils.requireMaxLength(name, 200, "name");
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
+            ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "phone");
+        }
+        if (dto.getLocation() != null) {
+            ValidatorUtils.requireMaxLength(dto.getLocation(), 255, "location");
+        }
         if (departmentDAO.findByName(name).isPresent()) {
             throw new ValidationException("name", "Department \"" + name + "\" already exists.");
         }
@@ -74,6 +81,13 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Department", departmentId));
 
         String name = ValidatorUtils.requireNonBlank(dto.getName(), "name");
+        ValidatorUtils.requireMaxLength(name, 200, "name");
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
+            ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "phone");
+        }
+        if (dto.getLocation() != null) {
+            ValidatorUtils.requireMaxLength(dto.getLocation(), 255, "location");
+        }
         if (!name.equals(department.getName()) && departmentDAO.findByName(name).isPresent()) {
             throw new ValidationException("name", "Department \"" + name + "\" already exists.");
         }

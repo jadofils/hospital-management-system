@@ -16,6 +16,10 @@ public interface UserDAO {
     Optional<User> findById(String userId) throws Exception;
     Optional<User> findByUsername(String username) throws Exception;
     Optional<User> findByEmail(String email) throws Exception;
+
+    /** Looks up the login account linked to a doctor (via users.doctor_id), if any.
+     *  Not every doctor has a login account — an empty Optional means "nothing to notify". */
+    Optional<User> findByDoctorId(String doctorId) throws Exception;
     PageResult<User> findAll(PageRequest request) throws Exception;
     User update(User user) throws Exception;
     User update(User user, Connection conn) throws Exception;

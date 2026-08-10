@@ -15,6 +15,7 @@ import hospital.management.backend.service.finance.InvoiceServiceImpl;
 import hospital.management.backend.service.finance.interfaces.InvoiceService;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
@@ -179,8 +180,23 @@ public class InvoicePageController extends BasePageController implements QuickAd
         EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
         TextField totalAmount   = new TextField();
 
+        totalAmount.setPromptText("e.g. 150.00");
         totalAmount.getStyleClass().add("form-input");
         List.of(patientId, appointmentId).forEach(f -> f.getStyleClass().add("form-combo"));
+
+        // Real-time: amount must be a valid positive number
+        totalAmount.textProperty().addListener((obs, o, n) -> {
+            if (n == null || n.isBlank()) {
+                FxFormValidator.applyStyle(totalAmount, false);
+            } else {
+                try {
+                    BigDecimal v = new BigDecimal(n.trim());
+                    FxFormValidator.applyStyle(totalAmount, v.compareTo(BigDecimal.ZERO) > 0);
+                } catch (NumberFormatException ex) {
+                    FxFormValidator.applyStyle(totalAmount, false);
+                }
+            }
+        });
 
         List<Control> otherFields = List.of(totalAmount);
         otherFields.forEach(f -> f.setDisable(true));
@@ -190,8 +206,19 @@ public class InvoicePageController extends BasePageController implements QuickAd
             String aid = appointmentId.getSelectedId();
             String amountText = totalAmount.getText() == null ? "" : totalAmount.getText().trim();
 
-            if (pid == null || aid == null || amountText.isEmpty()) {
-                formDialogController.setError("Patient, appointment and total amount are required.");
+            if (pid == null) {
+                formDialogController.setError("Patient is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (aid == null) {
+                formDialogController.setError("Appointment is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (amountText.isEmpty()) {
+                formDialogController.setError("Total amount is required.");
+                FxFormValidator.applyStyle(totalAmount, false);
                 formDialogController.setLoading(false);
                 return;
             }
@@ -200,7 +227,14 @@ public class InvoicePageController extends BasePageController implements QuickAd
             try {
                 amount = new BigDecimal(amountText);
             } catch (NumberFormatException ex) {
-                formDialogController.setError("Total amount must be a valid number.");
+                formDialogController.setError("Total amount must be a valid number (e.g. 150.00).");
+                FxFormValidator.applyStyle(totalAmount, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+                formDialogController.setError("Total amount must be greater than zero.");
+                FxFormValidator.applyStyle(totalAmount, false);
                 formDialogController.setLoading(false);
                 return;
             }

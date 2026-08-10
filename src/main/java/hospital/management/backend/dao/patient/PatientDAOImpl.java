@@ -5,7 +5,7 @@ import hospital.management.backend.dao.patient.interfaces.PatientDAO;
 import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.patient.Patient;
-import hospital.management.backend.utils.filters.SqlFilterBuilder;
+import hospital.management.backend.utils.filters.QueryBuilder;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pagination.PageRequest;
 import hospital.management.backend.utils.pagination.PageResult;
@@ -75,54 +75,42 @@ public class PatientDAOImpl implements PatientDAO {
 
     @Override
     public PageResult<Patient> findAll(PageRequest request) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM patients WHERE deleted_at IS NULL "
-                   + CursorPagination.whereClause(request, "created_at")
-                   + CursorPagination.orderClause(request, "created_at")
-                   + "LIMIT ?";
+        QueryBuilder.SortDir dir = request.getDirection() == PageRequest.SortDirection.DESC
+            ? QueryBuilder.SortDir.DESC : QueryBuilder.SortDir.ASC;
+        QueryBuilder qb = QueryBuilder.select(SELECT_COLUMNS).from("patients").whereActive();
+        String cursorFrag = CursorPagination.whereClause(request, "created_at");
+        if (!cursorFrag.isBlank()) qb.and(cursorFrag.trim().replaceFirst("(?i)^AND\\s+", ""));
+        String sql = qb.orderBy("created_at", dir).limit(request.getPageSize() + 1).build();
         List<Patient> rows = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, request.getPageSize() + 1);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) rows.add(mapRow(rs));
-            }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) rows.add(mapRow(rs));
         } catch (SQLException e) {
             throw new DatabaseException("Failed to list patients: " + e.getMessage(), e);
         }
         return CursorPagination.toResult(rows, request, Patient::getCreatedAt);
     }
 
-    /**
-     * Searches by first name, last name, or patient ID.
-     * "first_name ILIKE ? OR last_name ILIKE ? OR patient_id::text ILIKE ?" must be ONE combined
-     * OR condition, which SqlFilterBuilder's simple ANDed API can't express directly — per the
-     * builder's own javadoc, that one fragment is hand-written with its own placeholders and
-     * bound alongside whatever SqlFilterBuilder produces (here, just "deleted_at IS NULL").
-     */
     @Override
     public PageResult<Patient> search(String query, PageRequest request) throws Exception {
-        SqlFilterBuilder filter = SqlFilterBuilder.start().andRaw("deleted_at IS NULL");
         boolean hasQuery = query != null && !query.isBlank();
-
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM patients "
-                   + filter.buildWhere()
-                   + (hasQuery ? "AND (first_name ILIKE ? OR last_name ILIKE ? OR CAST(patient_id AS TEXT) ILIKE ?) " : "")
-                   + CursorPagination.whereClause(request, "created_at")
-                   + CursorPagination.orderClause(request, "created_at")
-                   + "LIMIT ?";
-
+        QueryBuilder.SortDir dir = request.getDirection() == PageRequest.SortDirection.DESC
+            ? QueryBuilder.SortDir.DESC : QueryBuilder.SortDir.ASC;
+        QueryBuilder qb = QueryBuilder.select(SELECT_COLUMNS).from("patients").whereActive();
+        if (hasQuery) qb.whereSearchAny("?", "first_name", "last_name", "CAST(patient_id AS TEXT)");
+        String cursorFrag = CursorPagination.whereClause(request, "created_at");
+        if (!cursorFrag.isBlank()) qb.and(cursorFrag.trim().replaceFirst("(?i)^AND\\s+", ""));
+        String sql = qb.orderBy("created_at", dir).limit(request.getPageSize() + 1).build();
         List<Patient> rows = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            int idx = 1;
-            for (Object param : filter.getParams()) ps.setObject(idx++, param);
             if (hasQuery) {
                 String like = "%" + query.strip() + "%";
-                ps.setString(idx++, like);
-                ps.setString(idx++, like);
-                ps.setString(idx++, like);
+                ps.setString(1, like);
+                ps.setString(2, like);
+                ps.setString(3, like);
             }
-            ps.setInt(idx, request.getPageSize() + 1);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) rows.add(mapRow(rs));
             }

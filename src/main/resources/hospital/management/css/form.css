@@ -27,6 +27,25 @@
 }
 .form-input.invalid { -fx-border-color: #E74C3C; }
 
+/* ─── Real-time validation state overrides (FxFormValidator) ──────────────
+   Higher specificity (2 classes) beats single-class .form-input rules above. */
+.form-input.input-error,
+.form-input.input-error:focused {
+    -fx-border-color: #E74C3C;
+    -fx-border-width: 1.5px;
+    -fx-background-color: #FEF9F9;
+}
+.form-input.input-valid,
+.form-input.input-valid:focused {
+    -fx-border-color: #27AE60;
+    -fx-border-width: 1.5px;
+    -fx-background-color: #F9FEF9;
+}
+.form-combo.input-error  { -fx-border-color: #E74C3C; -fx-border-width: 1.5px; }
+.form-combo.input-valid  { -fx-border-color: #27AE60; -fx-border-width: 1.5px; }
+.form-date-picker.input-error { -fx-border-color: #E74C3C; -fx-border-width: 1.5px; }
+.form-date-picker.input-valid { -fx-border-color: #27AE60; -fx-border-width: 1.5px; }
+
 .form-combo {
     -fx-background-color: #F8F9F9;
     -fx-border-color: #D5DBDB;
@@ -99,6 +118,100 @@
 .form-date-picker .text-field { -fx-background-color: transparent; }
 .form-date-picker .arrow-button { -fx-background-color: transparent; }
 .form-date-picker .arrow-button .arrow { -fx-background-color: #7F8C8D; }
+
+/* Filter date-picker in page toolbars (smaller, matches filter-combo height) */
+.filter-date-picker {
+    -fx-background-color: #F8F9F9;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0.143em 0.857em;
+    -fx-font-size: 0.929em;
+    -fx-pref-height: 2.286em;
+}
+.filter-date-picker:focused { -fx-border-color: #3498DB; }
+.filter-date-picker .text-field { -fx-background-color: transparent; -fx-font-size: 0.929em; }
+.filter-date-picker .arrow-button { -fx-background-color: transparent; }
+.filter-date-picker .arrow-button .arrow { -fx-background-color: #7F8C8D; }
+.filter-date-picker.input-error { -fx-border-color: #E74C3C; -fx-border-width: 1.5px; }
+.filter-date-picker.input-valid { -fx-border-color: #27AE60; -fx-border-width: 1.5px; }
+
+/* ─── DatePicker calendar popup ──────────────────────────────────────────── */
+.date-picker-popup {
+    -fx-background-color: white;
+    -fx-border-color: #E5E7E9;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.12), 12, 0, 0, 3);
+}
+.date-picker-popup > * > .spinner,
+.date-picker-popup .month-year-pane {
+    -fx-background-color: #2C3E50;
+    -fx-padding: 0.5em 0.857em;
+    -fx-border-color: transparent;
+}
+.date-picker-popup > * > .spinner .label,
+.date-picker-popup .month-year-pane .label {
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 0.929em;
+}
+.date-picker-popup .spinner .button,
+.date-picker-popup .spin-button {
+    -fx-background-color: transparent;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+.date-picker-popup .spinner .button:hover,
+.date-picker-popup .spin-button:hover {
+    -fx-background-color: rgba(255,255,255,0.15);
+    -fx-background-radius: 4px;
+}
+.date-picker-popup .spinner .left-arrow,
+.date-picker-popup .spinner .right-arrow {
+    -fx-background-color: white;
+}
+.date-picker-popup .day-name-cell {
+    -fx-text-fill: #95A5A6;
+    -fx-font-size: 0.857em;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-padding: 0.429em 0;
+}
+.date-picker-popup .day-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 0.929em;
+    -fx-alignment: center;
+    -fx-cursor: hand;
+    -fx-background-radius: 50%;
+    -fx-border-color: transparent;
+    -fx-border-radius: 50%;
+    -fx-padding: 0.357em;
+}
+.date-picker-popup .day-cell:hover { -fx-background-color: #EBF5FB; }
+.date-picker-popup .day-cell.today {
+    -fx-border-color: #3498DB;
+    -fx-border-width: 1.5px;
+    -fx-text-fill: #3498DB;
+    -fx-font-weight: bold;
+}
+.date-picker-popup .day-cell.selected,
+.date-picker-popup .selected {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+}
+.date-picker-popup .day-cell.selected.today { -fx-border-color: transparent; }
+.date-picker-popup .day-cell.other-month,
+.date-picker-popup .day-cell.previous-month,
+.date-picker-popup .day-cell.next-month {
+    -fx-text-fill: #D5DBDB;
+}
+.date-picker-popup .week-number-cell {
+    -fx-text-fill: #95A5A6;
+    -fx-font-size: 0.786em;
+}
 
 .validation-error {
     -fx-text-fill: #E74C3C;

@@ -39,14 +39,15 @@ public class EnvConfig {
     public static int getPageSize()          { return Integer.parseInt(dotenv.get("APP_PAGE_SIZE")); }
     public static int getMaxUploadSizeMb()   { return Integer.parseInt(dotenv.get("APP_MAX_UPLOAD_SIZE_MB")); }
 
-    // ── MongoDB (NoSQL) ──────────────────────────────────────────────────
-    public static String getMongoUri() {
-        // Prefer MONGO_URL (project convention), fallback to MONGO_URI for compatibility.
-        String primary = dotenv.get("MONGO_URL");
-        if (primary != null && !primary.isBlank()) {
-            return primary;
-        }
-        String fallback = dotenv.get("MONGO_URI");
-        return fallback == null || fallback.isBlank() ? "mongodb://localhost:27017" : fallback;
+    // ── MongoDB ───────────────────────────────────────────────────────────
+    public static String getMongoUrl() {
+        String v = dotenv.get("MONGO_URL", null);
+        if (v == null || v.isBlank()) v = dotenv.get("MONGO_URI", null);
+        return v != null ? v : "mongodb://localhost:27017";
     }
+
+    public static String getMongoDatabase() {
+        return dotenv.get("MONGO_DATABASE", "hospital_nosql");
+    }
+
 }

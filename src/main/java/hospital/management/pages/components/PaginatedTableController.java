@@ -3,6 +3,7 @@ package hospital.management.pages.components;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Pagination;
@@ -12,6 +13,7 @@ import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
 import javafx.beans.property.SimpleStringProperty;
 import java.lang.reflect.Method;
+import java.util.Comparator;
 import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.List;
@@ -34,6 +36,7 @@ public abstract class PaginatedTableController<T> {
 
     protected final ObservableList<T> sourceItems = FXCollections.observableArrayList();
     protected FilteredList<T> filteredItems;
+    protected SortedList<T>   sortedItems;
 
     private Consumer<T> onEdit;
     private Consumer<T> onDelete;
@@ -42,10 +45,18 @@ public abstract class PaginatedTableController<T> {
 
     public void initialize() {
         configureColumns();
-        // Ensure an ID column is present for user-facing lists (UUIDs or entity id getters)
         ensureIdColumn();
         filteredItems = new FilteredList<>(sourceItems, item -> true);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        sortedItems   = new SortedList<>(filteredItems);
+        // Bind sortedItems to the table's active comparator so clicking a column
+        // header re-sorts the *full* filtered dataset before we slice a page.
+        sortedItems.comparatorProperty().bind(table.comparatorProperty());
+        // Prevent TableView from sorting its displayed page-slice in-place;
+        // our SortedList + renderPage listener already handles the correct ordering.
+        table.setSortPolicy(t -> true);
+        // Re-render the current page whenever the sort order changes.
+        table.comparatorProperty().addListener((obs, o, n) -> renderPage(pagination.getCurrentPageIndex()));
+        table.setColumnResizePolicy(TableView.UNCONSTRAINED_RESIZE_POLICY);
         pagination.currentPageIndexProperty().addListener((obs, o, n) -> renderPage(n.intValue()));
         refreshPagination();
     }
@@ -114,6 +125,50 @@ public abstract class PaginatedTableController<T> {
         String lower = query == null ? "" : query.trim().toLowerCase();
         filteredItems.setPredicate(item -> lower.isEmpty() || matches(item, lower));
         refreshPagination();
+    }
+
+    /**
+     * Applies an arbitrary predicate — useful when a page controller needs to
+     * combine a text search with a secondary filter (e.g. status or department).
+     */
+    public void filterWith(java.util.function.Predicate<T> predicate) {
+        filteredItems.setPredicate(predicate == null ? item -> true : predicate);
+        refreshPagination();
+    }
+
+    /**
+     * Returns true if {@code item} matches {@code query} according to this
+     * table's {@link #matches} implementation. Exposed so page controllers
+     * can compose compound predicates via {@link #filterWith}.
+     */
+    public boolean matchesQuery(T item, String query) {
+        String lower = query == null ? "" : query.trim().toLowerCase();
+        return lower.isEmpty() || matches(item, lower);
+    }
+
+    /**
+     * Programmatically sort the table by {@code col} in the given direction.
+     * Equivalent to the user clicking the column header — updates sort indicators.
+     *
+     * @param col the column to sort by
+     * @param dir {@link TableColumn.SortType#ASCENDING} or DESCENDING
+     */
+    public void sortByColumn(TableColumn<T, ?> col, TableColumn.SortType dir) {
+        col.setSortType(dir);
+        table.getSortOrder().setAll(col);
+    }
+
+    /**
+     * Sorts the table by {@code col} ascending, visually grouping rows that share
+     * the same value for that column together.
+     */
+    public void groupBy(TableColumn<T, ?> col) {
+        sortByColumn(col, TableColumn.SortType.ASCENDING);
+    }
+
+    /** Clears the active sort and restores natural (insertion) order. */
+    public void clearSort() {
+        table.getSortOrder().clear();
     }
 
     public T getSelectedItem() {
@@ -222,15 +277,18 @@ public abstract class PaginatedTableController<T> {
     }
 
     private void refreshPagination() {
-        int pageCount = Math.max(1, (int) Math.ceil(filteredItems.size() / (double) ROWS_PER_PAGE));
+        int pageCount = Math.max(1, (int) Math.ceil(sortedItems.size() / (double) ROWS_PER_PAGE));
         pagination.setPageCount(pageCount);
         pagination.setCurrentPageIndex(0);
         renderPage(0);
     }
 
     private void renderPage(int pageIndex) {
-        int from = Math.min(pageIndex * ROWS_PER_PAGE, filteredItems.size());
-        int to = Math.min(from + ROWS_PER_PAGE, filteredItems.size());
-        table.setItems(FXCollections.observableArrayList(filteredItems.subList(from, to)));
+        int total = sortedItems.size();
+        int from  = Math.min(pageIndex * ROWS_PER_PAGE, total);
+        int to    = Math.min(from + ROWS_PER_PAGE, total);
+        // Snapshot the sorted+filtered slice so the table's own sort policy
+        // does not try to re-sort the slice in place (handled by SortedList).
+        table.setItems(FXCollections.observableArrayList(sortedItems.subList(from, to)));
     }
 }

@@ -1,185 +1,168 @@
 package hospital.management.backend.dao.patient;
 
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import hospital.management.backend.config.EnvConfig;
+import hospital.management.backend.config.db.DBConnection;
 import hospital.management.backend.dao.patient.interfaces.PatientFeedbackDAO;
 import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.patient.PatientFeedback;
-import org.bson.Document;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import hospital.management.backend.utils.filters.QueryBuilder;
+
+import java.sql.*;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-/** MongoDB implementation for patient_feedback collection */
 public class PatientFeedbackDAOImpl implements PatientFeedbackDAO {
 
-    private final MongoClient mongoClient;
-    private final MongoCollection<Document> feedbackCollection;
-
-    public PatientFeedbackDAOImpl() {
-        this.mongoClient = MongoClients.create(EnvConfig.getMongoUri());
-        MongoDatabase db = mongoClient.getDatabase("hospital");
-        this.feedbackCollection = db.getCollection("patient_feedback");
-    }
+    private static final String SELECT_COLS =
+        "feedback_id, patient_id, appointment_id, submitted_by, rating, comments, " +
+        "date_submitted, created_at, updated_at, deleted_at";
 
     @Override
     public PatientFeedback save(PatientFeedback feedback) throws Exception {
-        try {
-            String id = feedback.getFeedbackId() != null ? feedback.getFeedbackId() : UUID.randomUUID().toString();
-            
-            Document doc = new Document()
-                .append("feedback_id", id)
-                .append("submitted_by", feedback.getSubmittedBy())
-                .append("patient_id", feedback.getPatientId())
-                .append("appointment_id", feedback.getAppointmentId())
-                .append("rating", feedback.getRating())
-                .append("comments", feedback.getComments())
-                .append("date_submitted", feedback.getDateSubmitted() != null 
-                    ? Date.from(feedback.getDateSubmitted().atStartOfDay(ZoneId.systemDefault()).toInstant())
-                    : new Date())
-                .append("created_at", Instant.now().toString())
-                .append("updated_at", Instant.now().toString())
-                .append("deleted_at", null);
-
-            feedbackCollection.insertOne(doc);
-            
-            feedback.setFeedbackId(id);
-            if (feedback.getDateSubmitted() == null) {
-                feedback.setDateSubmitted(LocalDate.now());
+        String sql = "INSERT INTO patient_feedback " +
+            "(patient_id, appointment_id, submitted_by, rating, comments, date_submitted) " +
+            "VALUES (?, ?, ?, ?, ?, ?) RETURNING feedback_id, created_at, updated_at";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            setNullableUUID(ps, 1, feedback.getPatientId());
+            setNullableUUID(ps, 2, feedback.getAppointmentId());
+            setNullableUUID(ps, 3, feedback.getSubmittedBy());
+            ps.setInt(4, feedback.getRating());
+            ps.setString(5, feedback.getComments());
+            ps.setDate(6, feedback.getDateSubmitted() != null
+                ? Date.valueOf(feedback.getDateSubmitted()) : Date.valueOf(java.time.LocalDate.now()));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    feedback.setFeedbackId(rs.getObject("feedback_id", UUID.class).toString());
+                    feedback.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+                    feedback.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
+                }
             }
-            
             return feedback;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             throw new DatabaseException("Failed to save patient feedback: " + e.getMessage(), e);
         }
     }
 
     @Override
     public Optional<PatientFeedback> findById(String feedbackId) throws Exception {
-        try {
-            Document doc = feedbackCollection.find(
-                Filters.and(
-                    Filters.eq("feedback_id", feedbackId),
-                    Filters.eq("deleted_at", null)
-                )
-            ).first();
-            
-            return doc != null ? Optional.of(documentToFeedback(doc)) : Optional.empty();
-        } catch (Exception e) {
+        String sql = "SELECT " + SELECT_COLS + " FROM patient_feedback " +
+            "WHERE feedback_id = ? AND deleted_at IS NULL";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, UUID.fromString(feedbackId));
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(mapRow(rs)) : Optional.empty();
+            }
+        } catch (SQLException e) {
             throw new DatabaseException("Failed to find patient feedback: " + e.getMessage(), e);
         }
     }
 
     @Override
     public List<PatientFeedback> findAll() throws Exception {
-        try {
-            List<PatientFeedback> feedbacks = new ArrayList<>();
-            feedbackCollection.find(Filters.eq("deleted_at", null))
-                .sort(new Document("date_submitted", -1).append("created_at", -1))
-                .forEach(doc -> feedbacks.add(documentToFeedback(doc)));
-            return feedbacks;
-        } catch (Exception e) {
+        String sql = QueryBuilder.select(SELECT_COLS)
+            .from("patient_feedback")
+            .whereActive()
+            .orderBy("date_submitted", QueryBuilder.SortDir.DESC)
+            .orderBy("created_at", QueryBuilder.SortDir.DESC)
+            .build();
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            List<PatientFeedback> result = new ArrayList<>();
+            while (rs.next()) result.add(mapRow(rs));
+            return result;
+        } catch (SQLException e) {
             throw new DatabaseException("Failed to list patient feedback: " + e.getMessage(), e);
         }
     }
 
     @Override
     public List<PatientFeedback> findByPatientId(String patientId) throws Exception {
-        try {
-            List<PatientFeedback> feedbacks = new ArrayList<>();
-            feedbackCollection.find(
-                Filters.and(
-                    Filters.eq("patient_id", patientId),
-                    Filters.eq("deleted_at", null)
-                )
-            ).sort(new Document("date_submitted", -1).append("created_at", -1))
-             .forEach(doc -> feedbacks.add(documentToFeedback(doc)));
-            return feedbacks;
-        } catch (Exception e) {
-            throw new DatabaseException("Failed to find feedback by patient: " + e.getMessage(), e);
-        }
+        String sql = QueryBuilder.select(SELECT_COLS)
+            .from("patient_feedback")
+            .where("patient_id = ?")
+            .whereActive()
+            .orderBy("date_submitted", QueryBuilder.SortDir.DESC)
+            .orderBy("created_at", QueryBuilder.SortDir.DESC)
+            .build();
+        return queryList(sql, UUID.fromString(patientId));
     }
 
     @Override
     public List<PatientFeedback> findByAppointmentId(String appointmentId) throws Exception {
-        try {
-            List<PatientFeedback> feedbacks = new ArrayList<>();
-            feedbackCollection.find(
-                Filters.and(
-                    Filters.eq("appointment_id", appointmentId),
-                    Filters.eq("deleted_at", null)
-                )
-            ).sort(new Document("date_submitted", -1).append("created_at", -1))
-             .forEach(doc -> feedbacks.add(documentToFeedback(doc)));
-            return feedbacks;
-        } catch (Exception e) {
-            throw new DatabaseException("Failed to find feedback by appointment: " + e.getMessage(), e);
-        }
+        String sql = QueryBuilder.select(SELECT_COLS)
+            .from("patient_feedback")
+            .where("appointment_id = ?")
+            .whereActive()
+            .orderBy("date_submitted", QueryBuilder.SortDir.DESC)
+            .orderBy("created_at", QueryBuilder.SortDir.DESC)
+            .build();
+        return queryList(sql, UUID.fromString(appointmentId));
     }
 
     @Override
     public void softDelete(String feedbackId) throws Exception {
-        try {
-            Document update = new Document("$set", new Document("deleted_at", Instant.now().toString()));
-            var result = feedbackCollection.updateOne(
-                Filters.and(
-                    Filters.eq("feedback_id", feedbackId),
-                    Filters.eq("deleted_at", null)
-                ),
-                update
-            );
-            
-            if (result.getModifiedCount() == 0) {
+        String sql = "UPDATE patient_feedback SET deleted_at = CURRENT_TIMESTAMP " +
+            "WHERE feedback_id = ? AND deleted_at IS NULL";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, UUID.fromString(feedbackId));
+            if (ps.executeUpdate() == 0) {
                 throw new ResourceNotFoundException("PatientFeedback", feedbackId);
             }
         } catch (ResourceNotFoundException e) {
             throw e;
-        } catch (Exception e) {
+        } catch (SQLException e) {
             throw new DatabaseException("Failed to delete patient feedback: " + e.getMessage(), e);
         }
     }
 
-    private PatientFeedback documentToFeedback(Document doc) {
-        PatientFeedback feedback = new PatientFeedback();
-        feedback.setFeedbackId(doc.getString("feedback_id"));
-        feedback.setSubmittedBy(doc.getString("submitted_by"));
-        feedback.setPatientId(doc.getString("patient_id"));
-        feedback.setAppointmentId(doc.getString("appointment_id"));
-        feedback.setRating(doc.getInteger("rating"));
-        feedback.setComments(doc.getString("comments"));
-        
-        Date dateSubmitted = doc.getDate("date_submitted");
-        if (dateSubmitted != null) {
-            feedback.setDateSubmitted(dateSubmitted.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+    private List<PatientFeedback> queryList(String sql, Object param) throws Exception {
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, param);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<PatientFeedback> result = new ArrayList<>();
+                while (rs.next()) result.add(mapRow(rs));
+                return result;
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to query patient feedback: " + e.getMessage(), e);
         }
-        
-        // MongoDB stores ISO strings for timestamps
-        String createdAt = doc.getString("created_at");
-        if (createdAt != null) {
-            feedback.setCreatedAt(Instant.parse(createdAt).atZone(ZoneId.systemDefault()).toLocalDateTime());
+    }
+
+    private PatientFeedback mapRow(ResultSet rs) throws SQLException {
+        PatientFeedback f = new PatientFeedback();
+        f.setFeedbackId(rs.getObject("feedback_id", UUID.class).toString());
+        UUID patientId = rs.getObject("patient_id", UUID.class);
+        f.setPatientId(patientId != null ? patientId.toString() : null);
+        UUID appointmentId = rs.getObject("appointment_id", UUID.class);
+        f.setAppointmentId(appointmentId != null ? appointmentId.toString() : null);
+        UUID submittedBy = rs.getObject("submitted_by", UUID.class);
+        f.setSubmittedBy(submittedBy != null ? submittedBy.toString() : null);
+        f.setRating(rs.getInt("rating"));
+        f.setComments(rs.getString("comments"));
+        Date ds = rs.getDate("date_submitted");
+        f.setDateSubmitted(ds != null ? ds.toLocalDate() : null);
+        Timestamp ca = rs.getTimestamp("created_at");
+        f.setCreatedAt(ca != null ? ca.toLocalDateTime() : null);
+        Timestamp ua = rs.getTimestamp("updated_at");
+        f.setUpdatedAt(ua != null ? ua.toLocalDateTime() : null);
+        Timestamp da = rs.getTimestamp("deleted_at");
+        f.setDeletedAt(da != null ? da.toLocalDateTime() : null);
+        return f;
+    }
+
+    private void setNullableUUID(PreparedStatement ps, int index, String value) throws SQLException {
+        if (value != null && !value.isBlank()) {
+            ps.setObject(index, UUID.fromString(value));
+        } else {
+            ps.setNull(index, Types.OTHER);
         }
-        
-        String updatedAt = doc.getString("updated_at");
-        if (updatedAt != null) {
-            feedback.setUpdatedAt(Instant.parse(updatedAt).atZone(ZoneId.systemDefault()).toLocalDateTime());
-        }
-        
-        String deletedAt = doc.getString("deleted_at");
-        if (deletedAt != null) {
-            feedback.setDeletedAt(Instant.parse(deletedAt).atZone(ZoneId.systemDefault()).toLocalDateTime());
-        }
-        
-        return feedback;
     }
 }

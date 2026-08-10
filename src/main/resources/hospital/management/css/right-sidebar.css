@@ -93,10 +93,36 @@
 .rs-notification-item {
     -fx-font-size: 0.857em;
     -fx-text-fill: #2C3E50;
+    -fx-font-weight: bold;
     -fx-padding: 0.429em 0.571em;
     -fx-background-color: #F8F9F9;
     -fx-background-radius: 4px;
     -fx-wrap-text: true;
+    -fx-cursor: hand;
+}
+
+.rs-notification-item-read {
+    -fx-font-size: 0.857em;
+    -fx-text-fill: #7F8C8D;
+    -fx-font-weight: normal;
+    -fx-padding: 0.429em 0.571em;
+    -fx-background-color: transparent;
+    -fx-background-radius: 4px;
+    -fx-wrap-text: true;
+    -fx-cursor: hand;
+}
+
+.rs-mark-all-read-btn {
+    -fx-font-size: 0.786em;
+    -fx-text-fill: #2980B9;
+    -fx-background-color: transparent;
+    -fx-padding: 0.2em 0.4em;
+    -fx-cursor: hand;
+    -fx-underline: true;
+}
+
+.rs-mark-all-read-btn:hover {
+    -fx-text-fill: #1B4F72;
 }
 
 .rs-empty-label {

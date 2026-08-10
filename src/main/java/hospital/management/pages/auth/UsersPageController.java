@@ -18,6 +18,8 @@ import hospital.management.backend.service.auth.interfaces.PermissionService;
 import hospital.management.backend.service.auth.UserServiceImpl;
 import hospital.management.backend.service.auth.interfaces.RoleService;
 import hospital.management.backend.service.auth.interfaces.UserService;
+import hospital.management.backend.utils.FxFormValidator;
+import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.BasePageController;
@@ -205,8 +207,18 @@ public class UsersPageController extends BasePageController {
         LoadingIdComboBox roleField = new LoadingIdComboBox();
         EntityIdComboBox role = roleField.getComboBox();
 
+        // Placeholders
+        username.setPromptText("e.g. johndoe");
+        email.setPromptText("e.g. john.doe@hospital.com");
+        password.setPromptText("Min 8 chars, upper, lower, digit, symbol");
+
         List.of(username, email, password).forEach(f -> f.getStyleClass().add("form-input"));
         role.getStyleClass().add("form-combo");
+
+        // Real-time validators
+        if (addMode) FxFormValidator.attachRequired(username, null, "Username");
+        FxFormValidator.attachEmail(email, null);
+        if (addMode) FxFormValidator.attachPasswordStrength(password, null);
 
         List<Control> otherFields = List.of(username, email, password);
         otherFields.forEach(f -> f.setDisable(true));
@@ -215,18 +227,39 @@ public class UsersPageController extends BasePageController {
             username.setText(user.getUsername());
             username.setDisable(true); // renaming a username isn't supported by the backend yet
             email.setText(user.getEmail());
+            FxFormValidator.applyStyle(email, email.getText() != null && !email.getText().isBlank());
         }
 
         formDialogController.open(addMode ? "Add User" : "Update User", "fas-user", addMode, v -> {
             String un = username.getText() == null ? "" : username.getText().trim();
             String em = email.getText() == null ? "" : email.getText().trim();
-            if ((addMode && un.isEmpty()) || em.isEmpty()) {
-                formDialogController.setError("Username and email are required.");
+            if (addMode && un.isEmpty()) {
+                formDialogController.setError("Username is required.");
+                FxFormValidator.applyStyle(username, false);
                 formDialogController.setLoading(false);
                 return;
             }
-            if (addMode && password.getText().length() < 8) {
+            if (em.isEmpty()) {
+                formDialogController.setError("Email is required.");
+                FxFormValidator.applyStyle(email, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (!ValidatorUtils.isValidEmail(em)) {
+                formDialogController.setError("Email address format is invalid.");
+                FxFormValidator.applyStyle(email, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (addMode && (password.getText() == null || password.getText().length() < 8)) {
                 formDialogController.setError("Password must be at least 8 characters.");
+                FxFormValidator.applyStyle(password, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (addMode && !ValidatorUtils.isPasswordStrong(password.getText())) {
+                formDialogController.setError("Password must contain uppercase, lowercase, digit, and special character.");
+                FxFormValidator.applyStyle(password, false);
                 formDialogController.setLoading(false);
                 return;
             }
@@ -398,7 +431,9 @@ public class UsersPageController extends BasePageController {
         boolean addMode = role == null;
 
         TextField name = new TextField();
+        name.setPromptText("e.g. nurse, receptionist");
         name.getStyleClass().add("form-input");
+        if (addMode) FxFormValidator.attachRequired(name, null, "Role name");
         if (!addMode) {
             name.setText(role.getRoleName());
             name.setDisable(true); // RoleService has no rename endpoint yet

@@ -42,12 +42,19 @@ import hospital.management.backend.service.patient.AllergyServiceImpl;
 import hospital.management.backend.service.patient.interfaces.AllergyService;
 import hospital.management.backend.service.patient.interfaces.PatientService;
 import hospital.management.backend.service.patient.interfaces.VitalSignService;
+import hospital.management.backend.dao.patient.PatientFeedbackDAOImpl;
+import hospital.management.backend.dto.patient.PatientFeedbackDTO;
+import hospital.management.backend.dto.patient.PatientNoteDTO;
+import hospital.management.backend.service.patient.PatientFeedbackServiceImpl;
 import hospital.management.backend.service.patient.PatientNotesNoSqlService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
+import hospital.management.backend.service.patient.interfaces.PatientFeedbackService;
 import hospital.management.backend.service.patient.VitalSignServiceImpl;
 import hospital.management.backend.service.pharmacy.PharmacyServiceImpl;
 import hospital.management.backend.service.pharmacy.PrescriptionServiceImpl;
 import hospital.management.backend.service.pharmacy.interfaces.PrescriptionService;
+import hospital.management.backend.utils.FxFormValidator;
+import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.enums.PageRoute;
@@ -61,6 +68,8 @@ import hospital.management.pages.components.patient.VitalSignTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
 import javafx.application.Platform;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -102,6 +111,8 @@ public class PatientDetailController extends BasePageController {
     private final PharmacyServiceImpl pharmacyService = new PharmacyServiceImpl(
         new MedicationDAOImpl(), new MedicalInventoryDAOImpl());
     private final PatientNotesNoSqlService patientNotesNoSqlService = new PatientNotesNoSqlService();
+    private final PatientFeedbackService feedbackService =
+        new PatientFeedbackServiceImpl(new PatientFeedbackDAOImpl());
 
     // Header
     @FXML private Label  patientNameLabel;
@@ -145,6 +156,21 @@ public class PatientDetailController extends BasePageController {
     // Billing tab (read-only in this drill-down — full CRUD lives on its own page)
     @FXML private InvoiceTableController detailInvoiceTableController;
 
+    // Notes tab
+    @FXML private Button addNoteBtn;
+    @FXML private TableView<PatientNoteDTO> notesTable;
+    @FXML private TableColumn<PatientNoteDTO, String> noteDateCol;
+    @FXML private TableColumn<PatientNoteDTO, String> noteRoleCol;
+    @FXML private TableColumn<PatientNoteDTO, String> noteSourceCol;
+    @FXML private TableColumn<PatientNoteDTO, String> noteTextCol;
+
+    // Feedback tab
+    @FXML private Button addFeedbackBtn;
+    @FXML private TableView<PatientFeedbackDTO> feedbackTable;
+    @FXML private TableColumn<PatientFeedbackDTO, String> feedbackDateCol;
+    @FXML private TableColumn<PatientFeedbackDTO, String> feedbackRatingCol;
+    @FXML private TableColumn<PatientFeedbackDTO, String> feedbackCommentsCol;
+
     private PatientDTO currentPatient;
 
     private final List<VitalSignDTO>      vitals         = new ArrayList<>();
@@ -154,6 +180,8 @@ public class PatientDetailController extends BasePageController {
     private final List<LabOrderDTO>       labOrders      = new ArrayList<>();
     private final List<PatientAllergyDTO> allergies      = new ArrayList<>();
     private final List<InvoiceDTO>        invoices       = new ArrayList<>();
+    private final List<PatientNoteDTO>    notes          = new ArrayList<>();
+    private final List<PatientFeedbackDTO> feedbacks     = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PATIENTS);
@@ -191,6 +219,31 @@ public class PatientDetailController extends BasePageController {
         detailLabOrderTableController.hideActionsColumn();
         detailInvoiceTableController.hideActionsColumn();
 
+        // Notes tab — wire columns and bind observable list
+        noteDateCol.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getCreatedAt() == null ? "—" : c.getValue().getCreatedAt().toLocalDate().toString()));
+        noteRoleCol.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getAuthorRole() != null ? c.getValue().getAuthorRole() : "—"));
+        noteSourceCol.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getSource() != null ? c.getValue().getSource() : "—"));
+        noteTextCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().getNoteText()));
+        notesTable.setItems(FXCollections.observableList(notes));
+        applyCreateVisibility(addNoteBtn, PageRoute.PATIENT_DETAIL);
+        addNoteBtn.setOnAction(e -> openAddNoteDialog());
+
+        // Feedback tab — wire columns and bind observable list
+        feedbackDateCol.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getDateSubmitted() == null ? "—" : c.getValue().getDateSubmitted().toString()));
+        feedbackRatingCol.setCellValueFactory(c -> {
+            Integer r = c.getValue().getRating();
+            return new SimpleStringProperty(r == null ? "—" : "★".repeat(r) + "☆".repeat(Math.max(0, 5 - r)));
+        });
+        feedbackCommentsCol.setCellValueFactory(c -> new SimpleStringProperty(
+            c.getValue().getComments() != null ? c.getValue().getComments() : ""));
+        feedbackTable.setItems(FXCollections.observableList(feedbacks));
+        applyCreateVisibility(addFeedbackBtn, PageRoute.PATIENT_DETAIL);
+        addFeedbackBtn.setOnAction(e -> openSubmitFeedbackDialog());
+
         refreshAllTables();
     }
 
@@ -206,6 +259,13 @@ public class PatientDetailController extends BasePageController {
         TextField email     = new TextField(currentPatient.getEmail());
         TextField address   = new TextField(currentPatient.getAddress());
 
+        // Placeholders
+        firstName.setPromptText("e.g. Jane");
+        lastName.setPromptText("e.g. Doe");
+        phone.setPromptText("e.g. +250 788 000 000 (optional)");
+        email.setPromptText("e.g. jane.doe@hospital.com (optional)");
+        address.setPromptText("e.g. 123 Main Street, Kigali (optional)");
+
         List.of(firstName, lastName, phone, email, address).forEach(f -> f.getStyleClass().add("form-input"));
         dob.getStyleClass().add("form-date-picker");
         gender.getStyleClass().add("form-combo");
@@ -213,11 +273,55 @@ public class PatientDetailController extends BasePageController {
         gender.getItems().setAll(Arrays.stream(Gender.values()).map(Gender::getLabel).collect(Collectors.toList()));
         gender.setValue(currentPatient.getGender());
 
+        // Real-time validators
+        FxFormValidator.attachRequired(firstName, null, "First name");
+        FxFormValidator.attachRequired(lastName,  null, "Last name");
+        FxFormValidator.attachDateRequired(dob,   null, "Date of birth");
+        FxFormValidator.attachPastDate(dob,       null, "Date of birth");
+        FxFormValidator.attachPhone(phone,        null);
+        FxFormValidator.attachEmail(email,        null);
+        FxFormValidator.attachMaxLength(address,  null, 255, "Address");
+        // Pre-fill triggers validation state
+        FxFormValidator.applyStyle(firstName, firstName.getText() != null && !firstName.getText().isBlank());
+        FxFormValidator.applyStyle(lastName,  lastName.getText()  != null && !lastName.getText().isBlank());
+
         formDialogController.open("Update Patient", "fas-user-injured", false, v -> {
             String fn = firstName.getText() == null ? "" : firstName.getText().trim();
             String ln = lastName.getText() == null ? "" : lastName.getText().trim();
-            if (fn.isEmpty() || ln.isEmpty() || dob.getValue() == null || gender.getValue() == null) {
-                formDialogController.setError("First name, last name, date of birth and gender are required.");
+            if (fn.isEmpty()) {
+                formDialogController.setError("First name is required.");
+                FxFormValidator.applyStyle(firstName, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (ln.isEmpty()) {
+                formDialogController.setError("Last name is required.");
+                FxFormValidator.applyStyle(lastName, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (dob.getValue() == null) {
+                formDialogController.setError("Date of birth is required.");
+                FxFormValidator.applyStyle(dob, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (gender.getValue() == null) {
+                formDialogController.setError("Gender is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            String phoneVal = phone.getText() == null ? "" : phone.getText().trim();
+            if (!phoneVal.isEmpty() && !ValidatorUtils.isValidPhone(phoneVal)) {
+                formDialogController.setError("Phone number format is invalid.");
+                FxFormValidator.applyStyle(phone, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            String emailVal = email.getText() == null ? "" : email.getText().trim();
+            if (!emailVal.isEmpty() && !ValidatorUtils.isValidEmail(emailVal)) {
+                formDialogController.setError("Email address format is invalid.");
+                FxFormValidator.applyStyle(email, false);
                 formDialogController.setLoading(false);
                 return;
             }
@@ -261,6 +365,8 @@ public class PatientDetailController extends BasePageController {
         refreshAllergies();
         refreshAppointments();
         refreshInvoices();
+        refreshNotes();
+        refreshFeedback();
     }
 
     private void refreshVitals() {
@@ -398,6 +504,11 @@ public class PatientDetailController extends BasePageController {
         TextField temperature = new TextField();
         TextField weight      = new TextField();
         TextField height      = new TextField();
+        heartRate.setPromptText("e.g. 72 (bpm, optional)");
+        temperature.setPromptText("e.g. 36.5 (°C, optional)");
+        weight.setPromptText("e.g. 70.5 (kg, optional)");
+        height.setPromptText("e.g. 175 (cm, optional)");
+
         List.of(heartRate, temperature, weight, height).forEach(f -> f.getStyleClass().add("form-input"));
         appointmentId.getStyleClass().add("form-combo");
 
@@ -468,9 +579,16 @@ public class PatientDetailController extends BasePageController {
         TextField symptoms      = new TextField();
         TextArea  notes         = new TextArea();
         notes.setPrefRowCount(3);
+        // Placeholders
+        diagnosis.setPromptText("e.g. Type 2 Diabetes, Hypertension");
+        symptoms.setPromptText("e.g. Frequent urination, fatigue (optional)");
+        notes.setPromptText("e.g. Patient advised to monitor blood sugar levels (optional)");
+
         List.of(diagnosis, symptoms).forEach(f -> f.getStyleClass().add("form-input"));
         appointmentId.getStyleClass().add("form-combo");
         notes.getStyleClass().add("form-input");
+
+        FxFormValidator.attachRequired(diagnosis, null, "Diagnosis");
 
         List<Control> recordOtherFields = List.of(diagnosis, symptoms, notes);
         recordOtherFields.forEach(f -> f.setDisable(true));
@@ -479,13 +597,20 @@ public class PatientDetailController extends BasePageController {
             diagnosis.setText(record.getDiagnosis());
             symptoms.setText(record.getSymptoms());
             notes.setText(record.getNotes());
+            FxFormValidator.applyStyle(diagnosis, diagnosis.getText() != null && !diagnosis.getText().isBlank());
         }
 
         formDialogController.open(addMode ? "New Record" : "Update Record", "fas-notes-medical", addMode, v -> {
             String appt = appointmentId.getSelectedId();
             String diag = diagnosis.getText() == null ? "" : diagnosis.getText().trim();
-            if (appt == null || diag.isEmpty()) {
-                formDialogController.setError("Appointment and diagnosis are required.");
+            if (appt == null) {
+                formDialogController.setError("Appointment is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (diag.isEmpty()) {
+                formDialogController.setError("Diagnosis is required.");
+                FxFormValidator.applyStyle(diagnosis, false);
                 formDialogController.setLoading(false);
                 return;
             }
@@ -553,9 +678,9 @@ public class PatientDetailController extends BasePageController {
         TextField dosage        = new TextField();
         TextField quantity      = new TextField();
         TextField instructions  = new TextField();
-        dosage.setPromptText("Dosage");
-        quantity.setPromptText("Qty");
-        instructions.setPromptText("Instructions");
+        dosage.setPromptText("e.g. 500mg twice daily");
+        quantity.setPromptText("e.g. 30");
+        instructions.setPromptText("e.g. Take with food (optional)");
         Button addItemBtn    = new Button("Add Item");
         Button removeItemBtn = new Button("Remove Selected");
         ListView<String> itemsList = new ListView<>();
@@ -567,6 +692,8 @@ public class PatientDetailController extends BasePageController {
         medicationId.getStyleClass().add("form-combo");
         addItemBtn.getStyleClass().add("secondary-button");
         removeItemBtn.getStyleClass().add("secondary-button");
+
+        FxFormValidator.attachDateRequired(dateIssued, null, "Date issued");
 
         List<Control> prescriptionOtherFields = List.of(dateIssued);
         prescriptionOtherFields.forEach(f -> f.setDisable(true));
@@ -761,18 +888,27 @@ public class PatientDetailController extends BasePageController {
         TextField allergen = new TextField();
         TextField reaction = new TextField();
         TextField severity = new TextField();
+
+        allergen.setPromptText("e.g. Penicillin, Peanuts");
+        reaction.setPromptText("e.g. Rash, anaphylaxis (optional)");
+        severity.setPromptText("e.g. Mild, Moderate, Severe (optional)");
+
         List.of(allergen, reaction, severity).forEach(f -> f.getStyleClass().add("form-input"));
+
+        FxFormValidator.attachRequired(allergen, null, "Allergen");
 
         if (allergy != null) {
             allergen.setText(allergy.getAllergen());
             reaction.setText(allergy.getReaction());
             severity.setText(allergy.getSeverity());
+            FxFormValidator.applyStyle(allergen, allergen.getText() != null && !allergen.getText().isBlank());
         }
 
         formDialogController.open("Add Allergy", "fas-allergies", true, v -> {
             String allergenText = allergen.getText() == null ? "" : allergen.getText().trim();
             if (allergenText.isEmpty()) {
                 formDialogController.setError("Allergen is required.");
+                FxFormValidator.applyStyle(allergen, false);
                 formDialogController.setLoading(false);
                 return;
             }
@@ -800,6 +936,121 @@ public class PatientDetailController extends BasePageController {
         formDialogController.addField("Allergen", "fas-allergies", allergen);
         formDialogController.addField("Reaction", "fas-notes-medical", reaction);
         formDialogController.addField("Severity", "fas-exclamation-triangle", severity);
+    }
+
+    // ── Notes ─────────────────────────────────────────────────────────────
+
+    private void refreshNotes() {
+        if (currentPatient == null) return;
+        try {
+            notes.clear();
+            notes.addAll(patientNotesNoSqlService.findByPatientId(currentPatient.getPatientId()));
+            notesTable.refresh();
+        } catch (Exception e) {
+            toastError("Failed to load clinical notes: " + e.getMessage());
+        }
+    }
+
+    private void openAddNoteDialog() {
+        LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+        appointmentId.getStyleClass().add("form-combo");
+
+        TextArea noteText = new TextArea();
+        noteText.setPrefRowCount(4);
+        noteText.getStyleClass().add("form-input");
+        noteText.setPromptText("Enter clinical note…");
+        noteText.setDisable(true);
+
+        formDialogController.open("Add Clinical Note", "fas-sticky-note", true, v -> {
+            String text = noteText.getText() == null ? "" : noteText.getText().trim();
+            if (text.isEmpty()) {
+                formDialogController.setError("Note text is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            try {
+                patientNotesNoSqlService.saveNote(
+                    currentPatient.getPatientId(),
+                    appointmentId.getSelectedId(),
+                    SessionManager.getCurrentUserId(),
+                    SessionManager.getCurrentRole(),
+                    text);
+                refreshNotes();
+                formDialogController.close();
+                toastSuccess("Note added.");
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save note: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
+        });
+
+        formDialogController.addField("Appointment (optional)", "fas-calendar-check", appointmentIdField);
+        formDialogController.addField("Note", "fas-sticky-note", noteText);
+        loadAppointmentDropdown(appointmentIdField, List.of(noteText), null);
+    }
+
+    // ── Feedback ──────────────────────────────────────────────────────────
+
+    private void refreshFeedback() {
+        if (currentPatient == null) return;
+        try {
+            feedbacks.clear();
+            feedbacks.addAll(feedbackService.findByPatientId(currentPatient.getPatientId()));
+            feedbackTable.refresh();
+        } catch (Exception e) {
+            toastError("Failed to load feedback: " + e.getMessage());
+        }
+    }
+
+    private void openSubmitFeedbackDialog() {
+        LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+        appointmentId.getStyleClass().add("form-combo");
+
+        ComboBox<Integer> rating = new ComboBox<>();
+        rating.getItems().setAll(1, 2, 3, 4, 5);
+        rating.setValue(5);
+        rating.getStyleClass().add("form-combo");
+        rating.setDisable(true);
+
+        TextArea comments = new TextArea();
+        comments.setPrefRowCount(3);
+        comments.getStyleClass().add("form-input");
+        comments.setPromptText("Comments (optional)…");
+        comments.setDisable(true);
+
+        formDialogController.open("Submit Feedback", "fas-star", true, v -> {
+            if (rating.getValue() == null) {
+                formDialogController.setError("Rating is required (1–5).");
+                formDialogController.setLoading(false);
+                return;
+            }
+            try {
+                PatientFeedbackDTO dto = new PatientFeedbackDTO();
+                dto.setSubmittedBy(SessionManager.getCurrentUserId());
+                dto.setPatientId(currentPatient.getPatientId());
+                dto.setAppointmentId(appointmentId.getSelectedId());
+                dto.setRating(rating.getValue());
+                dto.setComments(comments.getText());
+                dto.setDateSubmitted(java.time.LocalDate.now());
+                feedbackService.submitFeedback(dto);
+                refreshFeedback();
+                formDialogController.close();
+                toastSuccess("Feedback submitted.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to submit feedback: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
+        });
+
+        formDialogController.addField("Appointment (optional)", "fas-calendar-check", appointmentIdField);
+        formDialogController.addField("Rating (1–5 stars)", "fas-star", rating);
+        formDialogController.addField("Comments", "fas-comment-alt", comments);
+        loadAppointmentDropdown(appointmentIdField, List.of(rating, comments), null);
     }
 
     // ── Navigation ────────────────────────────────────────────────────────

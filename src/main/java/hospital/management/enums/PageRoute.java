@@ -107,7 +107,16 @@ public enum PageRoute {
 
     RETENTION("retention", "Data Retention",
               "/hospital/management/frontend/pages/retention-settings.fxml",
-              RoleName.ADMIN);
+              RoleName.ADMIN),
+
+    DEVELOPER_DASHBOARD("developer-dashboard", "Developer Dashboard",
+                        "/hospital/management/frontend/pages/developer-dashboard.fxml",
+                        RoleName.ADMIN),
+
+    // ── System status (post-login maintenance gate) ─────────────────────────
+    // No role restriction — a blocked non-admin user must be able to reach it.
+    SYSTEM_STATUS("system-status", "System Status",
+                  "/hospital/management/frontend/pages/system-status-page.fxml");
 
     // ─────────────────────────────────────────────────────────────────────
 

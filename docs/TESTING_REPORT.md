@@ -27,14 +27,13 @@ Before this effort, the project had **zero tests** (JUnit 5 was configured in `p
 
 Testing proceeded outward from the safest, cheapest-to-verify code to the riskiest:
 
-### 2.1 Pure/functional classes — 187 tests
+### 2.1 Pure/functional classes — 176 tests
 No mocks, no database, no Spring-like context — plain input/output verification.
 
 | Area | Class(es) | Tests |
 |---|---|---|
 | Validation | `ValidatorUtils` | 40 |
 | Sanitization | `SanitizeUtils` | 14 |
-| SQL filter building | `SqlFilterBuilder` | 11 |
 | Cursor pagination | `CursorPagination` | 10 |
 | Password hashing | `PasswordConfig` | 7 |
 | Encryption | `EncryptionConfig` | 7 |

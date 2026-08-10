@@ -41,8 +41,13 @@ public class PharmacyServiceImpl implements PharmacyService {
     @Override
     public MedicationDTO addMedication(CreateMedicationDTO dto) throws Exception {
         String name = ValidatorUtils.requireNonBlank(dto.getName(), "name");
-        if (dto.getUnitPrice() != null && dto.getUnitPrice().compareTo(BigDecimal.ZERO) < 0) {
-            throw new ValidationException("unitPrice", "Unit price must not be negative.");
+        ValidatorUtils.requireMaxLength(name, 200, "name");
+        ValidatorUtils.requireNonBlank(dto.getForm(), "form");
+        if (dto.getGenericName() != null) {
+            ValidatorUtils.requireMaxLength(dto.getGenericName(), 200, "genericName");
+        }
+        if (dto.getUnitPrice() == null || dto.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ValidationException("unitPrice", "Unit price must be greater than zero.");
         }
 
         // Single INSERT is already atomic — no TransactionManager needed here.
@@ -82,11 +87,12 @@ public class PharmacyServiceImpl implements PharmacyService {
     @Override
     public MedicalInventoryDTO addStock(CreateMedicalInventoryDTO dto) throws Exception {
         String medicationId = ValidatorUtils.requireNonBlank(dto.getMedicationId(), "medicationId");
+        ValidatorUtils.requireNonBlank(dto.getBatchNumber(), "batchNumber");
         if (dto.getExpiryDate() == null) {
             throw new ValidationException("expiryDate", "Expiry date is required.");
         }
-        if (dto.getQuantityInStock() != null && dto.getQuantityInStock() < 0) {
-            throw new ValidationException("quantityInStock", "Quantity in stock must not be negative.");
+        if (dto.getQuantityInStock() == null || dto.getQuantityInStock() < 0) {
+            throw new ValidationException("quantityInStock", "Quantity in stock must be a non-negative number.");
         }
         if (dto.getReorderLevel() != null && dto.getReorderLevel() < 0) {
             throw new ValidationException("reorderLevel", "Reorder level must not be negative.");

@@ -49,9 +49,15 @@ public class InvoiceTableController extends PaginatedTableController<InvoiceDTO>
 
     @Override
     protected boolean matches(InvoiceDTO invoice, String lowerQuery) {
-        String patientId = invoice.getPatientId();
-        String paymentStatus = invoice.getPaymentStatus();
-        return (patientId != null && patientId.toLowerCase().contains(lowerQuery))
-                || (paymentStatus != null && paymentStatus.toLowerCase().contains(lowerQuery));
+        String amountStr = invoice.getTotalAmount() != null ? invoice.getTotalAmount().toPlainString() : "";
+        String dateStr   = invoice.getIssuedAt() != null ? invoice.getIssuedAt().format(DATE_FORMAT) : "";
+        return safe(invoice.getInvoiceId()).contains(lowerQuery)
+            || safe(invoice.getPatientId()).contains(lowerQuery)
+            || safe(invoice.getAppointmentId()).contains(lowerQuery)
+            || safe(invoice.getPaymentStatus()).contains(lowerQuery)
+            || amountStr.contains(lowerQuery)
+            || dateStr.contains(lowerQuery);
     }
+
+    private static String safe(String s) { return s == null ? "" : s.toLowerCase(); }
 }

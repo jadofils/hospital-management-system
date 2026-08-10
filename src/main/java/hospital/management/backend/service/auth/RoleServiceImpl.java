@@ -105,6 +105,17 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
+    public List<String> findUserIdsForRole(String roleName) throws Exception {
+        Optional<Role> role = roleDAO.findByName(roleName);
+        if (role.isEmpty()) return List.of();
+        List<String> userIds = new ArrayList<>();
+        for (UserRole assignment : userRoleDAO.findByRoleId(role.get().getRoleId())) {
+            userIds.add(assignment.getUserId());
+        }
+        return userIds;
+    }
+
+    @Override
     public void assignPermission(String roleId, String permissionId) throws Exception {
         permissionDAO.findById(permissionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Permission", permissionId));

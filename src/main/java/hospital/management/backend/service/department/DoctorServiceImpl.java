@@ -15,6 +15,7 @@ import hospital.management.backend.mapper.doctor.DoctorMapper;
 import hospital.management.backend.model.doctor.Department;
 import hospital.management.backend.model.doctor.Doctor;
 import hospital.management.backend.service.department.interfaces.DoctorService;
+import hospital.management.backend.utils.AlgorithmUtils;
 import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.listeners.AppEventType;
 import hospital.management.backend.utils.listeners.EventBus;
@@ -22,6 +23,7 @@ import hospital.management.backend.utils.pagination.PageRequest;
 import hospital.management.backend.utils.pagination.PageResult;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,9 +39,15 @@ public class DoctorServiceImpl implements DoctorService {
 
     @Override
     public DoctorDTO create(CreateDoctorDTO dto) throws Exception {
-        ValidatorUtils.requireNonBlank(dto.getFirstName(), "firstName");
-        ValidatorUtils.requireNonBlank(dto.getLastName(), "lastName");
+        ValidatorUtils.requireValidName(dto.getFirstName(), "First name");
+        ValidatorUtils.requireValidName(dto.getLastName(), "Last name");
 
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
+            ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "Phone");
+        }
+        if (dto.getSpecialization() != null) {
+            ValidatorUtils.requireNonBlankMaxLength(dto.getSpecialization(), 200, "Specialization");
+        }
         if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
             ValidatorUtils.requireValidEmail(dto.getEmail(), "email");
             if (doctorDAO.findByEmail(dto.getEmail()).isPresent()) {
@@ -103,8 +111,35 @@ public class DoctorServiceImpl implements DoctorService {
         for (Doctor doctor : doctorDAO.findByDepartmentId(departmentId)) {
             dtos.add(DoctorMapper.toSummaryDTO(doctor, departmentName));
         }
+
+        // Sort alphabetically by full name using in-memory merge sort (O(n log n), stable).
+        // Guarantees consistent ordering in the cached list regardless of DB insertion order.
+        AlgorithmUtils.mergeSort(dtos,
+                Comparator.comparing(DoctorSummaryDTO::getFullName, String.CASE_INSENSITIVE_ORDER));
+
         CacheService.set(CacheKey.doctorsByDept(departmentId), dtos, CacheDomain.DOCTOR);
         return dtos;
+    }
+
+    /**
+     * Locates a doctor by ID within an already-cached department list using binary search.
+     *
+     * The list is re-sorted by doctorId before searching so the O(log n) binary
+     * search precondition is satisfied. Returns Optional.empty() if the department
+     * list is not cached or the doctor is not found — the caller should fall back
+     * to {@link #findById(String)} in that case.
+     */
+    public Optional<DoctorSummaryDTO> findDoctorInCachedDepartment(String departmentId,
+                                                                    String targetDoctorId) {
+        Optional<List<DoctorSummaryDTO>> cached = CacheService.get(
+                CacheKey.doctorsByDept(departmentId),
+                new TypeReference<List<DoctorSummaryDTO>>() {});
+        if (cached.isEmpty()) return Optional.empty();
+
+        List<DoctorSummaryDTO> sorted = new ArrayList<>(cached.get());
+        AlgorithmUtils.mergeSort(sorted, Comparator.comparing(DoctorSummaryDTO::getDoctorId));
+        int idx = AlgorithmUtils.binarySearch(sorted, targetDoctorId, DoctorSummaryDTO::getDoctorId);
+        return idx >= 0 ? Optional.of(sorted.get(idx)) : Optional.empty();
     }
 
     @Override
@@ -112,9 +147,17 @@ public class DoctorServiceImpl implements DoctorService {
         Doctor doctor = doctorDAO.findById(doctorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor", doctorId));
 
-        String firstName = ValidatorUtils.requireNonBlank(dto.getFirstName(), "firstName");
-        String lastName  = ValidatorUtils.requireNonBlank(dto.getLastName(), "lastName");
+        ValidatorUtils.requireValidName(dto.getFirstName(), "First name");
+        ValidatorUtils.requireValidName(dto.getLastName(), "Last name");
+        String firstName = dto.getFirstName().trim();
+        String lastName  = dto.getLastName().trim();
 
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
+            ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "Phone");
+        }
+        if (dto.getSpecialization() != null) {
+            ValidatorUtils.requireNonBlankMaxLength(dto.getSpecialization(), 200, "Specialization");
+        }
         if (dto.getEmail() != null && !dto.getEmail().isBlank() && !dto.getEmail().equals(doctor.getEmail())) {
             ValidatorUtils.requireValidEmail(dto.getEmail(), "email");
             if (doctorDAO.findByEmail(dto.getEmail()).isPresent()) {

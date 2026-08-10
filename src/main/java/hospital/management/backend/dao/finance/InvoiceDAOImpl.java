@@ -5,6 +5,7 @@ import hospital.management.backend.dao.finance.interfaces.InvoiceDAO;
 import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.finance.Invoice;
+import hospital.management.backend.utils.filters.QueryBuilder;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pagination.PageRequest;
 import hospital.management.backend.utils.pagination.PageResult;
@@ -72,8 +73,12 @@ public class InvoiceDAOImpl implements InvoiceDAO {
 
     @Override
     public List<Invoice> findByPatientId(String patientId) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM invoices WHERE patient_id = ? AND deleted_at IS NULL "
-                   + "ORDER BY issued_at DESC";
+        String sql = QueryBuilder.select(SELECT_COLUMNS)
+            .from("invoices")
+            .where("patient_id = ?")
+            .whereActive()
+            .orderBy("issued_at", QueryBuilder.SortDir.DESC)
+            .build();
         List<Invoice> invoices = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -89,17 +94,17 @@ public class InvoiceDAOImpl implements InvoiceDAO {
 
     @Override
     public PageResult<Invoice> findAll(PageRequest request) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM invoices WHERE deleted_at IS NULL "
-                   + CursorPagination.whereClause(request, "issued_at")
-                   + CursorPagination.orderClause(request, "issued_at")
-                   + "LIMIT ?";
+        QueryBuilder.SortDir dir = request.getDirection() == PageRequest.SortDirection.DESC
+            ? QueryBuilder.SortDir.DESC : QueryBuilder.SortDir.ASC;
+        QueryBuilder qb = QueryBuilder.select(SELECT_COLUMNS).from("invoices").whereActive();
+        String cursorFrag = CursorPagination.whereClause(request, "issued_at");
+        if (!cursorFrag.isBlank()) qb.and(cursorFrag.trim().replaceFirst("(?i)^AND\\s+", ""));
+        String sql = qb.orderBy("issued_at", dir).limit(request.getPageSize() + 1).build();
         List<Invoice> rows = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, request.getPageSize() + 1);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) rows.add(mapRow(rs));
-            }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) rows.add(mapRow(rs));
         } catch (SQLException e) {
             throw new DatabaseException("Failed to list invoices: " + e.getMessage(), e);
         }

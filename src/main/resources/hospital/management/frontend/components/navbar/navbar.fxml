@@ -26,9 +26,13 @@
 
     <Region HBox.hgrow="ALWAYS"/>
 
-    <Button styleClass="navbar-icon-btn" onAction="#handleNotifications">
-        <graphic><FontIcon iconLiteral="fas-bell" iconSize="16"/></graphic>
-    </Button>
+    <StackPane styleClass="navbar-bell-wrap">
+        <Button fx:id="notificationBellBtn" styleClass="navbar-icon-btn" onAction="#handleNotifications">
+            <graphic><FontIcon iconLiteral="fas-bell" iconSize="16"/></graphic>
+        </Button>
+        <Label fx:id="notifBadge" text="" styleClass="navbar-notif-badge"
+               StackPane.alignment="TOP_RIGHT" visible="false" managed="false"/>
+    </StackPane>
     <Button fx:id="profileBtn" styleClass="navbar-btn" onAction="#handleProfile" contentDisplay="LEFT" text="User">
         <graphic><FontIcon iconLiteral="fas-user-circle" iconSize="15"/></graphic>
     </Button>

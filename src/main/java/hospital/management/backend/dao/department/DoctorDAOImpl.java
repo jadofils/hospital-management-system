@@ -5,6 +5,7 @@ import hospital.management.backend.dao.department.interfaces.DoctorDAO;
 import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.doctor.Doctor;
+import hospital.management.backend.utils.filters.QueryBuilder;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pagination.PageRequest;
 import hospital.management.backend.utils.pagination.PageResult;
@@ -77,17 +78,17 @@ public class DoctorDAOImpl implements DoctorDAO {
 
     @Override
     public PageResult<Doctor> findAll(PageRequest request) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM doctors WHERE deleted_at IS NULL "
-                   + CursorPagination.whereClause(request, "created_at")
-                   + CursorPagination.orderClause(request, "created_at")
-                   + "LIMIT ?";
+        QueryBuilder.SortDir dir = request.getDirection() == PageRequest.SortDirection.DESC
+            ? QueryBuilder.SortDir.DESC : QueryBuilder.SortDir.ASC;
+        QueryBuilder qb = QueryBuilder.select(SELECT_COLUMNS).from("doctors").whereActive();
+        String cursorFrag = CursorPagination.whereClause(request, "created_at");
+        if (!cursorFrag.isBlank()) qb.and(cursorFrag.trim().replaceFirst("(?i)^AND\\s+", ""));
+        String sql = qb.orderBy("created_at", dir).limit(request.getPageSize() + 1).build();
         List<Doctor> rows = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, request.getPageSize() + 1);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) rows.add(mapRow(rs));
-            }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) rows.add(mapRow(rs));
         } catch (SQLException e) {
             throw new DatabaseException("Failed to list doctors: " + e.getMessage(), e);
         }
@@ -96,7 +97,13 @@ public class DoctorDAOImpl implements DoctorDAO {
 
     @Override
     public List<Doctor> findByDepartmentId(String departmentId) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM doctors WHERE department_id = ? AND deleted_at IS NULL ORDER BY last_name, first_name";
+        String sql = QueryBuilder.select(SELECT_COLUMNS)
+            .from("doctors")
+            .where("department_id = ?")
+            .whereActive()
+            .orderBy("last_name")
+            .orderBy("first_name")
+            .build();
         List<Doctor> doctors = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

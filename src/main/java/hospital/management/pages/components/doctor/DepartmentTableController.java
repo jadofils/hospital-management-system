@@ -25,9 +25,10 @@ public class DepartmentTableController extends PaginatedTableController<Departme
 
     @Override
     protected boolean matches(DepartmentDTO department, String lowerQuery) {
-        String name = department.getName();
-        String location = department.getLocation();
-        return (name != null && name.toLowerCase().contains(lowerQuery))
-                || (location != null && location.toLowerCase().contains(lowerQuery));
+        return safe(department.getName()).contains(lowerQuery)
+            || safe(department.getLocation()).contains(lowerQuery)
+            || safe(department.getPhone()).contains(lowerQuery);
     }
+
+    private static String safe(String s) { return s == null ? "" : s.toLowerCase(); }
 }

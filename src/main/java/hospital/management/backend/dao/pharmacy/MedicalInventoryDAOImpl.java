@@ -6,6 +6,8 @@ import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.pharmacy.MedicalInventory;
 
+import hospital.management.backend.utils.filters.QueryBuilder;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,8 +66,12 @@ public class MedicalInventoryDAOImpl implements MedicalInventoryDAO {
 
     @Override
     public List<MedicalInventory> findByMedicationId(String medicationId) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM medical_inventory "
-                   + "WHERE medication_id = ? AND deleted_at IS NULL ORDER BY expiry_date";
+        String sql = QueryBuilder.select(SELECT_COLUMNS)
+            .from("medical_inventory")
+            .where("medication_id = ?")
+            .whereActive()
+            .orderBy("expiry_date")
+            .build();
         List<MedicalInventory> results = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -81,8 +87,12 @@ public class MedicalInventoryDAOImpl implements MedicalInventoryDAO {
 
     @Override
     public List<MedicalInventory> findLowStock() throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM medical_inventory "
-                   + "WHERE quantity_in_stock <= reorder_level AND deleted_at IS NULL ORDER BY quantity_in_stock";
+        String sql = QueryBuilder.select(SELECT_COLUMNS)
+            .from("medical_inventory")
+            .where("quantity_in_stock <= reorder_level")
+            .whereActive()
+            .orderBy("quantity_in_stock")
+            .build();
         List<MedicalInventory> results = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);

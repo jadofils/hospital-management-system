@@ -225,6 +225,13 @@
             <version>5.2.0</version>
         </dependency>
 
+        <!-- MongoDB sync driver — used by the mongo/ package for patient notes and log mirroring -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-sync</artifactId>
+            <version>5.1.4</version>
+        </dependency>
+
         <!-- JSON serialization for cache values -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -235,12 +242,6 @@
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
             <version>2.17.2</version>
-        </dependency>
-        <!-- MongoDB driver for notifications NoSQL store -->
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver-sync</artifactId>
-            <version>4.10.2</version>
         </dependency>
     </dependencies>
 
@@ -276,6 +277,12 @@
                             <noManPages>true</noManPages>
                             <stripDebug>true</stripDebug>
                             <noHeaderFiles>true</noHeaderFiles>
+                            <options>
+                                <!-- JavaFX's native Glass/GTK loader calls System::load, a JDK
+                                     restricted method. Grant native access explicitly so this
+                                     warning doesn't become a hard failure on a future JDK. -->
+                                <option>--enable-native-access=javafx.graphics</option>
+                            </options>
                         </configuration>
                     </execution>
                 </executions>

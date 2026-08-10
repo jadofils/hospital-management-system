@@ -6,6 +6,8 @@ import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.doctor.Referral;
 
+import hospital.management.backend.utils.filters.QueryBuilder;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -70,8 +72,12 @@ public class ReferralDAOImpl implements ReferralDAO {
     }
 
     private List<Referral> findAllWhere(String predicate, Object param) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM referrals WHERE " + predicate
-                   + " AND deleted_at IS NULL ORDER BY created_at DESC";
+        String sql = QueryBuilder.select(SELECT_COLUMNS)
+            .from("referrals")
+            .where(predicate)
+            .whereActive()
+            .orderBy("created_at", QueryBuilder.SortDir.DESC)
+            .build();
         List<Referral> referrals = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

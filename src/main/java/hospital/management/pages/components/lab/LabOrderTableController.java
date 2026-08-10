@@ -54,9 +54,13 @@ public class LabOrderTableController extends PaginatedTableController<LabOrderDT
 
     @Override
     protected boolean matches(LabOrderDTO order, String lowerQuery) {
-        String testName = order.getTestName();
-        String status = statusLabel(order.getStatus());
-        return (testName != null && testName.toLowerCase().contains(lowerQuery))
-                || (status != null && status.toLowerCase().contains(lowerQuery));
+        String dateStr = order.getOrderedAt() != null ? order.getOrderedAt().format(ORDERED_AT_FORMAT) : "";
+        return safe(order.getTestName()).contains(lowerQuery)
+            || safe(statusLabel(order.getStatus())).contains(lowerQuery)
+            || safe(order.getDoctorId()).contains(lowerQuery)
+            || safe(order.getLabOrderId()).contains(lowerQuery)
+            || dateStr.contains(lowerQuery);
     }
+
+    private static String safe(String s) { return s == null ? "" : s.toLowerCase(); }
 }

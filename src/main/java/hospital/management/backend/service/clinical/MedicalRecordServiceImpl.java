@@ -28,6 +28,10 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     @Override
     public MedicalRecordDTO create(CreateMedicalRecordDTO dto) throws Exception {
         String appointmentId = ValidatorUtils.requireNonBlank(dto.getAppointmentId(), "appointmentId");
+        ValidatorUtils.requireNonBlank(dto.getDiagnosis(), "diagnosis");
+        ValidatorUtils.requireMaxLength(dto.getDiagnosis(), 500, "diagnosis");
+        ValidatorUtils.requireMaxLength(dto.getSymptoms(), 500, "symptoms");
+        ValidatorUtils.requireMaxLength(dto.getNotes(), 2000, "notes");
         if (recordDAO.findByAppointmentId(appointmentId).isPresent()) {
             throw new ValidationException("appointmentId",
                 "A medical record already exists for appointment " + appointmentId + ".");
@@ -69,9 +73,19 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         MedicalRecord record = recordDAO.findById(recordId)
                 .orElseThrow(() -> new ResourceNotFoundException("MedicalRecord", recordId));
 
-        if (dto.getDiagnosis() != null) record.setDiagnosis(dto.getDiagnosis());
-        if (dto.getSymptoms() != null) record.setSymptoms(dto.getSymptoms());
-        if (dto.getNotes() != null) record.setNotes(dto.getNotes());
+        if (dto.getDiagnosis() != null) {
+            ValidatorUtils.requireNonBlank(dto.getDiagnosis(), "diagnosis");
+            ValidatorUtils.requireMaxLength(dto.getDiagnosis(), 500, "diagnosis");
+            record.setDiagnosis(dto.getDiagnosis());
+        }
+        if (dto.getSymptoms() != null) {
+            ValidatorUtils.requireMaxLength(dto.getSymptoms(), 500, "symptoms");
+            record.setSymptoms(dto.getSymptoms());
+        }
+        if (dto.getNotes() != null) {
+            ValidatorUtils.requireMaxLength(dto.getNotes(), 2000, "notes");
+            record.setNotes(dto.getNotes());
+        }
 
         CacheService.evict(CacheKey.medicalRecord(recordId));
         CacheService.evict(CacheKey.recordByAppt(record.getAppointmentId()));

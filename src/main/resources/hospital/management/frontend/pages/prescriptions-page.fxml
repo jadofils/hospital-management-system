@@ -48,8 +48,8 @@
                         <TextField fx:id="searchField" promptText="Search by ID or appointment..."
                                    styleClass="search-field" prefWidth="280"/>
                     </HBox>
-                    <DatePicker fx:id="fromDatePicker" promptText="From" prefWidth="140"/>
-                    <DatePicker fx:id="toDatePicker"   promptText="To"   prefWidth="140"/>
+                    <DatePicker fx:id="fromDatePicker" promptText="From" prefWidth="150" styleClass="filter-date-picker"/>
+                    <DatePicker fx:id="toDatePicker"   promptText="To"   prefWidth="150" styleClass="filter-date-picker"/>
                 </HBox>
 
                 <fx:include fx:id="prescriptionTable"

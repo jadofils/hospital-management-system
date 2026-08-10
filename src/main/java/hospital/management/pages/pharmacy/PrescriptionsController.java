@@ -18,6 +18,7 @@ import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.service.pharmacy.PrescriptionServiceImpl;
 import hospital.management.backend.service.pharmacy.interfaces.PrescriptionService;
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
@@ -62,7 +63,15 @@ public class PrescriptionsController extends BasePageController {
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PRESCRIPTIONS);
 
+        searchField.setPromptText("Search by ID or medication…");
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
+
+        // Date range filter with validation
+        if (fromDatePicker != null) fromDatePicker.setPromptText("From date");
+        if (toDatePicker != null)   toDatePicker.setPromptText("To date");
+        FxFormValidator.attachDateRange(fromDatePicker, toDatePicker, null);
+        if (fromDatePicker != null) fromDatePicker.setOnAction(e -> applyFilter());
+        if (toDatePicker   != null) toDatePicker.setOnAction(e -> applyFilter());
 
         applyCreateVisibility(newPrescriptionBtn, PageRoute.PRESCRIPTIONS);
         applyCreateVisibility(importBtn, PageRoute.PRESCRIPTIONS);
@@ -258,9 +267,9 @@ public class PrescriptionsController extends BasePageController {
         TextField dosage        = new TextField();
         TextField quantity      = new TextField();
         TextField instructions  = new TextField();
-        dosage.setPromptText("Dosage");
-        quantity.setPromptText("Qty");
-        instructions.setPromptText("Instructions");
+        dosage.setPromptText("e.g. 500mg twice daily");
+        quantity.setPromptText("e.g. 30");
+        instructions.setPromptText("e.g. Take with food (optional)");
         Button addItemBtn    = new Button("Add Item");
         Button removeItemBtn = new Button("Remove Selected");
         ListView<String> itemsList = new ListView<>();
@@ -272,6 +281,10 @@ public class PrescriptionsController extends BasePageController {
         medicationId.getStyleClass().add("form-combo");
         addItemBtn.getStyleClass().add("secondary-button");
         removeItemBtn.getStyleClass().add("secondary-button");
+
+        // Real-time validation: date issued must be provided
+        FxFormValidator.attachDateRequired(dateIssued, null, "Date issued");
+        FxFormValidator.attachRequired(dosage, null, "Dosage");
 
         List<Control> otherFields = List.of(dateIssued);
         otherFields.forEach(f -> f.setDisable(true));

@@ -17,6 +17,7 @@ public class NotificationDTO {
     private List<String> channels;
     private Map<String, Map<String, Object>> status;
     private OffsetDateTime createdAt;
+    private OffsetDateTime readAt;
 
     public NotificationDTO() {
         this.id = UUID.randomUUID().toString();
@@ -40,4 +41,7 @@ public class NotificationDTO {
     public void setStatus(Map<String, Map<String, Object>> status) { this.status = status; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
+    public OffsetDateTime getReadAt() { return readAt; }
+    public void setReadAt(OffsetDateTime readAt) { this.readAt = readAt; }
+    public boolean isRead() { return readAt != null; }
 }

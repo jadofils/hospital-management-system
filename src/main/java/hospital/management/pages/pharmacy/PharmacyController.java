@@ -1,5 +1,6 @@
 package hospital.management.pages.pharmacy;
 
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
 import hospital.management.backend.dao.department.DoctorDAOImpl;
@@ -169,8 +170,22 @@ public class PharmacyController extends BasePageController {
         TextField formField = new TextField();
         TextField unitPriceField = new TextField();
 
+        nameField.setPromptText("e.g. Amoxicillin");
+        genericNameField.setPromptText("e.g. Amoxicillin trihydrate (optional)");
+        formField.setPromptText("e.g. Capsule, Tablet, Syrup");
+        unitPriceField.setPromptText("e.g. 5.00");
+
         List.of(nameField, genericNameField, formField, unitPriceField)
                 .forEach(f -> f.getStyleClass().add("form-input"));
+
+        FxFormValidator.attachRequired(nameField,    null, "Medication name");
+        FxFormValidator.attachRequired(formField,    null, "Form");
+        FxFormValidator.attachMaxLength(genericNameField, null, 200, "Generic name");
+        unitPriceField.textProperty().addListener((obs, old, val) -> {
+            if (val == null || val.isBlank()) { FxFormValidator.clearStyle(unitPriceField); return; }
+            try { new BigDecimal(val.trim()); FxFormValidator.applyStyle(unitPriceField, true); }
+            catch (NumberFormatException e) { FxFormValidator.applyStyle(unitPriceField, false); }
+        });
 
         formDialogController.open("New Medication", "fas-capsules", true, v -> {
             String name = nameField.getText() == null ? "" : nameField.getText().trim();
@@ -178,8 +193,21 @@ public class PharmacyController extends BasePageController {
             String form = formField.getText() == null ? "" : formField.getText().trim();
             String unitPriceText = unitPriceField.getText() == null ? "" : unitPriceField.getText().trim();
 
-            if (name.isBlank() || form.isBlank() || unitPriceText.isBlank()) {
-                formDialogController.setError("Medication name, form, and unit price are required.");
+            if (name.isBlank()) {
+                formDialogController.setError("Medication name is required.");
+                FxFormValidator.applyStyle(nameField, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (form.isBlank()) {
+                formDialogController.setError("Form is required (e.g. Capsule, Tablet).");
+                FxFormValidator.applyStyle(formField, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (unitPriceText.isBlank()) {
+                formDialogController.setError("Unit price is required.");
+                FxFormValidator.applyStyle(unitPriceField, false);
                 formDialogController.setLoading(false);
                 return;
             }
@@ -187,8 +215,15 @@ public class PharmacyController extends BasePageController {
             BigDecimal unitPrice;
             try {
                 unitPrice = new BigDecimal(unitPriceText);
+                if (unitPrice.compareTo(BigDecimal.ZERO) <= 0) {
+                    formDialogController.setError("Unit price must be greater than zero.");
+                    FxFormValidator.applyStyle(unitPriceField, false);
+                    formDialogController.setLoading(false);
+                    return;
+                }
             } catch (NumberFormatException ex) {
                 formDialogController.setError("Unit price must be a valid number.");
+                FxFormValidator.applyStyle(unitPriceField, false);
                 formDialogController.setLoading(false);
                 return;
             }
@@ -226,10 +261,30 @@ public class PharmacyController extends BasePageController {
         TextField reorderLevel    = new TextField();
         TextField supplier        = new TextField();
 
+        batchNumber.setPromptText("e.g. BATCH-2024-001");
+        expiryDate.setPromptText("e.g. 2026-12-31");
+        quantityInStock.setPromptText("e.g. 100");
+        reorderLevel.setPromptText("e.g. 20 (optional)");
+        supplier.setPromptText("e.g. Rwanda Pharma Ltd (optional)");
+
         List.of(batchNumber, quantityInStock, reorderLevel, supplier)
                 .forEach(f -> f.getStyleClass().add("form-input"));
         medicationId.getStyleClass().add("form-combo");
         expiryDate.getStyleClass().add("form-date-picker");
+
+        FxFormValidator.attachRequired(batchNumber,     null, "Batch number");
+        FxFormValidator.attachNotPastDate(expiryDate,   null, "Expiry date");
+        FxFormValidator.attachMaxLength(supplier,       null, 255, "Supplier");
+        quantityInStock.textProperty().addListener((obs, old, val) -> {
+            if (val == null || val.isBlank()) { FxFormValidator.clearStyle(quantityInStock); return; }
+            try { int q = Integer.parseInt(val.trim()); FxFormValidator.applyStyle(quantityInStock, q >= 0); }
+            catch (NumberFormatException e) { FxFormValidator.applyStyle(quantityInStock, false); }
+        });
+        reorderLevel.textProperty().addListener((obs, old, val) -> {
+            if (val == null || val.isBlank()) { FxFormValidator.clearStyle(reorderLevel); return; }
+            try { int r = Integer.parseInt(val.trim()); FxFormValidator.applyStyle(reorderLevel, r >= 0); }
+            catch (NumberFormatException e) { FxFormValidator.applyStyle(reorderLevel, false); }
+        });
 
         List<Control> otherFields = List.of(batchNumber, expiryDate, quantityInStock, reorderLevel, supplier);
         otherFields.forEach(f -> f.setDisable(true));
@@ -240,14 +295,27 @@ public class PharmacyController extends BasePageController {
             quantityInStock.setText(item.getQuantityInStock() != null ? String.valueOf(item.getQuantityInStock()) : "");
             reorderLevel.setText(item.getReorderLevel() != null ? String.valueOf(item.getReorderLevel()) : "");
             supplier.setText(item.getSupplier());
+            FxFormValidator.applyStyle(batchNumber, item.getBatchNumber() != null && !item.getBatchNumber().isBlank());
         }
 
         formDialogController.open(addMode ? "Add Medication" : "Update Medication", "fas-pills", addMode, v -> {
             String medId = medicationId.getSelectedId();
             String batch = batchNumber.getText() == null ? "" : batchNumber.getText().trim();
 
-            if (medId == null || batch.isEmpty() || expiryDate.getValue() == null) {
-                formDialogController.setError("Medication, batch number and expiry date are required.");
+            if (medId == null) {
+                formDialogController.setError("Medication is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (batch.isEmpty()) {
+                formDialogController.setError("Batch number is required.");
+                FxFormValidator.applyStyle(batchNumber, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (expiryDate.getValue() == null) {
+                formDialogController.setError("Expiry date is required.");
+                FxFormValidator.applyStyle(expiryDate, false);
                 formDialogController.setLoading(false);
                 return;
             }
@@ -256,15 +324,19 @@ public class PharmacyController extends BasePageController {
             int reorder;
             try {
                 qty = Integer.parseInt(quantityInStock.getText().trim());
+                if (qty < 0) throw new NumberFormatException();
             } catch (NumberFormatException ex) {
-                formDialogController.setError("Quantity in stock must be a whole number.");
+                formDialogController.setError("Quantity in stock must be a non-negative whole number.");
+                FxFormValidator.applyStyle(quantityInStock, false);
                 formDialogController.setLoading(false);
                 return;
             }
             try {
                 reorder = Integer.parseInt(reorderLevel.getText().trim());
+                if (reorder < 0) throw new NumberFormatException();
             } catch (NumberFormatException ex) {
-                formDialogController.setError("Reorder level must be a whole number.");
+                formDialogController.setError("Reorder level must be a non-negative whole number.");
+                FxFormValidator.applyStyle(reorderLevel, false);
                 formDialogController.setLoading(false);
                 return;
             }

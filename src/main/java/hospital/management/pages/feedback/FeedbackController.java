@@ -1,5 +1,6 @@
 package hospital.management.pages.feedback;
 
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.backend.config.security.PermissionGate;
 import hospital.management.backend.config.security.SessionManager;
 import hospital.management.backend.dao.auth.UserDAOImpl;
@@ -149,10 +150,18 @@ public class FeedbackController extends BasePageController {
         ratingField.getItems().addAll(1, 2, 3, 4, 5);
         ratingField.setValue(5);
 
+        patientIdField.setPromptText("e.g. patient UUID");
+        appointmentIdField.setPromptText("e.g. appointment UUID (optional)");
+        commentsField.setPromptText("e.g. Very attentive staff and quick service. (required)");
+
         if (isPatientRole()) {
             patientIdField.setText(resolvedPatientId == null ? "" : resolvedPatientId);
             patientIdField.setDisable(true);
+        } else {
+            FxFormValidator.attachRequired(patientIdField, null, "Patient ID");
         }
+        FxFormValidator.attachRequired(commentsField, null, "Comments");
+        FxFormValidator.attachRequired(ratingField,   null, "Rating");
 
         grid.add(new Label("Patient ID"), 0, 0);
         grid.add(patientIdField, 1, 0);
@@ -170,11 +179,21 @@ public class FeedbackController extends BasePageController {
             String patientId = patientIdField.getText() == null ? "" : patientIdField.getText().trim();
             String appointmentId = appointmentIdField.getText() == null ? "" : appointmentIdField.getText().trim();
             Integer rating = ratingField.getValue();
-            String comments = commentsField.getText();
+            String comments = commentsField.getText() == null ? "" : commentsField.getText().trim();
 
             try {
                 if (patientId.isBlank()) {
                     toastError("Patient ID is required.");
+                    FxFormValidator.applyStyle(patientIdField, false);
+                    return null;
+                }
+                if (rating == null) {
+                    toastError("Rating is required.");
+                    return null;
+                }
+                if (comments.isBlank()) {
+                    toastError("Comments are required.");
+                    FxFormValidator.applyStyle(commentsField, false);
                     return null;
                 }
                 feedbackService.submit(new CreatePatientFeedbackDTO(

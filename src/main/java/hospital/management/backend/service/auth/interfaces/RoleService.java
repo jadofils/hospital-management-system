@@ -17,6 +17,11 @@ public interface RoleService {
     void revokeFromUser(String userId, String roleId) throws Exception;
     List<RoleDTO> findRolesForUser(String userId) throws Exception;
 
+    /** Reverse lookup of {@link #findRolesForUser}: every user id currently holding
+     *  the named role (e.g. "Admin", "Pharmacist"). Empty list if the role doesn't
+     *  exist or has no members — never throws for that case. */
+    List<String> findUserIdsForRole(String roleName) throws Exception;
+
     // ── Role <-> Permission assignment ──────────────────────────────────────
     void assignPermission(String roleId, String permissionId) throws Exception;
     void revokePermission(String roleId, String permissionId) throws Exception;

@@ -6,6 +6,8 @@ import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.lab.LabOrder;
 
+import hospital.management.backend.utils.filters.QueryBuilder;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,8 +76,12 @@ public class LabOrderDAOImpl implements LabOrderDAO {
     }
 
     private List<LabOrder> findAllWhere(String predicate, Object param) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM lab_orders WHERE " + predicate
-                   + " AND deleted_at IS NULL ORDER BY ordered_at DESC";
+        String sql = QueryBuilder.select(SELECT_COLUMNS)
+            .from("lab_orders")
+            .where(predicate)
+            .whereActive()
+            .orderBy("ordered_at", QueryBuilder.SortDir.DESC)
+            .build();
         List<LabOrder> orders = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

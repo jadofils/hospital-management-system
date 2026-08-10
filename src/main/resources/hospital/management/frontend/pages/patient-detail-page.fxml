@@ -151,6 +151,47 @@
                             </VBox>
                         </Tab>
 
+                        <!-- Notes tab -->
+                        <Tab text="Notes">
+                            <VBox spacing="12" styleClass="tab-content">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Clinical Notes" styleClass="subheading" HBox.hgrow="ALWAYS"/>
+                                    <Button fx:id="addNoteBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Note">
+                                        <graphic><FontIcon iconLiteral="fas-plus" iconSize="12"/></graphic>
+                                    </Button>
+                                </HBox>
+                                <TableView fx:id="notesTable" styleClass="data-table" VBox.vgrow="ALWAYS">
+                                    <columns>
+                                        <TableColumn fx:id="noteDateCol"   text="Date"   prefWidth="130"/>
+                                        <TableColumn fx:id="noteRoleCol"   text="Role"   prefWidth="110"/>
+                                        <TableColumn fx:id="noteSourceCol" text="Source" prefWidth="130"/>
+                                        <TableColumn fx:id="noteTextCol"   text="Note"   prefWidth="500"/>
+                                    </columns>
+                                    <placeholder><Label text="No clinical notes for this patient."/></placeholder>
+                                </TableView>
+                            </VBox>
+                        </Tab>
+
+                        <!-- Feedback tab -->
+                        <Tab text="Feedback">
+                            <VBox spacing="12" styleClass="tab-content">
+                                <HBox spacing="10" alignment="CENTER_LEFT">
+                                    <Label text="Patient Feedback" styleClass="subheading" HBox.hgrow="ALWAYS"/>
+                                    <Button fx:id="addFeedbackBtn" styleClass="primary-button" contentDisplay="LEFT" text="Submit Feedback">
+                                        <graphic><FontIcon iconLiteral="fas-star" iconSize="12"/></graphic>
+                                    </Button>
+                                </HBox>
+                                <TableView fx:id="feedbackTable" styleClass="data-table" VBox.vgrow="ALWAYS">
+                                    <columns>
+                                        <TableColumn fx:id="feedbackDateCol"     text="Date"    prefWidth="120"/>
+                                        <TableColumn fx:id="feedbackRatingCol"   text="Rating"  prefWidth="90"/>
+                                        <TableColumn fx:id="feedbackCommentsCol" text="Comments" prefWidth="500"/>
+                                    </columns>
+                                    <placeholder><Label text="No feedback submitted for this patient."/></placeholder>
+                                </TableView>
+                            </VBox>
+                        </Tab>
+
                     </TabPane>
                 </VBox>
             </ScrollPane>

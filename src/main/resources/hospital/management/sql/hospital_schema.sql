@@ -348,12 +348,13 @@ CREATE TRIGGER trg_doctor_schedules_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- =====================================================================
--- 16. PATIENT_FEEDBACK
+-- 16. PATIENT_FEEDBACK  (submitted_by FK wired after users is created)
 -- =====================================================================
 CREATE TABLE patient_feedback (
   feedback_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  patient_id       UUID NOT NULL REFERENCES patients(patient_id) ON DELETE RESTRICT,
+  patient_id       UUID REFERENCES patients(patient_id) ON DELETE RESTRICT,
   appointment_id   UUID REFERENCES appointments(appointment_id) ON DELETE SET NULL,
+  submitted_by     UUID,                       -- FK to users added below after users table
   rating           SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
   comments         TEXT,
   date_submitted   DATE NOT NULL DEFAULT CURRENT_DATE,
@@ -363,6 +364,7 @@ CREATE TABLE patient_feedback (
 );
 
 CREATE INDEX idx_feedback_patient ON patient_feedback(patient_id);
+CREATE INDEX idx_feedback_submitted_by ON patient_feedback(submitted_by);
 
 CREATE TRIGGER trg_patient_feedback_updated_at
   BEFORE UPDATE ON patient_feedback
@@ -409,6 +411,63 @@ CREATE INDEX idx_users_active ON users(user_id) WHERE deleted_at IS NULL;
 
 CREATE TRIGGER trg_users_updated_at
   BEFORE UPDATE ON users
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- Wire submitted_by FK now that users exists
+ALTER TABLE patient_feedback
+  ADD CONSTRAINT fk_feedback_submitted_by
+  FOREIGN KEY (submitted_by) REFERENCES users(user_id) ON DELETE SET NULL;
+
+-- =====================================================================
+-- 26. PATIENT_NOTES  (structured free-text notes per appointment/patient)
+-- =====================================================================
+CREATE TABLE patient_notes (
+  note_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  patient_id       UUID NOT NULL REFERENCES patients(patient_id) ON DELETE RESTRICT,
+  appointment_id   UUID REFERENCES appointments(appointment_id) ON DELETE SET NULL,
+  author_user_id   UUID REFERENCES users(user_id) ON DELETE SET NULL,
+  author_role      VARCHAR(50),
+  note_text        TEXT NOT NULL,
+  source           VARCHAR(50) NOT NULL DEFAULT 'medical_records',
+  created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at       TIMESTAMP NULL
+);
+
+CREATE INDEX idx_notes_patient     ON patient_notes(patient_id)     WHERE deleted_at IS NULL;
+CREATE INDEX idx_notes_appointment ON patient_notes(appointment_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_notes_author      ON patient_notes(author_user_id) WHERE deleted_at IS NULL;
+
+CREATE TRIGGER trg_patient_notes_updated_at
+  BEFORE UPDATE ON patient_notes
+  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+-- =====================================================================
+-- 27. NOTIFICATIONS  (in-app and email notifications, recipients stored as JSONB)
+-- =====================================================================
+CREATE TABLE notifications (
+  notification_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type             VARCHAR(100) NOT NULL,
+  actor_user_id    UUID REFERENCES users(user_id) ON DELETE SET NULL,
+  recipients       JSONB NOT NULL DEFAULT '[]',
+  payload          JSONB,
+  channels         JSONB,
+  status           JSONB,
+  priority         VARCHAR(20) NOT NULL DEFAULT 'normal'
+                    CHECK (priority IN ('low','normal','high')),
+  read_at          TIMESTAMP NULL,
+  created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at       TIMESTAMP NULL
+);
+
+CREATE INDEX idx_notifications_actor   ON notifications(actor_user_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_notifications_created ON notifications(created_at)    WHERE deleted_at IS NULL;
+CREATE INDEX idx_notifications_recipients ON notifications USING GIN (recipients);
+CREATE INDEX idx_notifications_unread  ON notifications(read_at) WHERE read_at IS NULL AND deleted_at IS NULL;
+
+CREATE TRIGGER trg_notifications_updated_at
+  BEFORE UPDATE ON notifications
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
 -- =====================================================================

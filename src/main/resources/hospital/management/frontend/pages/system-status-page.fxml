@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import java.net.URL?>
+<?import org.kordamp.ikonli.javafx.FontIcon?>
+<BorderPane xmlns="http://javafx.com/javafx"
+            xmlns:fx="http://javafx.com/fxml"
+            fx:controller="hospital.management.pages.status.SystemStatusController"
+            styleClass="home-root">
+
+    <stylesheets>
+        <URL value="@../../css/global.css"/>
+        <URL value="@../../css/home.css"/>
+        <URL value="@../../css/buttons.css"/>
+    </stylesheets>
+
+    <center>
+        <VBox alignment="CENTER" spacing="18" styleClass="hero-panel">
+            <padding><Insets top="40" right="40" bottom="40" left="40"/></padding>
+
+            <FontIcon fx:id="statusIcon" iconLiteral="fas-tools" iconSize="64" styleClass="hero-brand-icon"/>
+
+            <Label fx:id="statusTitle" text="Under Maintenance" styleClass="hero-title"/>
+
+            <Label fx:id="statusMessage" text="It's not you, it's me."
+                   styleClass="hero-subtitle" wrapText="true" maxWidth="440"/>
+
+            <HBox spacing="12" alignment="CENTER">
+                <Button fx:id="retryBtn" styleClass="primary-button" contentDisplay="LEFT" text="Retry">
+                    <graphic><FontIcon iconLiteral="fas-sync-alt" iconSize="13"/></graphic>
+                </Button>
+                <Button fx:id="logoutBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Log Out">
+                    <graphic><FontIcon iconLiteral="fas-sign-out-alt" iconSize="13"/></graphic>
+                </Button>
+            </HBox>
+        </VBox>
+    </center>
+
+</BorderPane>

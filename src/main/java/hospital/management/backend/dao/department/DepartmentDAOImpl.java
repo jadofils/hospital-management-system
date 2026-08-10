@@ -6,6 +6,8 @@ import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.doctor.Department;
 
+import hospital.management.backend.utils.filters.QueryBuilder;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -68,7 +70,11 @@ public class DepartmentDAOImpl implements DepartmentDAO {
 
     @Override
     public List<Department> findAll() throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM departments WHERE deleted_at IS NULL ORDER BY name";
+        String sql = QueryBuilder.select(SELECT_COLUMNS)
+            .from("departments")
+            .whereActive()
+            .orderBy("name")
+            .build();
         List<Department> departments = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);

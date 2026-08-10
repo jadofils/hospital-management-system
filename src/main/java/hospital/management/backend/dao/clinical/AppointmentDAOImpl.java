@@ -5,6 +5,7 @@ import hospital.management.backend.dao.clinical.interfaces.AppointmentDAO;
 import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.patient.Appointment;
+import hospital.management.backend.utils.filters.QueryBuilder;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pagination.PageRequest;
 import hospital.management.backend.utils.pagination.PageResult;
@@ -69,17 +70,17 @@ public class AppointmentDAOImpl implements AppointmentDAO {
 
     @Override
     public PageResult<Appointment> findAll(PageRequest request) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM appointments WHERE deleted_at IS NULL "
-                   + CursorPagination.whereClause(request, "created_at")
-                   + CursorPagination.orderClause(request, "created_at")
-                   + "LIMIT ?";
+        QueryBuilder.SortDir dir = request.getDirection() == PageRequest.SortDirection.DESC
+            ? QueryBuilder.SortDir.DESC : QueryBuilder.SortDir.ASC;
+        QueryBuilder qb = QueryBuilder.select(SELECT_COLUMNS).from("appointments").whereActive();
+        String cursorFrag = CursorPagination.whereClause(request, "created_at");
+        if (!cursorFrag.isBlank()) qb.and(cursorFrag.trim().replaceFirst("(?i)^AND\\s+", ""));
+        String sql = qb.orderBy("created_at", dir).limit(request.getPageSize() + 1).build();
         List<Appointment> rows = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setInt(1, request.getPageSize() + 1);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) rows.add(mapRow(rs));
-            }
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) rows.add(mapRow(rs));
         } catch (SQLException e) {
             throw new DatabaseException("Failed to list appointments: " + e.getMessage(), e);
         }
@@ -97,8 +98,12 @@ public class AppointmentDAOImpl implements AppointmentDAO {
     }
 
     private List<Appointment> findAllWhere(String predicate, Object param) throws Exception {
-        String sql = "SELECT " + SELECT_COLUMNS + " FROM appointments WHERE " + predicate
-                   + " AND deleted_at IS NULL ORDER BY appointment_date DESC";
+        String sql = QueryBuilder.select(SELECT_COLUMNS)
+            .from("appointments")
+            .where(predicate)
+            .whereActive()
+            .orderBy("appointment_date", QueryBuilder.SortDir.DESC)
+            .build();
         List<Appointment> appointments = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

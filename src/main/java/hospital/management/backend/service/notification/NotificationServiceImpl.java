@@ -1,69 +1,79 @@
 package hospital.management.backend.service.notification;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoClient;
-import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
-import org.bson.Document;
-import org.bson.json.JsonMode;
-import org.bson.json.JsonWriterSettings;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import hospital.management.backend.config.AppLogger;
 import hospital.management.backend.config.MailConfig;
+import hospital.management.backend.config.db.DBConnection;
 import hospital.management.backend.dto.notification.NotificationDTO;
-import hospital.management.backend.service.auth.interfaces.UserService;
 import hospital.management.backend.dto.auth.UserDTO;
+import hospital.management.backend.mongo.store.MongoNotificationStore;
+import hospital.management.backend.service.auth.interfaces.UserService;
 import hospital.management.backend.service.log.ServiceMongoLogger;
-
 import jakarta.mail.Message;
+import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
-import jakarta.mail.Transport;
 
-import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.sql.*;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-/**
- * Minimal NotificationService implementation that persists notifications
- * as JSON files under the user's home directory (acts as a NoSQL-like store)
- * and sends emails via MailConfig. Replace the file-backed persistence with
- * a real MongoDB client in production — see `src/main/resources/mongo/notifications_init.js`.
- */
 public class NotificationServiceImpl implements NotificationService {
 
     private static final AppLogger logger = AppLogger.getLogger(NotificationServiceImpl.class);
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+        .registerModule(new JavaTimeModule());
+
     private final UserService userService;
-    private final MongoClient mongoClient;
-    private final MongoCollection<Document> col;
-    private static final JsonWriterSettings JSON_SETTINGS = JsonWriterSettings.builder().outputMode(JsonMode.RELAXED).build();
+    private final MongoNotificationStore mongoStore = new MongoNotificationStore();
 
     public NotificationServiceImpl(UserService userService) {
         this.userService = userService;
-        this.mongoClient = MongoClients.create(hospital.management.backend.config.EnvConfig.getMongoUri());
-        MongoDatabase db = mongoClient.getDatabase("hospital");
-        this.col = db.getCollection("notifications");
     }
 
     @Override
     public String createNotification(NotificationDTO dto) throws Exception {
         ServiceMongoLogger.info("notification.service", "Creating notification id=" + dto.getId());
 
-        // persist into MongoDB notifications collection
-        String json = MAPPER.writeValueAsString(dto);
-        Document doc = Document.parse(json);
-        col.insertOne(doc);
+        String recipientsJson = dto.getRecipients() != null ? MAPPER.writeValueAsString(dto.getRecipients()) : "[]";
+        String payloadJson    = dto.getPayload()  != null ? MAPPER.writeValueAsString(dto.getPayload())  : null;
+        String channelsJson   = dto.getChannels() != null ? MAPPER.writeValueAsString(dto.getChannels()) : null;
+        String statusJson     = dto.getStatus()   != null ? MAPPER.writeValueAsString(dto.getStatus())   : null;
 
-        // fire-and-forget email delivery for recipients who opted-in to email
-        try { sendEmail(dto); } catch (Exception e) { logger.warn("Email send failed: " + e.getMessage()); }
+        String sql = "INSERT INTO notifications " +
+            "(notification_id, type, actor_user_id, recipients, payload, channels, status, priority) " +
+            "VALUES (?, ?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?) " +
+            "ON CONFLICT DO NOTHING";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, UUID.fromString(dto.getId()));
+            ps.setString(2, dto.getType());
+            if (dto.getActorUserId() != null && !dto.getActorUserId().isBlank()) {
+                ps.setObject(3, UUID.fromString(dto.getActorUserId()));
+            } else {
+                ps.setNull(3, Types.OTHER);
+            }
+            ps.setString(4, recipientsJson);
+            ps.setString(5, payloadJson);
+            ps.setString(6, channelsJson);
+            ps.setString(7, statusJson);
+            ps.setString(8, "normal");
+            ps.executeUpdate();
+        }
+
+        if (dto.getChannels() != null && dto.getChannels().contains("email")) {
+            try { sendEmail(dto); } catch (Exception e) {
+                logger.warn("Email send failed: " + e.getMessage());
+            }
+        }
 
         logger.info("Notification created: " + dto.getId());
         ServiceMongoLogger.info("notification.service", "Notification persisted id=" + dto.getId());
+        mongoStore.mirror(dto);
         return dto.getId();
     }
 
@@ -79,13 +89,8 @@ public class NotificationServiceImpl implements NotificationService {
                 MimeMessage msg = new MimeMessage(MailConfig.getSession());
                 msg.setFrom(new InternetAddress(MailConfig.getFromAddress(), MailConfig.getFromName()));
                 msg.setRecipient(Message.RecipientType.TO, new InternetAddress(user.getEmail(), user.getUsername()));
-
-                // basic templating for appointment.created
-                String subject = "Notification: " + dto.getType();
-                String html = buildHtml(dto, user);
-                msg.setSubject(subject);
-                msg.setContent(html, "text/html; charset=utf-8");
-
+                msg.setSubject("Notification: " + dto.getType());
+                msg.setContent(buildHtml(dto, user), "text/html; charset=utf-8");
                 Transport.send(msg);
                 logger.info("Email sent to " + user.getEmail());
                 ServiceMongoLogger.info("notification.service", "Notification email sent to=" + user.getEmail());
@@ -96,37 +101,105 @@ public class NotificationServiceImpl implements NotificationService {
         }
     }
 
+    @Override
+    public List<NotificationDTO> listForUser(String userId, int limit) throws Exception {
+        String sql = "SELECT notification_id, type, actor_user_id, recipients, payload, channels, " +
+            "status, priority, created_at, read_at FROM notifications " +
+            "WHERE recipients @> jsonb_build_array(?::text) AND deleted_at IS NULL " +
+            "ORDER BY created_at DESC LIMIT ?";
+
+        List<NotificationDTO> out = new ArrayList<>();
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            ps.setInt(2, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    try { out.add(mapRow(rs)); } catch (Exception ignored) {}
+                }
+            }
+        }
+        return out;
+    }
+
+    @Override
+    public int countUnreadForUser(String userId) throws Exception {
+        String sql = "SELECT COUNT(*) FROM notifications " +
+            "WHERE recipients @> jsonb_build_array(?::text) AND deleted_at IS NULL AND read_at IS NULL";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) : 0;
+            }
+        }
+    }
+
+    @Override
+    public void markAsRead(String notificationId, String userId) throws Exception {
+        String sql = "UPDATE notifications SET read_at = CURRENT_TIMESTAMP " +
+            "WHERE notification_id = ? AND recipients @> jsonb_build_array(?::text) AND read_at IS NULL";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setObject(1, UUID.fromString(notificationId));
+            ps.setString(2, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    @Override
+    public void markAllAsRead(String userId) throws Exception {
+        String sql = "UPDATE notifications SET read_at = CURRENT_TIMESTAMP " +
+            "WHERE recipients @> jsonb_build_array(?::text) AND deleted_at IS NULL AND read_at IS NULL";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, userId);
+            int updated = ps.executeUpdate();
+            logger.info("Marked " + updated + " notification(s) read for user " + userId);
+        }
+    }
+
+    private NotificationDTO mapRow(ResultSet rs) throws Exception {
+        NotificationDTO dto = new NotificationDTO();
+        dto.setId(rs.getObject("notification_id", UUID.class).toString());
+        dto.setType(rs.getString("type"));
+        UUID actorId = rs.getObject("actor_user_id", UUID.class);
+        dto.setActorUserId(actorId != null ? actorId.toString() : null);
+        String recipientsJson = rs.getString("recipients");
+        if (recipientsJson != null) {
+            dto.setRecipients(MAPPER.readValue(recipientsJson,
+                MAPPER.getTypeFactory().constructCollectionType(List.class, String.class)));
+        }
+        String payloadJson = rs.getString("payload");
+        if (payloadJson != null) {
+            dto.setPayload(MAPPER.readValue(payloadJson,
+                MAPPER.getTypeFactory().constructMapType(java.util.Map.class, String.class, Object.class)));
+        }
+        Timestamp createdAt = rs.getTimestamp("created_at");
+        if (createdAt != null) {
+            dto.setCreatedAt(createdAt.toLocalDateTime().atOffset(java.time.ZoneOffset.UTC));
+        }
+        Timestamp readAt = rs.getTimestamp("read_at");
+        if (readAt != null) {
+            dto.setReadAt(readAt.toLocalDateTime().atOffset(java.time.ZoneOffset.UTC));
+        }
+        return dto;
+    }
+
     private String buildHtml(NotificationDTO dto, UserDTO recipient) {
         StringBuilder sb = new StringBuilder();
         sb.append("<html><body>");
         sb.append("<p>Hello ").append(recipient.getUsername()).append(",</p>");
-        sb.append("<p>");
-        sb.append("You have a new notification: <strong>").append(dto.getType()).append("</strong>.");
-        sb.append("</p>");
-        sb.append("<p>Details:</p>");
-        sb.append("<ul>");
+        sb.append("<p>You have a new notification: <strong>").append(dto.getType()).append("</strong>.</p>");
+        sb.append("<p>Details:</p><ul>");
         if (dto.getPayload() != null) {
-            dto.getPayload().forEach((k,v) -> sb.append("<li><strong>").append(k).append(":</strong> ").append(v).append("</li>"));
+            dto.getPayload().forEach((k, v) ->
+                sb.append("<li><strong>").append(k).append(":</strong> ").append(v).append("</li>"));
         }
         sb.append("</ul>");
         sb.append("<p>Time: ").append(dto.getCreatedAt().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME)).append("</p>");
         sb.append("<p>Regards,<br/>Hospital Management System</p>");
         sb.append("</body></html>");
         return sb.toString();
-    }
-
-    @Override
-    public List<NotificationDTO> listForUser(String userId, int limit) throws Exception {
-        List<NotificationDTO> out = new ArrayList<>();
-        Document filter = new Document("recipients", userId);
-        FindIterable<Document> iter = col.find(filter).sort(new Document("createdAt", -1)).limit(limit);
-        for (Document d : iter) {
-            try {
-                String json = d.toJson(JSON_SETTINGS);
-                NotificationDTO dto = MAPPER.readValue(json, NotificationDTO.class);
-                out.add(dto);
-            } catch (Exception ignored) {}
-        }
-        return out;
     }
 }

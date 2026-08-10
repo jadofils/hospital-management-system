@@ -55,8 +55,17 @@ public class MedicalInventoryTableController extends PaginatedTableController<Me
 
     @Override
     protected boolean matches(MedicalInventoryDTO item, String lowerQuery) {
-        return (item.getMedicationId() != null && item.getMedicationId().toLowerCase().contains(lowerQuery))
-                || (item.getBatchNumber() != null && item.getBatchNumber().toLowerCase().contains(lowerQuery))
-                || (item.getSupplier() != null && item.getSupplier().toLowerCase().contains(lowerQuery));
+        String qty      = item.getQuantityInStock() != null ? String.valueOf(item.getQuantityInStock()) : "";
+        String reorder  = item.getReorderLevel() != null ? String.valueOf(item.getReorderLevel()) : "";
+        String expiry   = item.getExpiryDate() != null ? item.getExpiryDate().toString() : "";
+        return safe(item.getMedicationId()).contains(lowerQuery)
+            || safe(item.getBatchNumber()).contains(lowerQuery)
+            || safe(item.getSupplier()).contains(lowerQuery)
+            || safe(item.getStockAlert()).contains(lowerQuery)
+            || expiry.contains(lowerQuery)
+            || qty.contains(lowerQuery)
+            || reorder.contains(lowerQuery);
     }
+
+    private static String safe(String s) { return s == null ? "" : s.toLowerCase(); }
 }

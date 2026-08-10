@@ -32,16 +32,33 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public PatientDTO create(CreatePatientDTO dto) throws Exception {
-        String firstName = ValidatorUtils.requireNonBlank(dto.getFirstName(), "firstName");
-        String lastName  = ValidatorUtils.requireNonBlank(dto.getLastName(), "lastName");
+        String firstName = ValidatorUtils.requireNonBlank(dto.getFirstName(), "First name");
+        ValidatorUtils.requireValidName(firstName, "First name");
+        String lastName  = ValidatorUtils.requireNonBlank(dto.getLastName(), "Last name");
+        ValidatorUtils.requireValidName(lastName, "Last name");
+
         if (dto.getDob() == null) {
             throw new ValidationException("dob", "Date of birth is required.");
         }
+        ValidatorUtils.requireValidDateOfBirth(dto.getDob(), "Date of birth");
+
+        if (dto.getGender() != null && !dto.getGender().isBlank()) {
+            ValidatorUtils.requireValidGender(dto.getGender(), "Gender");
+        }
+
+        if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
+            ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "Phone");
+        }
+
         if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
-            ValidatorUtils.requireValidEmail(dto.getEmail(), "email");
+            ValidatorUtils.requireValidEmail(dto.getEmail(), "Email");
             if (patientDAO.findByEmail(dto.getEmail()).isPresent()) {
                 throw new ValidationException("email", "Email \"" + dto.getEmail() + "\" is already registered.");
             }
+        }
+
+        if (dto.getAddress() != null) {
+            ValidatorUtils.requireMaxLength(dto.getAddress(), 255, "Address");
         }
 
         Patient patient = PatientMapper.toEntity(dto);

@@ -166,6 +166,10 @@
                             maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleRetention">
                         <graphic><FontIcon iconLiteral="fas-database" iconSize="14"/></graphic>
                     </Button>
+                    <Button fx:id="developerDashboardBtn" text="Developer Dashboard" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleDeveloperDashboard">
+                        <graphic><FontIcon iconLiteral="fas-code" iconSize="14"/></graphic>
+                    </Button>
                 </VBox>
             </VBox>
 

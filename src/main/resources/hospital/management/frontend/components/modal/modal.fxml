@@ -32,8 +32,8 @@
 
         <!-- Footer -->
         <HBox styleClass="modal-footer" spacing="10">
-            <Button fx:id="cancelBtn"  text="Cancel"  styleClass="secondary-button"/>
-            <Button fx:id="confirmBtn" text="Confirm" styleClass="primary-button"/>
+            <Button fx:id="cancelBtn"  text="Cancel"  styleClass="secondary-button" prefWidth="100"/>
+            <Button fx:id="confirmBtn" text="Confirm" styleClass="primary-button"   prefWidth="120"/>
         </HBox>
     </VBox>
 </StackPane>

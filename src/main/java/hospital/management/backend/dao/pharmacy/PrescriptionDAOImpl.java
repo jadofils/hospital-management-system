@@ -6,6 +6,8 @@ import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.pharmacy.Prescription;
 
+import hospital.management.backend.utils.filters.QueryBuilder;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,11 +80,15 @@ public class PrescriptionDAOImpl implements PrescriptionDAO {
 
     @Override
     public List<Prescription> findByPatientId(String patientId) throws Exception {
-        String sql = "SELECT p.prescription_id, p.appointment_id, p.date_issued, p.created_at, p.updated_at, p.deleted_at "
-                   + "FROM prescriptions p "
-                   + "JOIN appointments a ON a.appointment_id = p.appointment_id "
-                   + "WHERE a.patient_id = ? AND p.deleted_at IS NULL "
-                   + "ORDER BY p.date_issued DESC, p.created_at DESC";
+        String sql = QueryBuilder.select(
+                "p.prescription_id, p.appointment_id, p.date_issued, p.created_at, p.updated_at, p.deleted_at")
+            .from("prescriptions p")
+            .join("appointments a ON a.appointment_id = p.appointment_id")
+            .where("a.patient_id = ?")
+            .whereActive("p")
+            .orderBy("p.date_issued", QueryBuilder.SortDir.DESC)
+            .orderBy("p.created_at", QueryBuilder.SortDir.DESC)
+            .build();
         List<Prescription> prescriptions = new ArrayList<>();
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
