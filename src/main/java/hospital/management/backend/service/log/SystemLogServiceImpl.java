@@ -1,5 +1,6 @@
 package hospital.management.backend.service.log;
 
+import hospital.management.backend.config.AppLogger;
 import hospital.management.backend.dao.log.interfaces.SystemLogDAO;
 import hospital.management.backend.dto.log.SystemLogDTO;
 import hospital.management.backend.mapper.log.SystemLogMapper;
@@ -15,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SystemLogServiceImpl implements SystemLogService {
+
+    private static final AppLogger logger = AppLogger.getLogger(SystemLogServiceImpl.class);
 
     private final SystemLogDAO systemLogDAO;
 
@@ -33,8 +36,10 @@ public class SystemLogServiceImpl implements SystemLogService {
         entry.setSource(source);
         entry.setMessage(message);
         entry.setUserId(userId);
+        entry.setCreatedAt(java.time.LocalDateTime.now());
 
         SystemLog saved = systemLogDAO.save(entry);
+        logger.info("System log recorded: [" + saved.getLogLevel() + "] " + saved.getSource());
         EventBus.publish(AppEventType.SYSTEM_LOG_RECORDED, saved.getLogId());
         return SystemLogMapper.toDTO(saved);
     }

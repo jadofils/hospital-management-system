@@ -7,7 +7,6 @@ import hospital.management.backend.dao.auth.UserDAOImpl;
 import hospital.management.backend.dao.auth.UserRoleDAOImpl;
 import hospital.management.backend.dao.auth.UserSessionDAOImpl;
 import hospital.management.backend.dao.log.AuditLogDAOImpl;
-import hospital.management.backend.model.enums.RoleName;
 import hospital.management.backend.service.auth.AuthServiceImpl;
 import hospital.management.backend.service.auth.interfaces.AuthService;
 import hospital.management.enums.PageRoute;
@@ -26,6 +25,7 @@ import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import org.kordamp.ikonli.javafx.FontIcon;
+import hospital.management.backend.utils.pipes.AsyncJobRunner;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -105,11 +105,19 @@ public class SidebarController {
 
     public void initialize() {
         // All sections start expanded
-        expandedState.put(patientItems,   true);
-        expandedState.put(clinicalItems,  true);
-        expandedState.put(pharmacyItems,  true);
-        expandedState.put(analyticsItems, true);
-        expandedState.put(adminItems,     true);
+        if (patientItems != null) expandedState.put(patientItems, true);
+        if (clinicalItems != null) expandedState.put(clinicalItems, true);
+        if (pharmacyItems != null) expandedState.put(pharmacyItems, true);
+        if (analyticsItems != null) expandedState.put(analyticsItems, true);
+        if (adminItems != null) expandedState.put(adminItems, true);
+
+        // Centralized permission gate: only show pages this user can actually access.
+        try {
+            configureForRole(PermissionGate.currentRole());
+        } catch (Exception e) {
+            // No active session: hide navigable items except profile/logout.
+            configureForRole(null);
+        }
     }
 
     // ── Section accordion toggles ─────────────────────────────────────────
@@ -121,6 +129,7 @@ public class SidebarController {
     @FXML private void toggleAdminSection()     { toggleSection(adminItems,     adminChevron); }
 
     private void toggleSection(VBox items, FontIcon chevron) {
+        if (items == null || chevron == null) return;
         boolean nowExpanded = !items.isVisible();
         items.setVisible(nowExpanded);
         items.setManaged(nowExpanded);
@@ -130,7 +139,7 @@ public class SidebarController {
 
     // ── Role-based section visibility ─────────────────────────────────────
 
-    public void configureForRole(RoleName role) {
+    public void configureForRole(String role) {
         Map<Button, PageRoute> buttonRoutes = new LinkedHashMap<>();
         buttonRoutes.put(dashboardBtn, PageRoute.DASHBOARD);
         buttonRoutes.put(patientsBtn, PageRoute.PATIENTS);
@@ -157,7 +166,8 @@ public class SidebarController {
         // and logout must always stay reachable regardless of role.
 
         buttonRoutes.forEach((btn, route) -> {
-            boolean allowed = route.isAllowedFor(role);
+            if (btn == null) return;
+            boolean allowed = PermissionGate.isAllowed(route);
             btn.setVisible(allowed);
             btn.setManaged(allowed);
         });
@@ -172,6 +182,12 @@ public class SidebarController {
 
     /** A collapsible section is shown iff at least one of its own nav buttons is visible for this role. */
     private void configureSectionVisibility(VBox section, VBox items) {
+        if (section == null) return;
+        if (items == null) {
+            section.setVisible(false);
+            section.setManaged(false);
+            return;
+        }
         boolean anyVisible = items.getChildren().stream()
                 .filter(n -> n instanceof Button)
                 .anyMatch(Node::isVisible);
@@ -190,12 +206,13 @@ public class SidebarController {
             case BILLING         -> billingBtn;
             case DOCTORS         -> doctorsBtn;
             case MEDICAL_RECORDS -> medicalRecordsBtn;
-            case PRESCRIPTIONS   -> prescriptionsBtn;
+            case PRESCRIPTIONS   -> prescriptionsNavButton();
             case LAB_ORDERS      -> labOrdersBtn;
             case REFERRALS       -> referralsBtn;
             case MY_SCHEDULE     -> scheduleBtn;
             case PHARMACY        -> inventoryBtn;
-            case ANALYTICS, FEEDBACK -> analyticsBtn;
+            case ANALYTICS -> analyticsBtn;
+            case FEEDBACK -> feedbackBtn;
             case USERS           -> usersBtn;
             case ROLES            -> rolesBtn;
             case DEPARTMENTS     -> departmentsBtn;
@@ -247,14 +264,18 @@ public class SidebarController {
                 .forEach(lbl -> { lbl.setVisible(!collapsed); lbl.setManaged(!collapsed); });
 
         // Section headers: hide in icon-only mode, show in expanded mode
-        List<Button> sectionHeaders = List.of(
-                patientHeaderBtn, clinicalHeaderBtn, pharmacyHeaderBtn,
-                analyticsHeaderBtn, adminHeaderBtn);
+        java.util.List<Button> sectionHeaders = new java.util.ArrayList<>();
+        Button[] headerCandidates = new Button[] {
+            patientHeaderBtn, clinicalHeaderBtn, pharmacyHeaderBtn, analyticsHeaderBtn, adminHeaderBtn
+        };
+        for (Button b : headerCandidates) if (b != null) sectionHeaders.add(b);
         sectionHeaders.forEach(h -> { h.setVisible(!collapsed); h.setManaged(!collapsed); });
 
         // In icon-only mode: show all items directly (no headers to click)
         // In expanded mode: restore each section's remembered expanded/collapsed state
-        List<VBox> allItems = List.of(patientItems, clinicalItems, pharmacyItems, analyticsItems, adminItems);
+        java.util.List<VBox> allItems = new java.util.ArrayList<>();
+        VBox[] itemCandidates = new VBox[] { patientItems, clinicalItems, pharmacyItems, analyticsItems, adminItems };
+        for (VBox v : itemCandidates) if (v != null) allItems.add(v);
         if (collapsed) {
             allItems.forEach(v -> { v.setVisible(true); v.setManaged(true); });
         } else {
@@ -276,7 +297,7 @@ public class SidebarController {
     @FXML private void handleBilling()        { navigate(PageRoute.BILLING, billingBtn); }
     @FXML private void handleDoctors()        { navigate(PageRoute.DOCTORS, doctorsBtn); }
     @FXML private void handleMedicalRecords() { navigate(PageRoute.MEDICAL_RECORDS, medicalRecordsBtn); }
-    @FXML private void handlePrescriptions()  { navigate(PageRoute.PRESCRIPTIONS, prescriptionsBtn); }
+    @FXML private void handlePrescriptions()  { navigate(PageRoute.PRESCRIPTIONS, prescriptionsNavButton()); }
     @FXML private void handleLabOrders()      { navigate(PageRoute.LAB_ORDERS, labOrdersBtn); }
     @FXML private void handleReferrals()      { navigate(PageRoute.REFERRALS, referralsBtn); }
     @FXML private void handleSchedule()       { navigate(PageRoute.MY_SCHEDULE, scheduleBtn); }
@@ -292,21 +313,31 @@ public class SidebarController {
     @FXML private void handleProfile()        { navigate(PageRoute.PROFILE, profileBtn); }
     @FXML
     private void handleLogout() {
-        try {
-            String sessionId = SessionManager.getCurrentSessionId();
-            if (sessionId != null) authService.logout(sessionId);
-        } catch (Exception e) {
-            System.err.println("Logout cleanup failed: " + e.getMessage());
-            showErrorAlert("You've been signed out locally, but the server-side session couldn't be closed cleanly.");
-        } finally {
-            SessionManager.logout();
+        // Try to obtain the backing session id even if the token is expired.
+        String sessionId = SessionManager.peekCurrentSessionId();
+        // Clear local session immediately so the UI reflects sign-out.
+        SessionManager.logout();
+
+        if (sessionId != null) {
+            // Deactivate the server-side session asynchronously so the UI doesn't block.
+            AsyncJobRunner.submit(() -> {
+                authService.logout(sessionId);
+                return Boolean.TRUE;
+            }, ok -> {
+                // no-op on success; server-side logout publishes events already
+            }, err -> {
+                System.err.println("Logout cleanup failed: " + err.getMessage());
+                showErrorAlert("Server-side logout failed: " + err.getMessage());
+            });
         }
+
         navigate(PageRoute.HOME, logoutBtn);
     }
 
     /** Swaps the clicked button's icon for a spinner until the target page has loaded. */
     private void navigate(PageRoute route, Button sourceBtn) {
-        if (!PermissionGate.isAllowed(route)) {
+        // HOME is the public landing page — allow navigating there even if session was just cleared.
+        if (route != PageRoute.HOME && !PermissionGate.isAllowed(route)) {
             showErrorAlert("You don't have permission to access this page.");
             return;
         }
@@ -354,14 +385,28 @@ public class SidebarController {
     // ── Private helpers ───────────────────────────────────────────────────
 
     private List<Button> allNavButtons() {
-        return List.of(dashboardBtn, patientsBtn, appointmentsBtn, billingBtn,
-                doctorsBtn, appointmentsDoctorBtn, medicalRecordsBtn, prescriptionsBtn,
-                labOrdersBtn, referralsBtn, scheduleBtn, prescriptionsQueueBtn,
-                inventoryBtn, analyticsBtn, feedbackBtn, usersBtn, rolesBtn, departmentsBtn,
-                systemLogsBtn, auditLogsBtn, retentionBtn, profileBtn, logoutBtn);
+        java.util.List<Button> buttons = new java.util.ArrayList<>();
+        Button[] candidates = new Button[] {
+            dashboardBtn, patientsBtn, appointmentsBtn, billingBtn,
+            doctorsBtn, appointmentsDoctorBtn, medicalRecordsBtn, prescriptionsBtn,
+            labOrdersBtn, referralsBtn, scheduleBtn, prescriptionsQueueBtn,
+            inventoryBtn, analyticsBtn, feedbackBtn, usersBtn, rolesBtn, departmentsBtn,
+            systemLogsBtn, auditLogsBtn, retentionBtn, profileBtn, logoutBtn
+        };
+        for (Button b : candidates) if (b != null) buttons.add(b);
+        return buttons;
+    }
+
+    private Button prescriptionsNavButton() {
+        return prescriptionsBtn != null ? prescriptionsBtn : prescriptionsQueueBtn;
     }
 
     private void show(VBox... sections) {
-        for (VBox s : sections) { s.setVisible(true);  s.setManaged(true); }
+        for (VBox s : sections) {
+            if (s != null) {
+                s.setVisible(true);
+                s.setManaged(true);
+            }
+        }
     }
 }

@@ -28,7 +28,7 @@ public enum PageRoute {
     // ── Patient domain ────────────────────────────────────────────────────
     PATIENTS("patients", "Patients",
              "/hospital/management/frontend/pages/patients-page.fxml",
-             RoleName.ADMIN, RoleName.DOCTOR, RoleName.RECEPTIONIST),
+             RoleName.ADMIN, RoleName.DOCTOR, RoleName.RECEPTIONIST, RoleName.ANALYST),
 
     PATIENT_DETAIL("patient-detail", "Patient Detail",
                    "/hospital/management/frontend/pages/patient-detail-page.fxml",
@@ -85,7 +85,7 @@ public enum PageRoute {
               RoleName.ADMIN, RoleName.ANALYST),
 
     FEEDBACK("feedback", "Patient Feedback",
-             "/hospital/management/frontend/pages/analytics-page.fxml",
+             "/hospital/management/frontend/pages/feedback-page.fxml",
              RoleName.ANALYST, RoleName.ADMIN),
 
     // ── Admin ─────────────────────────────────────────────────────────────

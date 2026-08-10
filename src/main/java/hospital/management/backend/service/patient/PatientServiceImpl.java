@@ -16,6 +16,7 @@ import hospital.management.backend.service.patient.interfaces.PatientService;
 import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.listeners.AppEventType;
 import hospital.management.backend.utils.listeners.EventBus;
+import hospital.management.backend.service.log.ServiceAudit;
 import hospital.management.backend.utils.pagination.PageRequest;
 import hospital.management.backend.utils.pagination.PageResult;
 
@@ -51,6 +52,7 @@ public class PatientServiceImpl implements PatientService {
         // for this plain single-table write.
         CacheService.evictByPattern(CacheKey.ALL_PATIENTS);
         Patient saved = patientDAO.save(patient);
+        ServiceAudit.record("patients", "create", saved.getPatientId());
         EventBus.publish(AppEventType.PATIENT_CREATED, saved.getPatientId());
         return PatientMapper.toDTO(saved);
     }
@@ -65,6 +67,16 @@ public class PatientServiceImpl implements PatientService {
         PatientDTO dto = PatientMapper.toDTO(patient);
         CacheService.set(CacheKey.patient(patientId), dto, CacheDomain.PATIENT);
         return dto;
+    }
+
+    @Override
+    public PatientDTO findByEmail(String email) throws Exception {
+        if (email == null || email.isBlank()) {
+            throw new ValidationException("email", "Email is required.");
+        }
+        Patient patient = patientDAO.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient with email", email));
+        return PatientMapper.toDTO(patient);
     }
 
     @Override
@@ -104,6 +116,7 @@ public class PatientServiceImpl implements PatientService {
         CacheService.evict(CacheKey.patient(patientId));
         CacheService.evictByPattern(CacheKey.ALL_PATIENTS);
         Patient saved = patientDAO.update(patient);
+        ServiceAudit.record("patients", "update", patientId);
         EventBus.publish(AppEventType.PATIENT_UPDATED, patientId);
         return PatientMapper.toDTO(saved);
     }
@@ -113,6 +126,7 @@ public class PatientServiceImpl implements PatientService {
         CacheService.evict(CacheKey.patient(patientId));
         CacheService.evictByPattern(CacheKey.ALL_PATIENTS);
         patientDAO.softDelete(patientId);
+        ServiceAudit.record("patients", "delete", patientId);
         EventBus.publish(AppEventType.PATIENT_DELETED, patientId);
     }
 }

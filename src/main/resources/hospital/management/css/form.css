@@ -53,6 +53,25 @@
 .form-combo .arrow-button { -fx-background-color: transparent; }
 .form-combo .arrow { -fx-background-color: #7F8C8D; }
 
+.time-field-spinner {
+    -fx-pref-height: 2.857em;
+}
+.time-field-spinner .text-field {
+    -fx-background-color: #F8F9F9;
+    -fx-border-color: #D5DBDB;
+    -fx-font-size: 1em;
+    -fx-alignment: CENTER;
+}
+.time-field-spinner:focused .text-field {
+    -fx-background-color: white;
+    -fx-border-color: #3498DB;
+}
+.time-field-separator {
+    -fx-font-size: 1.143em;
+    -fx-font-weight: bold;
+    -fx-text-fill: #7F8C8D;
+}
+
 /* Filter combo (page toolbar) — same look as form combo */
 .filter-combo {
     -fx-background-color: #F8F9F9;

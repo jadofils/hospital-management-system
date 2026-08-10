@@ -66,12 +66,9 @@
                                                styleClass="search-field" prefWidth="260" HBox.hgrow="ALWAYS"/>
                                 </HBox>
                                 <Region HBox.hgrow="ALWAYS"/>
-                                <Button fx:id="addPermissionBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Permission">
-                                    <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
-                                </Button>
                             </HBox>
                             <fx:include fx:id="permissionTable"
-                                        source="/hospital/management/frontend/components/table/permission-table.fxml"
+                                        source="/hospital/management/frontend/components/table/permission-cards.fxml"
                                         VBox.vgrow="ALWAYS"/>
                         </VBox>
                     </Tab>

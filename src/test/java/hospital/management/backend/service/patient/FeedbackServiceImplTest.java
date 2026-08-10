@@ -1,6 +1,8 @@
 package hospital.management.backend.service.patient;
 
 import hospital.management.backend.dao.patient.interfaces.PatientFeedbackDAO;
+import hospital.management.backend.cache.CacheKey;
+import hospital.management.backend.cache.CacheService;
 import hospital.management.backend.dto.patient.CreatePatientFeedbackDTO;
 import hospital.management.backend.dto.patient.PatientFeedbackDTO;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
@@ -41,6 +43,7 @@ class FeedbackServiceImplTest {
 
     @BeforeEach
     void setUp() {
+        CacheService.evict(CacheKey.feedbackList());
         service = new FeedbackServiceImpl(feedbackDAO);
     }
 
@@ -171,6 +174,23 @@ class FeedbackServiceImplTest {
         List<PatientFeedbackDTO> result = service.findByPatient(patientId);
 
         assertTrue(result.isEmpty());
+    }
+
+    // ── findAll ──────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("findAll returns all mapped DTOs and caches the global feedback list")
+    void findAll_returnsMappedDtos_andCachesResult() throws Exception {
+        String patientId = UUID.randomUUID().toString();
+        PatientFeedback feedback = sampleFeedback(UUID.randomUUID().toString(), patientId);
+        when(feedbackDAO.findAll()).thenReturn(List.of(feedback));
+
+        List<PatientFeedbackDTO> first = service.findAll();
+        List<PatientFeedbackDTO> second = service.findAll();
+
+        assertEquals(1, first.size());
+        assertEquals(1, second.size());
+        verify(feedbackDAO, times(1)).findAll();
     }
 
     // ── delete ────────────────────────────────────────────────────────────

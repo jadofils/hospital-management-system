@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: ['**']
   pull_request:
     branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -61,9 +62,6 @@ jobs:
           APP_MAX_UPLOAD_SIZE_MB=10
           EOF
 
-      - name: Make mvnw executable
-        run: chmod +x mvnw
-
       - name: Install Xvfb for JavaFX toolkit init
         run: sudo apt-get update && sudo apt-get install -y xvfb
 
@@ -71,10 +69,10 @@ jobs:
       # EventBus's Platform.runLater dispatch path, which needs a display —
       # ubuntu-latest is headless, so this runs under a virtual framebuffer.
       - name: Run tests
-        run: xvfb-run --auto-servernum ./mvnw -B test
+        run: xvfb-run --auto-servernum mvn -B test
 
       - name: Publish test results
-        if: always()
+        if: ${{ always() && hashFiles('target/surefire-reports/*.xml') != '' }}
         uses: dorny/test-reporter@v1
         with:
           name: JUnit Results

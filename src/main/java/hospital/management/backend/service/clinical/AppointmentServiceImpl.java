@@ -22,6 +22,7 @@ import hospital.management.backend.service.clinical.interfaces.AppointmentServic
 import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.listeners.AppEventType;
 import hospital.management.backend.utils.listeners.EventBus;
+import hospital.management.backend.service.log.ServiceAudit;
 import hospital.management.backend.utils.pagination.PageRequest;
 import hospital.management.backend.utils.pagination.PageResult;
 
@@ -52,6 +53,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         // Single INSERT is already atomic — no TransactionManager needed here.
         CacheService.evictByPattern(CacheKey.ALL_APPOINTMENTS);
         Appointment saved = appointmentDAO.save(AppointmentMapper.toEntity(dto));
+        ServiceAudit.record("appointments", "create", saved.getAppointmentId());
         EventBus.publish(AppEventType.APPOINTMENT_BOOKED, saved.getAppointmentId());
         return AppointmentMapper.toDTO(saved);
     }
@@ -124,6 +126,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         CacheService.evictByPattern(CacheKey.ALL_APPOINTMENTS);
 
         Appointment saved = appointmentDAO.update(appointment);
+        ServiceAudit.record("appointments", "update", saved.getAppointmentId());
         EventBus.publish(AppEventType.APPOINTMENT_UPDATED, saved.getAppointmentId());
         return AppointmentMapper.toDTO(saved);
     }
@@ -139,6 +142,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         CacheService.evictByPattern(CacheKey.ALL_APPOINTMENTS);
 
         appointmentDAO.softDelete(appointmentId);
+        ServiceAudit.record("appointments", "delete", appointmentId);
         EventBus.publish(AppEventType.APPOINTMENT_CANCELLED, appointmentId);
     }
 

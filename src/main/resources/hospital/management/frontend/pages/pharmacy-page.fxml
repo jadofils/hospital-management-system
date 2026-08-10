@@ -45,7 +45,10 @@
                                     <TextField fx:id="inventorySearchField" promptText="Search medications..."
                                                styleClass="search-field" prefWidth="260"/>
                                 </HBox>
-                                <Button fx:id="addMedBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Medication">
+                                <Button fx:id="newMedicationBtn" styleClass="secondary-button" contentDisplay="LEFT" text="New Medication">
+                                    <graphic><FontIcon iconLiteral="fas-capsules" iconSize="13"/></graphic>
+                                </Button>
+                                <Button fx:id="addMedBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Inventory Batch">
                                     <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
                                 </Button>
                             </HBox>

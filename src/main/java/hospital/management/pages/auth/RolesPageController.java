@@ -15,7 +15,7 @@ import hospital.management.backend.service.auth.interfaces.PermissionService;
 import hospital.management.backend.service.auth.interfaces.RoleService;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.BasePageController;
-import hospital.management.pages.components.auth.PermissionTableController;
+import hospital.management.pages.components.auth.PermissionCardsController;
 import hospital.management.pages.components.auth.RoleTableController;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -50,9 +50,8 @@ public class RolesPageController extends BasePageController {
     @FXML private Button    addRoleBtn;
 
     // Permissions tab
-    @FXML private PermissionTableController permissionTableController;
+    @FXML private PermissionCardsController permissionTableController;
     @FXML private TextField permissionSearchField;
-    @FXML private Button    addPermissionBtn;
 
     private List<RoleDTO> allRoles = new ArrayList<>();
     private List<PermissionDTO> allPermissions = new ArrayList<>();
@@ -63,13 +62,16 @@ public class RolesPageController extends BasePageController {
 
         roleTableController.setPermissionCountResolver(
             r -> permissionCountByRoleId.getOrDefault(r.getRoleId(), "0"));
-        roleTableController.setRowActions(this::openRoleDialog, this::confirmDeleteRole, this::viewRoleDetail);
+        roleTableController.setRowActions(
+                allowUpdate(PageRoute.ROLES, this::openRoleDialog),
+                allowDelete(PageRoute.ROLES, this::confirmDeleteRole),
+                allowRead(PageRoute.ROLES, this::viewRoleDetail));
         roleSearchField.textProperty().addListener((obs, o, n) -> roleTableController.filter(n));
+        applyCreateVisibility(addRoleBtn, PageRoute.ROLES);
         addRoleBtn.setOnAction(e -> openRoleDialog(null));
 
-        permissionTableController.setOnDelete(this::confirmDeletePermission);
+        permissionTableController.setOnDelete(canDelete(PageRoute.ROLES) ? this::confirmDeletePermission : null);
         permissionSearchField.textProperty().addListener((obs, o, n) -> permissionTableController.filter(n));
-        addPermissionBtn.setOnAction(e -> openPermissionDialog());
 
         refreshPermissions();
         refreshRoles();

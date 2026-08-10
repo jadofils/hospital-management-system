@@ -2,17 +2,52 @@ package hospital.management.pages.patient;
 
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
+import hospital.management.backend.dao.clinical.MedicalRecordDAOImpl;
 import hospital.management.backend.dao.department.DoctorDAOImpl;
+import hospital.management.backend.dao.finance.InvoiceDAOImpl;
+import hospital.management.backend.dao.lab.LabOrderDAOImpl;
+import hospital.management.backend.dao.lab.LabResultDAOImpl;
+import hospital.management.backend.dao.patient.PatientAllergyDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
-import hospital.management.backend.model.finance.Invoice;
-import hospital.management.backend.model.lab.LabOrder;
-import hospital.management.backend.model.patient.Appointment;
-import hospital.management.backend.model.patient.MedicalRecord;
-import hospital.management.backend.model.patient.Patient;
-import hospital.management.backend.model.patient.PatientAllergy;
-import hospital.management.backend.model.patient.VitalSign;
-import hospital.management.backend.model.pharmacy.Prescription;
+import hospital.management.backend.dao.patient.VitalSignDAOImpl;
+import hospital.management.backend.dao.pharmacy.MedicalInventoryDAOImpl;
+import hospital.management.backend.dao.pharmacy.MedicationDAOImpl;
+import hospital.management.backend.dao.pharmacy.PrescriptionDAOImpl;
+import hospital.management.backend.dao.pharmacy.PrescriptionItemDAOImpl;
+import hospital.management.backend.dto.clinical.AppointmentDTO;
+import hospital.management.backend.dto.clinical.CreateMedicalRecordDTO;
+import hospital.management.backend.dto.clinical.MedicalRecordDTO;
+import hospital.management.backend.dto.finance.InvoiceDTO;
+import hospital.management.backend.dto.lab.LabOrderDTO;
+import hospital.management.backend.dto.patient.CreatePatientAllergyDTO;
+import hospital.management.backend.dto.patient.CreateVitalSignDTO;
+import hospital.management.backend.dto.patient.PatientAllergyDTO;
+import hospital.management.backend.dto.patient.PatientDTO;
+import hospital.management.backend.dto.patient.UpdatePatientDTO;
+import hospital.management.backend.dto.patient.VitalSignDTO;
+import hospital.management.backend.dto.pharmacy.CreatePrescriptionDTO;
+import hospital.management.backend.dto.pharmacy.CreatePrescriptionItemDTO;
+import hospital.management.backend.dto.pharmacy.PrescriptionDTO;
+import hospital.management.backend.config.security.SessionManager;
+import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.clinical.MedicalRecordServiceImpl;
+import hospital.management.backend.service.clinical.interfaces.MedicalRecordService;
+import hospital.management.backend.service.finance.InvoiceServiceImpl;
+import hospital.management.backend.service.finance.interfaces.InvoiceService;
+import hospital.management.backend.service.lab.LabServiceImpl;
+import hospital.management.backend.service.lab.interfaces.LabService;
+import hospital.management.backend.service.patient.AllergyServiceImpl;
+import hospital.management.backend.service.patient.interfaces.AllergyService;
+import hospital.management.backend.service.patient.interfaces.PatientService;
+import hospital.management.backend.service.patient.interfaces.VitalSignService;
+import hospital.management.backend.service.patient.PatientNotesNoSqlService;
+import hospital.management.backend.service.patient.PatientServiceImpl;
+import hospital.management.backend.service.patient.VitalSignServiceImpl;
+import hospital.management.backend.service.pharmacy.PharmacyServiceImpl;
+import hospital.management.backend.service.pharmacy.PrescriptionServiceImpl;
+import hospital.management.backend.service.pharmacy.interfaces.PrescriptionService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.enums.PageRoute;
@@ -32,19 +67,23 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Arrays;
+import java.util.stream.Collectors;
+
+import hospital.management.backend.model.enums.Gender;
 
 /**
  * Read-heavy drill-down view for a single patient. Reached by calling
- * {@link #loadPatient(Patient)} directly on the loaded controller instance
+ * {@link #loadPatient(PatientDTO)} directly on the loaded controller instance
  * (no FXML nav-param passing) from a "view details" / row-edit action on
  * the Patients page.
  */
@@ -52,6 +91,17 @@ public class PatientDetailController extends BasePageController {
 
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
+    private final PatientService patientService = new PatientServiceImpl(new PatientDAOImpl());
+    private final VitalSignService vitalSignService = new VitalSignServiceImpl(new VitalSignDAOImpl());
+    private final AllergyService allergyService = new AllergyServiceImpl(new PatientAllergyDAOImpl());
+    private final MedicalRecordService medicalRecordService = new MedicalRecordServiceImpl(new MedicalRecordDAOImpl());
+    private final PrescriptionService prescriptionService =
+            new PrescriptionServiceImpl(new PrescriptionDAOImpl(), new PrescriptionItemDAOImpl());
+    private final LabService labService = new LabServiceImpl(new LabOrderDAOImpl(), new LabResultDAOImpl());
+    private final InvoiceService invoiceService = new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl());
+    private final PharmacyServiceImpl pharmacyService = new PharmacyServiceImpl(
+        new MedicationDAOImpl(), new MedicalInventoryDAOImpl());
+    private final PatientNotesNoSqlService patientNotesNoSqlService = new PatientNotesNoSqlService();
 
     // Header
     @FXML private Label  patientNameLabel;
@@ -95,30 +145,42 @@ public class PatientDetailController extends BasePageController {
     // Billing tab (read-only in this drill-down — full CRUD lives on its own page)
     @FXML private InvoiceTableController detailInvoiceTableController;
 
-    private Patient currentPatient;
+    private PatientDTO currentPatient;
 
-    private final List<VitalSign>      vitals         = new ArrayList<>();
-    private final List<MedicalRecord>  medicalRecords = new ArrayList<>();
-    private final List<Appointment>    appointments   = new ArrayList<>();
-    private final List<Prescription>   prescriptions  = new ArrayList<>();
-    private final List<LabOrder>       labOrders      = new ArrayList<>();
-    private final List<PatientAllergy> allergies      = new ArrayList<>();
-    private final List<Invoice>        invoices       = new ArrayList<>();
+    private final List<VitalSignDTO>      vitals         = new ArrayList<>();
+    private final List<MedicalRecordDTO>  medicalRecords = new ArrayList<>();
+    private final List<AppointmentDTO>    appointments   = new ArrayList<>();
+    private final List<PrescriptionDTO>   prescriptions  = new ArrayList<>();
+    private final List<LabOrderDTO>       labOrders      = new ArrayList<>();
+    private final List<PatientAllergyDTO> allergies      = new ArrayList<>();
+    private final List<InvoiceDTO>        invoices       = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PATIENTS);
 
         backBtn.setOnAction(e -> navigateBack());
         editPatientBtn.setOnAction(e -> openEditPatientDialog());
+        editPatientBtn.setVisible(canUpdate(PageRoute.PATIENT_DETAIL));
+        editPatientBtn.setManaged(canUpdate(PageRoute.PATIENT_DETAIL));
 
+        applyCreateVisibility(addVitalBtn, PageRoute.PATIENT_DETAIL);
         addVitalBtn.setOnAction(e -> openVitalDialog(null));
-        vitalSignTableController.setRowActions(this::openVitalDialog, this::confirmDeleteVital, this::viewVitalDetail);
+        vitalSignTableController.setRowActions(
+            allowUpdate(PageRoute.PATIENT_DETAIL, this::openVitalDialog),
+            allowDelete(PageRoute.PATIENT_DETAIL, this::confirmDeleteVital),
+            allowRead(PageRoute.PATIENT_DETAIL, this::viewVitalDetail));
 
+        applyCreateVisibility(addRecordBtn, PageRoute.MEDICAL_RECORDS);
+        applyCreateVisibility(addPrescriptionBtn, PageRoute.PRESCRIPTIONS);
         addRecordBtn.setOnAction(e -> openRecordDialog(null));
-        addPrescriptionBtn.setOnAction(e -> openPrescriptionDialog(null));
+        addPrescriptionBtn.setOnAction(e -> openPrescriptionDialog());
 
+        applyCreateVisibility(addAllergyBtn, PageRoute.PATIENT_DETAIL);
         addAllergyBtn.setOnAction(e -> openAllergyDialog(null));
-        patientAllergyTableController.setRowActions(this::openAllergyDialog, this::confirmDeleteAllergy, this::viewAllergyDetail);
+        patientAllergyTableController.setRowActions(
+            allowUpdate(PageRoute.PATIENT_DETAIL, this::openAllergyDialog),
+            allowDelete(PageRoute.PATIENT_DETAIL, this::confirmDeleteAllergy),
+            allowRead(PageRoute.PATIENT_DETAIL, this::viewAllergyDetail));
 
         // Medical Records, Appointments, Prescriptions, Lab Results and Billing are read-only
         // in this drill-down (full CRUD lives on their own pages) — hide their Actions column
@@ -147,7 +209,8 @@ public class PatientDetailController extends BasePageController {
         List.of(firstName, lastName, phone, email, address).forEach(f -> f.getStyleClass().add("form-input"));
         dob.getStyleClass().add("form-date-picker");
         gender.getStyleClass().add("form-combo");
-        gender.getItems().addAll("Male", "Female", "Other");
+        // Populate from the canonical Gender enum labels to ensure consistency with DTOs/schema
+        gender.getItems().setAll(Arrays.stream(Gender.values()).map(Gender::getLabel).collect(Collectors.toList()));
         gender.setValue(currentPatient.getGender());
 
         formDialogController.open("Update Patient", "fas-user-injured", false, v -> {
@@ -159,17 +222,19 @@ public class PatientDetailController extends BasePageController {
                 return;
             }
 
-            currentPatient.setFirstName(fn);
-            currentPatient.setLastName(ln);
-            currentPatient.setDob(dob.getValue());
-            currentPatient.setGender(gender.getValue());
-            currentPatient.setPhone(phone.getText());
-            currentPatient.setEmail(email.getText());
-            currentPatient.setAddress(address.getText());
-
-            loadPatient(currentPatient);
-            formDialogController.close();
-            toastSuccess("Patient updated.");
+            try {
+                PatientDTO updated = patientService.update(new UpdatePatientDTO(
+                        currentPatient.getPatientId(), phone.getText(), email.getText(), address.getText()));
+                loadPatient(updated);
+                formDialogController.close();
+                toastSuccess("Patient updated.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save patient: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("First Name", "fas-user", firstName);
@@ -182,7 +247,7 @@ public class PatientDetailController extends BasePageController {
     }
 
     /** Call this from the navigating controller to load a specific patient. */
-    public void loadPatient(Patient patient) {
+    public void loadPatient(PatientDTO patient) {
         this.currentPatient = patient;
         fullNameLabel.setText(patient.getFullName());
         patientIdLabel.setText("ID: " + patient.getPatientId());
@@ -192,6 +257,99 @@ public class PatientDetailController extends BasePageController {
         emailLabel.setText("Email: " + (patient.getEmail() != null ? patient.getEmail() : "—"));
         addressLabel.setText("Address: " + (patient.getAddress() != null ? patient.getAddress() : "—"));
         patientNameLabel.setText(patient.getFullName());
+        refreshVitals();
+        refreshAllergies();
+        refreshAppointments();
+        refreshInvoices();
+    }
+
+    private void refreshVitals() {
+        if (currentPatient == null) return;
+        try {
+            vitals.clear();
+            vitals.addAll(vitalSignService.findByPatient(currentPatient.getPatientId()));
+            vitalSignTableController.setItems(vitals);
+        } catch (Exception e) {
+            toastError("Failed to load vitals: " + e.getMessage());
+        }
+    }
+
+    private void refreshAllergies() {
+        if (currentPatient == null) return;
+        try {
+            allergies.clear();
+            allergies.addAll(allergyService.findByPatient(currentPatient.getPatientId()));
+            patientAllergyTableController.setItems(allergies);
+        } catch (Exception e) {
+            toastError("Failed to load allergies: " + e.getMessage());
+        }
+    }
+
+    private void refreshAppointments() {
+        if (currentPatient == null) return;
+        try {
+            appointments.clear();
+            appointments.addAll(appointmentService.findByPatient(currentPatient.getPatientId()));
+            detailAppointmentTableController.setItems(appointments);
+            refreshMedicalRecords();
+            refreshPrescriptions();
+            refreshLabOrders();
+        } catch (Exception e) {
+            toastError("Failed to load appointments: " + e.getMessage());
+        }
+    }
+
+    private void refreshMedicalRecords() {
+        try {
+            medicalRecords.clear();
+            for (AppointmentDTO appointment : appointments) {
+                try {
+                    medicalRecords.add(medicalRecordService.findByAppointment(appointment.getAppointmentId()));
+                } catch (ResourceNotFoundException ignored) {
+                }
+            }
+            detailMedicalRecordTableController.setItems(medicalRecords);
+        } catch (Exception e) {
+            toastError("Failed to load medical records: " + e.getMessage());
+        }
+    }
+
+    private void refreshPrescriptions() {
+        try {
+            prescriptions.clear();
+            for (AppointmentDTO appointment : appointments) {
+                try {
+                    prescriptions.add(prescriptionService.findByAppointment(appointment.getAppointmentId()));
+                } catch (ResourceNotFoundException ignored) {
+                }
+            }
+            detailPrescriptionTableController.setItems(prescriptions);
+        } catch (Exception e) {
+            toastError("Failed to load prescriptions: " + e.getMessage());
+        }
+    }
+
+    private void refreshLabOrders() {
+        try {
+            labOrders.clear();
+            for (AppointmentDTO appointment : appointments) {
+                labOrders.addAll(labService.findOrdersByAppointment(appointment.getAppointmentId()));
+            }
+            detailLabOrderTableController.setItems(labOrders);
+        } catch (Exception e) {
+            toastError("Failed to load lab orders: " + e.getMessage());
+        }
+    }
+
+    private void refreshInvoices() {
+        if (currentPatient == null) return;
+        try {
+            invoices.clear();
+            invoices.addAll(invoiceService.findByPatient(currentPatient.getPatientId()));
+            detailInvoiceTableController.setItems(invoices);
+        } catch (Exception e) {
+            toastError("Failed to load invoices: " + e.getMessage());
+        }
     }
 
     private void refreshAllTables() {
@@ -206,7 +364,7 @@ public class PatientDetailController extends BasePageController {
 
     // ── Vitals ────────────────────────────────────────────────────────────
 
-    private void viewVitalDetail(VitalSign vital) {
+    private void viewVitalDetail(VitalSignDTO vital) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Heart Rate (bpm)", vital.getHeartRate() == null ? null : String.valueOf(vital.getHeartRate()));
         fields.put("Blood Pressure", (vital.getBloodPressureSystolic() == null || vital.getBloodPressureDiastolic() == null)
@@ -218,34 +376,43 @@ public class PatientDetailController extends BasePageController {
         detailViewController.show("Vital Record Details", "fas-heartbeat", fields);
     }
 
-    private void confirmDeleteVital(VitalSign vital) {
+    private void confirmDeleteVital(VitalSignDTO vital) {
         confirm("Delete Vital Record",
                 "Are you sure you want to delete this vital record? This cannot be undone.",
                 () -> {
-                    vitals.remove(vital);
-                    vitalSignTableController.setItems(vitals);
-                    toastSuccess("Vital record deleted.");
+                    try {
+                        vitalSignService.delete(vital.getVitalId());
+                        refreshVitals();
+                        toastSuccess("Vital record deleted.");
+                    } catch (Exception e) {
+                        toastError("Failed to delete vital record: " + e.getMessage());
+                    }
                 });
     }
 
-    /** Opens the shared form dialog in Add mode (vital == null) or Update mode. */
-    private void openVitalDialog(VitalSign vital) {
-        boolean addMode = vital == null;
-
+    /** Opens the shared form dialog to record a vital reading for the current patient's appointment. */
+    private void openVitalDialog(VitalSignDTO vital) {
+        LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
         TextField heartRate   = new TextField();
         TextField temperature = new TextField();
         TextField weight      = new TextField();
         TextField height      = new TextField();
         List.of(heartRate, temperature, weight, height).forEach(f -> f.getStyleClass().add("form-input"));
+        appointmentId.getStyleClass().add("form-combo");
 
-        if (!addMode) {
+        List<Control> vitalOtherFields = List.of(heartRate, temperature, weight, height);
+        vitalOtherFields.forEach(f -> f.setDisable(true));
+
+        if (vital != null) {
             if (vital.getHeartRate() != null) heartRate.setText(String.valueOf(vital.getHeartRate()));
             if (vital.getTemperatureCelsius() != null) temperature.setText(vital.getTemperatureCelsius().toString());
             if (vital.getWeightKg() != null) weight.setText(vital.getWeightKg().toString());
             if (vital.getHeightCm() != null) height.setText(vital.getHeightCm().toString());
         }
 
-        formDialogController.open(addMode ? "Record Vital" : "Update Vital", "fas-heartbeat", addMode, v -> {
+        formDialogController.open("Record Vital", "fas-heartbeat", true, v -> {
+            String appt = appointmentId.getSelectedId();
             Integer hr;
             BigDecimal temp;
             BigDecimal wt;
@@ -260,31 +427,39 @@ public class PatientDetailController extends BasePageController {
                 formDialogController.setLoading(false);
                 return;
             }
+            if (appt == null) {
+                formDialogController.setError("Appointment is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
 
-            VitalSign target = addMode ? new VitalSign() : vital;
-            if (addMode) target.setVitalId(UUID.randomUUID().toString());
-            target.setHeartRate(hr);
-            target.setTemperatureCelsius(temp);
-            target.setWeightKg(wt);
-            target.setHeightCm(ht);
-            target.setRecordedAt(LocalDateTime.now());
-
-            if (addMode) vitals.add(target);
-            vitalSignTableController.setItems(vitals);
-            formDialogController.close();
-            toastSuccess(addMode ? "Vital recorded." : "Vital updated.");
+            try {
+                vitalSignService.record(new CreateVitalSignDTO(appt, null, null, hr, temp, wt, ht));
+                refreshVitals();
+                formDialogController.close();
+                toastSuccess("Vital recorded.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save vital: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
+        formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
         formDialogController.addField("Heart Rate (bpm)", "fas-heartbeat", heartRate);
         formDialogController.addField("Temperature (°C)", "fas-thermometer-half", temperature);
         formDialogController.addField("Weight (kg)", "fas-weight", weight);
         formDialogController.addField("Height (cm)", "fas-ruler-vertical", height);
+
+        loadAppointmentDropdown(appointmentIdField, vitalOtherFields, null);
     }
 
     // ── Medical records ──────────────────────────────────────────────────
 
     /** Opens the shared form dialog in Add mode (record == null) or Update mode. */
-    private void openRecordDialog(MedicalRecord record) {
+    private void openRecordDialog(MedicalRecordDTO record) {
         boolean addMode = record == null;
 
         LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
@@ -315,22 +490,26 @@ public class PatientDetailController extends BasePageController {
                 return;
             }
 
-            MedicalRecord target = addMode ? new MedicalRecord() : record;
-            if (addMode) {
-                target.setRecordId(UUID.randomUUID().toString());
-                target.setCreatedAt(LocalDateTime.now());
-            } else {
-                target.setUpdatedAt(LocalDateTime.now());
-            }
-            target.setAppointmentId(appt);
-            target.setDiagnosis(diag);
-            target.setSymptoms(symptoms.getText());
-            target.setNotes(notes.getText());
+            try {
+                CreateMedicalRecordDTO dto = new CreateMedicalRecordDTO(appt, diag, symptoms.getText(), notes.getText());
+                if (addMode) {
+                    medicalRecordService.create(dto);
+                } else {
+                    medicalRecordService.update(record.getRecordId(), dto);
+                }
 
-            if (addMode) medicalRecords.add(target);
-            detailMedicalRecordTableController.setItems(medicalRecords);
-            formDialogController.close();
-            toastSuccess(addMode ? "Medical record added." : "Medical record updated.");
+                mirrorNotesToNoSql(appt, notes.getText());
+
+                refreshMedicalRecords();
+                formDialogController.close();
+                toastSuccess(addMode ? "Medical record added." : "Medical record updated.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save medical record: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
@@ -341,48 +520,186 @@ public class PatientDetailController extends BasePageController {
         loadAppointmentDropdown(appointmentIdField, recordOtherFields, addMode ? null : record.getAppointmentId());
     }
 
+    private void mirrorNotesToNoSql(String appointmentId, String noteText) {
+        try {
+            if (currentPatient == null || noteText == null || noteText.trim().isEmpty()) {
+                return;
+            }
+            String role = SessionManager.getCurrentRole();
+            if (!("doctor".equalsIgnoreCase(role) || "admin".equalsIgnoreCase(role))) {
+                return;
+            }
+            patientNotesNoSqlService.saveNote(
+                    currentPatient.getPatientId(),
+                    appointmentId,
+                    SessionManager.getCurrentUserId(),
+                    role,
+                    noteText.trim());
+        } catch (Exception ignored) {
+            // Best-effort mirror: SQL medical record remains the source of truth.
+        }
+    }
+
     // ── Prescriptions ─────────────────────────────────────────────────────
 
-    /** Opens the shared form dialog in Add mode (prescription == null) or Update mode. */
-    private void openPrescriptionDialog(Prescription prescription) {
-        boolean addMode = prescription == null;
-
+    /** Opens the shared form dialog to issue a new prescription for the current patient. */
+    private void openPrescriptionDialog() {
         LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
         EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
         DatePicker dateIssued   = new DatePicker();
+
+        LoadingIdComboBox medicationField = new LoadingIdComboBox();
+        EntityIdComboBox medicationId = medicationField.getComboBox();
+        TextField dosage        = new TextField();
+        TextField quantity      = new TextField();
+        TextField instructions  = new TextField();
+        dosage.setPromptText("Dosage");
+        quantity.setPromptText("Qty");
+        instructions.setPromptText("Instructions");
+        Button addItemBtn    = new Button("Add Item");
+        Button removeItemBtn = new Button("Remove Selected");
+        ListView<String> itemsList = new ListView<>();
+        itemsList.setPrefHeight(110);
+
         appointmentId.getStyleClass().add("form-combo");
         dateIssued.getStyleClass().add("form-date-picker");
+        List.of(dosage, quantity, instructions).forEach(f -> f.getStyleClass().add("form-input"));
+        medicationId.getStyleClass().add("form-combo");
+        addItemBtn.getStyleClass().add("secondary-button");
+        removeItemBtn.getStyleClass().add("secondary-button");
 
         List<Control> prescriptionOtherFields = List.of(dateIssued);
         prescriptionOtherFields.forEach(f -> f.setDisable(true));
+        List<Control> itemEditorFields = List.of(dosage, quantity, instructions, addItemBtn, removeItemBtn);
+        itemEditorFields.forEach(f -> f.setDisable(true));
 
-        if (!addMode) {
-            dateIssued.setValue(prescription.getDateIssued());
-        }
+        List<CreatePrescriptionItemDTO> draftItems = new ArrayList<>();
 
-        formDialogController.open(addMode ? "New Prescription" : "Update Prescription", "fas-prescription", addMode, v -> {
+        addItemBtn.setOnAction(e -> {
+            String medId = medicationId.getSelectedId();
+            String medLabel = medicationId.getValue() == null ? "" : medicationId.getValue().label();
+            String qtyText = quantity.getText() == null ? "" : quantity.getText().trim();
+            if (medId == null) {
+                toastError("Select a medication first.");
+                return;
+            }
+            int qty;
+            try {
+                qty = Integer.parseInt(qtyText);
+            } catch (NumberFormatException ex) {
+                toastError("Quantity must be a whole number.");
+                return;
+            }
+            if (qty <= 0) {
+                toastError("Quantity must be greater than zero.");
+                return;
+            }
+            draftItems.add(new CreatePrescriptionItemDTO(medId, dosage.getText(), qty, instructions.getText()));
+            itemsList.getItems().add(medLabel + " | " + dosage.getText() + " | qty " + qty
+                    + (instructions.getText() == null || instructions.getText().isBlank() ? "" : " | " + instructions.getText()));
+            dosage.clear();
+            quantity.clear();
+            instructions.clear();
+        });
+
+        removeItemBtn.setOnAction(e -> {
+            int index = itemsList.getSelectionModel().getSelectedIndex();
+            if (index < 0) {
+                toastError("Select an item in the list to remove it.");
+                return;
+            }
+            itemsList.getItems().remove(index);
+            draftItems.remove(index);
+        });
+
+        VBox itemsBox = new VBox(6);
+        HBox itemInputRow = new HBox(6, medicationField, dosage, quantity, instructions, addItemBtn);
+        itemInputRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        itemsBox.getChildren().addAll(itemInputRow, itemsList, removeItemBtn);
+
+        formDialogController.open("New Prescription", "fas-prescription", true, v -> {
             String apptId = appointmentId.getSelectedId();
             if (apptId == null || dateIssued.getValue() == null) {
                 formDialogController.setError("Appointment and date issued are required.");
                 formDialogController.setLoading(false);
                 return;
             }
+            if (draftItems.isEmpty()) {
+                formDialogController.setError("A prescription must include at least one medication item.");
+                formDialogController.setLoading(false);
+                return;
+            }
 
-            Prescription target = addMode ? new Prescription() : prescription;
-            if (addMode) target.setPrescriptionId(UUID.randomUUID().toString());
-            target.setAppointmentId(apptId);
-            target.setDateIssued(dateIssued.getValue());
-
-            if (addMode) prescriptions.add(target);
-            detailPrescriptionTableController.setItems(prescriptions);
-            formDialogController.close();
-            toastSuccess(addMode ? "Prescription added." : "Prescription updated.");
+            try {
+                prescriptionService.issue(new CreatePrescriptionDTO(apptId, dateIssued.getValue(), List.copyOf(draftItems)));
+                refreshPrescriptions();
+                formDialogController.close();
+                toastSuccess("Prescription issued.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to issue prescription: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
         formDialogController.addField("Date Issued", "fas-calendar", dateIssued);
+        formDialogController.addField("Medication", "fas-pills", medicationField);
+        formDialogController.addRow(itemsBox);
 
-        loadAppointmentDropdown(appointmentIdField, prescriptionOtherFields, addMode ? null : prescription.getAppointmentId());
+        loadPrescriptionDropdowns(appointmentIdField, medicationField, prescriptionOtherFields, itemEditorFields);
+    }
+
+    /** Loads the appointment and medication dropdown options asynchronously for the prescription dialog. */
+    private void loadPrescriptionDropdowns(LoadingIdComboBox appointmentIdField, LoadingIdComboBox medicationField,
+                                           List<Control> otherFields, List<Control> itemEditorFields) {
+        EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+        EntityIdComboBox medicationId = medicationField.getComboBox();
+
+        appointmentIdField.setLoading(true);
+        medicationField.setLoading(true);
+        formDialogController.setLoading(true);
+
+        java.util.concurrent.atomic.AtomicInteger pending = new java.util.concurrent.atomic.AtomicInteger(2);
+        Runnable onOneLoaded = () -> {
+            if (pending.decrementAndGet() == 0) {
+                otherFields.forEach(f -> f.setDisable(false));
+                itemEditorFields.forEach(f -> f.setDisable(false));
+                formDialogController.setLoading(false);
+            }
+        };
+
+        AsyncJobRunner.submit(
+            () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
+            items -> {
+                appointmentId.setOptions(items.stream()
+                        .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
+                                a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
+                        .toList());
+                appointmentIdField.setLoading(false);
+                onOneLoaded.run();
+            },
+            ex -> {
+                appointmentIdField.setLoading(false);
+                toastError("Failed to load appointments: " + ex.getMessage());
+                onOneLoaded.run();
+            });
+
+        AsyncJobRunner.submit(
+            pharmacyService::findAllMedications,
+            items -> {
+                medicationId.setOptions(items.stream()
+                        .map(m -> new EntityIdComboBox.Option(m.getMedicationId(), m.getName())).toList());
+                medicationField.setLoading(false);
+                onOneLoaded.run();
+            },
+            ex -> {
+                medicationField.setLoading(false);
+                toastError("Failed to load medications: " + ex.getMessage());
+                onOneLoaded.run();
+            });
     }
 
     /** Loads the appointment dropdown options asynchronously (shared by the Medical Record and
@@ -416,7 +733,7 @@ public class PatientDetailController extends BasePageController {
 
     // ── Allergies ─────────────────────────────────────────────────────────
 
-    private void viewAllergyDetail(PatientAllergy allergy) {
+    private void viewAllergyDetail(PatientAllergyDTO allergy) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Allergen", allergy.getAllergen());
         fields.put("Reaction", allergy.getReaction());
@@ -425,55 +742,59 @@ public class PatientDetailController extends BasePageController {
         detailViewController.show("Allergy Details", "fas-allergies", fields);
     }
 
-    private void confirmDeleteAllergy(PatientAllergy allergy) {
+    private void confirmDeleteAllergy(PatientAllergyDTO allergy) {
         confirm("Delete Allergy",
                 "Are you sure you want to delete the allergy \"" + allergy.getAllergen() + "\"? This cannot be undone.",
                 () -> {
-                    allergies.remove(allergy);
-                    patientAllergyTableController.setItems(allergies);
-                    toastSuccess("Allergy deleted.");
+                    try {
+                        allergyService.delete(allergy.getAllergyId());
+                        refreshAllergies();
+                        toastSuccess("Allergy deleted.");
+                    } catch (Exception e) {
+                        toastError("Failed to delete allergy: " + e.getMessage());
+                    }
                 });
     }
 
-    /** Opens the shared form dialog in Add mode (allergy == null) or Update mode. */
-    private void openAllergyDialog(PatientAllergy allergy) {
-        boolean addMode = allergy == null;
-
+    /** Opens the shared form dialog to record a new allergy for the current patient. */
+    private void openAllergyDialog(PatientAllergyDTO allergy) {
         TextField allergen = new TextField();
         TextField reaction = new TextField();
         TextField severity = new TextField();
         List.of(allergen, reaction, severity).forEach(f -> f.getStyleClass().add("form-input"));
 
-        if (!addMode) {
+        if (allergy != null) {
             allergen.setText(allergy.getAllergen());
             reaction.setText(allergy.getReaction());
             severity.setText(allergy.getSeverity());
         }
 
-        formDialogController.open(addMode ? "Add Allergy" : "Update Allergy", "fas-allergies", addMode, v -> {
+        formDialogController.open("Add Allergy", "fas-allergies", true, v -> {
             String allergenText = allergen.getText() == null ? "" : allergen.getText().trim();
             if (allergenText.isEmpty()) {
                 formDialogController.setError("Allergen is required.");
                 formDialogController.setLoading(false);
                 return;
             }
-
-            PatientAllergy target = addMode ? new PatientAllergy() : allergy;
-            if (addMode) {
-                target.setAllergyId(UUID.randomUUID().toString());
-                target.setCreatedAt(LocalDateTime.now());
-                if (currentPatient != null) target.setPatientId(currentPatient.getPatientId());
-            } else {
-                target.setUpdatedAt(LocalDateTime.now());
+            if (currentPatient == null) {
+                formDialogController.setError("No patient loaded.");
+                formDialogController.setLoading(false);
+                return;
             }
-            target.setAllergen(allergenText);
-            target.setReaction(reaction.getText());
-            target.setSeverity(severity.getText());
 
-            if (addMode) allergies.add(target);
-            patientAllergyTableController.setItems(allergies);
-            formDialogController.close();
-            toastSuccess(addMode ? "Allergy added." : "Allergy updated.");
+            try {
+                allergyService.add(new CreatePatientAllergyDTO(
+                        currentPatient.getPatientId(), allergenText, reaction.getText(), severity.getText()));
+                refreshAllergies();
+                formDialogController.close();
+                toastSuccess("Allergy added.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save allergy: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("Allergen", "fas-allergies", allergen);

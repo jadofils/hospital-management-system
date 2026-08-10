@@ -69,8 +69,9 @@ final class L1Cache {
 
     static <T> void put(String key, T value, long ttlSeconds) {
         if (ttlSeconds <= 0) return;
-        enforceCapacity();
         STORE.put(key, new CacheEntry<>(value, ttlSeconds));
+        // Enforce after put so concurrent writers cannot permanently push size above max.
+        enforceCapacity();
     }
 
     // ── Eviction ──────────────────────────────────────────────────────────
@@ -97,12 +98,18 @@ final class L1Cache {
      * O(n) scan — acceptable because it fires only when the map is full (rare).
      */
     private static void enforceCapacity() {
-        if (STORE.size() < MAX_ENTRIES) return;
-        STORE.entrySet().stream()
+        while (STORE.size() > MAX_ENTRIES) {
+            STORE.entrySet().stream()
                 .min(Map.Entry.comparingByValue(
-                        (a, b) -> Long.compare(a.lastAccessAtMs.get(), b.lastAccessAtMs.get())
+                    (a, b) -> Long.compare(a.lastAccessAtMs.get(), b.lastAccessAtMs.get())
                 ))
-                .ifPresent(lru -> STORE.remove(lru.getKey(), lru.getValue()));
+                .ifPresentOrElse(
+                    lru -> STORE.remove(lru.getKey(), lru.getValue()),
+                    () -> { /* no-op: map may have changed concurrently */ }
+                );
+            // Break guard for pathological races where size snapshots oscillate.
+            if (STORE.isEmpty()) break;
+        }
     }
 
     /** Daemon sweep: remove expired entries and entries idle for more than 5 minutes. */

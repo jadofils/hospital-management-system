@@ -8,6 +8,8 @@ import java.util.List;
 public interface DoctorScheduleService {
     DoctorScheduleDTO create(CreateDoctorScheduleDTO dto) throws Exception;
     List<DoctorScheduleDTO> findByDoctor(String doctorId) throws Exception;
+    /** All non-deleted schedule rows across every doctor, used to filter doctors by day availability. */
+    List<DoctorScheduleDTO> findAll() throws Exception;
     DoctorScheduleDTO update(String scheduleId, CreateDoctorScheduleDTO dto) throws Exception;
     void delete(String scheduleId) throws Exception;
 }

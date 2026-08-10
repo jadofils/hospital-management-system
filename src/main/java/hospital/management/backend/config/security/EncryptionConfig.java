@@ -31,7 +31,6 @@ import java.util.Base64;
  * Usage:
  *   String cipher = EncryptionConfig.encrypt("sensitive text");
  *   String plain  = EncryptionConfig.decrypt(cipher);
- *   String safe   = SanitizeUtils.maskForLog("token for user@example.com id=550e8400-...");
  */
 public final class EncryptionConfig {
 

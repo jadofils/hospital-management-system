@@ -1,17 +1,17 @@
 package hospital.management.pages.components.patient;
 
 import hospital.management.pages.components.PaginatedTableController;
-import hospital.management.backend.model.patient.PatientAllergy;
+import hospital.management.backend.dto.patient.PatientAllergyDTO;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.cell.PropertyValueFactory;
 
-public class PatientAllergyTableController extends PaginatedTableController<PatientAllergy> {
+public class PatientAllergyTableController extends PaginatedTableController<PatientAllergyDTO> {
 
-    @FXML private TableColumn<PatientAllergy, String> allergenColumn;
-    @FXML private TableColumn<PatientAllergy, String> reactionColumn;
-    @FXML private TableColumn<PatientAllergy, String> severityColumn;
-    @FXML private TableColumn<PatientAllergy, Void>    actionsColumn;
+    @FXML private TableColumn<PatientAllergyDTO, String> allergenColumn;
+    @FXML private TableColumn<PatientAllergyDTO, String> reactionColumn;
+    @FXML private TableColumn<PatientAllergyDTO, String> severityColumn;
+    @FXML private TableColumn<PatientAllergyDTO, Void>    actionsColumn;
 
     @Override
     protected void configureColumns() {
@@ -22,7 +22,7 @@ public class PatientAllergyTableController extends PaginatedTableController<Pati
     }
 
     @Override
-    protected boolean matches(PatientAllergy allergy, String lowerQuery) {
+    protected boolean matches(PatientAllergyDTO allergy, String lowerQuery) {
         String allergen = allergy.getAllergen();
         String reaction = allergy.getReaction();
         return (allergen != null && allergen.toLowerCase().contains(lowerQuery))

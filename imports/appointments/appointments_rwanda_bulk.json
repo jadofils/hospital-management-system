@@ -1,0 +1,112 @@
+[
+  {
+    "appointment_ref": "APT-RW-0001",
+    "patient_name": "Aline Mukamana",
+    "doctor_name": "Dr. Uwimana",
+    "department": "General Medicine",
+    "appointment_date": "2026-08-05",
+    "appointment_time": "08:30",
+    "status": "scheduled",
+    "hospital_branch": "CHUK Kigali"
+  },
+  {
+    "appointment_ref": "APT-RW-0002",
+    "patient_name": "Eric Nshimiyimana",
+    "doctor_name": "Dr. Nyirazinyoye",
+    "department": "Cardiology",
+    "appointment_date": "2026-08-05",
+    "appointment_time": "09:00",
+    "status": "scheduled",
+    "hospital_branch": "King Faisal Hospital"
+  },
+  {
+    "appointment_ref": "APT-RW-0003",
+    "patient_name": "Josiane Uwase",
+    "doctor_name": "Dr. Habimana",
+    "department": "Pediatrics",
+    "appointment_date": "2026-08-05",
+    "appointment_time": "09:45",
+    "status": "scheduled",
+    "hospital_branch": "CHUK Kigali"
+  },
+  {
+    "appointment_ref": "APT-RW-0004",
+    "patient_name": "Patrick Hakizimana",
+    "doctor_name": "Dr. Nkurunziza",
+    "department": "Orthopedics",
+    "appointment_date": "2026-08-05",
+    "appointment_time": "10:15",
+    "status": "scheduled",
+    "hospital_branch": "CHUB Butare"
+  },
+  {
+    "appointment_ref": "APT-RW-0005",
+    "patient_name": "Claudine Ingabire",
+    "doctor_name": "Dr. Mukeshimana",
+    "department": "Dermatology",
+    "appointment_date": "2026-08-05",
+    "appointment_time": "11:00",
+    "status": "scheduled",
+    "hospital_branch": "Ruhengeri Hospital"
+  },
+  {
+    "appointment_ref": "APT-RW-0006",
+    "patient_name": "Emmanuel Rutayisire",
+    "doctor_name": "Dr. Mutesa",
+    "department": "Neurology",
+    "appointment_date": "2026-08-06",
+    "appointment_time": "08:15",
+    "status": "scheduled",
+    "hospital_branch": "King Faisal Hospital"
+  },
+  {
+    "appointment_ref": "APT-RW-0007",
+    "patient_name": "Yvette Niyonkuru",
+    "doctor_name": "Dr. Uwamahoro",
+    "department": "ENT",
+    "appointment_date": "2026-08-06",
+    "appointment_time": "09:20",
+    "status": "scheduled",
+    "hospital_branch": "CHUK Kigali"
+  },
+  {
+    "appointment_ref": "APT-RW-0008",
+    "patient_name": "Jean Dusabimana",
+    "doctor_name": "Dr. Nsanzimana",
+    "department": "Oncology",
+    "appointment_date": "2026-08-06",
+    "appointment_time": "10:40",
+    "status": "scheduled",
+    "hospital_branch": "Butaro Cancer Center"
+  },
+  {
+    "appointment_ref": "APT-RW-0009",
+    "patient_name": "Sandrine Ndayishimiye",
+    "doctor_name": "Dr. Bizimana",
+    "department": "Gynecology",
+    "appointment_date": "2026-08-06",
+    "appointment_time": "11:10",
+    "status": "scheduled",
+    "hospital_branch": "CHUB Butare"
+  },
+  {
+    "appointment_ref": "APT-RW-0010",
+    "patient_name": "Claude Rwema",
+    "doctor_name": "Dr. Kayitesi",
+    "department": "Urology",
+    "appointment_date": "2026-08-07",
+    "appointment_time": "08:50",
+    "status": "scheduled",
+    "hospital_branch": "Rwamagana Hospital"
+  },
+  {
+    "appointment_ref": "APT-RW-0011",
+    "patient_name": "Diane Murekatete",
+    "doctor_name": "Dr. Umubyeyi",
+    "department": "Ophthalmology",
+    "appointment_date": "2026-08-07",
+    "appointment_time": "09:35",
+    "status": "scheduled",
+    "hospital_branch": "Kabgayi Eye Unit"
+  }
+]

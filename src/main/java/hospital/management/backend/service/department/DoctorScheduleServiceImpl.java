@@ -57,6 +57,15 @@ public class DoctorScheduleServiceImpl implements DoctorScheduleService {
     }
 
     @Override
+    public List<DoctorScheduleDTO> findAll() throws Exception {
+        List<DoctorScheduleDTO> dtos = new ArrayList<>();
+        for (DoctorSchedule schedule : scheduleDAO.findAll()) {
+            dtos.add(DoctorScheduleMapper.toDTO(schedule));
+        }
+        return dtos;
+    }
+
+    @Override
     public DoctorScheduleDTO update(String scheduleId, CreateDoctorScheduleDTO dto) throws Exception {
         DoctorSchedule schedule = scheduleDAO.findById(scheduleId)
                 .orElseThrow(() -> new ResourceNotFoundException("DoctorSchedule", scheduleId));

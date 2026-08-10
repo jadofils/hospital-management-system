@@ -120,7 +120,7 @@ WHERE  r.role_name = 'Admin'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 -- Doctor: create/read/update clinical tables; read-only on allergies/meds/inventory;
---         no delete, no billing, no users/RBAC
+--         create/read/update own availability (doctor_schedules); no delete, no billing, no users/RBAC
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM   roles r
@@ -134,6 +134,7 @@ JOIN   permissions p ON (p.resource, p.action) IN (
     ('vital_signs','create'),         ('vital_signs','read'),         ('vital_signs','update'),
     ('lab_orders','create'),          ('lab_orders','read'),          ('lab_orders','update'),
     ('lab_results','create'),         ('lab_results','read'),         ('lab_results','update'),
+    ('doctor_schedules','create'),    ('doctor_schedules','read'),    ('doctor_schedules','update'),
     ('patient_allergies','read'),
     ('medications','read'),
     ('medical_inventory','read')

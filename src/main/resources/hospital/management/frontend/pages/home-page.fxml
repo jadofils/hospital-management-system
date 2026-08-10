@@ -110,6 +110,13 @@
                             <VBox spacing="14" style="-fx-padding: 20px 0 0 0;">
                                 <VBox spacing="4">
                                     <HBox spacing="6" alignment="CENTER_LEFT">
+                                        <FontIcon iconLiteral="fas-user" iconSize="12" styleClass="field-icon"/>
+                                        <Label text="Quick Select User (username:role)" styleClass="form-field-label"/>
+                                    </HBox>
+                                    <ComboBox fx:id="userDropdown" editable="true" promptText="Search users by name or role"
+                                              styleClass="home-input" />
+
+                                    <HBox spacing="6" alignment="CENTER_LEFT" style="-fx-padding:8 0 0 0;">
                                         <FontIcon iconLiteral="fas-envelope" iconSize="12" styleClass="field-icon"/>
                                         <Label text="Email Address" styleClass="form-field-label"/>
                                     </HBox>
@@ -127,7 +134,7 @@
                                                    styleClass="home-input"/>
                                 </VBox>
                                 <Label fx:id="loginError" text="" styleClass="validation-error"/>
-                                <Button fx:id="loginBtn" styleClass="home-primary-btn" maxWidth="Infinity"
+                                <Button fx:id="loginBtn" styleClass="primary-button home-primary-btn" maxWidth="Infinity"
                                         onAction="#handleLogin" contentDisplay="LEFT" text="Sign In">
                                     <graphic><FontIcon iconLiteral="fas-sign-in-alt" iconSize="14"/></graphic>
                                 </Button>
@@ -155,7 +162,7 @@
                                                styleClass="home-input"/>
                                 </VBox>
                                 <Label fx:id="resetMessage" text="" styleClass="body-text" wrapText="true"/>
-                                <Button styleClass="home-primary-btn" maxWidth="Infinity"
+                                <Button styleClass="primary-button home-primary-btn" maxWidth="Infinity"
                                         onAction="#handleResetPassword" contentDisplay="LEFT"
                                         text="Send Reset Link">
                                     <graphic><FontIcon iconLiteral="fas-paper-plane" iconSize="14"/></graphic>

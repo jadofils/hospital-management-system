@@ -22,25 +22,14 @@
 
     <Region minWidth="24"/>
 
-    <Button styleClass="navbar-btn" onAction="#handleDashboard" contentDisplay="LEFT" text="Dashboard">
-        <graphic><FontIcon iconLiteral="fas-th-large" iconSize="13"/></graphic>
-    </Button>
-    <Button styleClass="navbar-btn" onAction="#handlePatients" contentDisplay="LEFT" text="Patients">
-        <graphic><FontIcon iconLiteral="fas-user-injured" iconSize="13"/></graphic>
-    </Button>
-    <Button styleClass="navbar-btn" onAction="#handleAppointments" contentDisplay="LEFT" text="Appointments">
-        <graphic><FontIcon iconLiteral="fas-calendar-check" iconSize="13"/></graphic>
-    </Button>
-    <Button styleClass="navbar-btn" onAction="#handleBilling" contentDisplay="LEFT" text="Billing">
-        <graphic><FontIcon iconLiteral="fas-file-invoice-dollar" iconSize="13"/></graphic>
-    </Button>
+    <!-- Dashboard, Patients, Appointments and Billing removed from navbar per request -->
 
     <Region HBox.hgrow="ALWAYS"/>
 
     <Button styleClass="navbar-icon-btn" onAction="#handleNotifications">
         <graphic><FontIcon iconLiteral="fas-bell" iconSize="16"/></graphic>
     </Button>
-    <Button styleClass="navbar-btn" onAction="#handleProfile" contentDisplay="LEFT" text="Dr. Admin">
+    <Button fx:id="profileBtn" styleClass="navbar-btn" onAction="#handleProfile" contentDisplay="LEFT" text="User">
         <graphic><FontIcon iconLiteral="fas-user-circle" iconSize="15"/></graphic>
     </Button>
 </HBox>

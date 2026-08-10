@@ -1,12 +1,8 @@
 package hospital.management.backend.utils.pipes;
 
 import hospital.management.backend.config.AppLogger;
-import hospital.management.backend.utils.listeners.AppEventType;
-import hospital.management.backend.utils.listeners.EventBus;
 import javafx.application.Platform;
-import javafx.concurrent.Task;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -21,13 +17,6 @@ import java.util.function.Consumer;
  *
  * Usage — simple async call:
  *   AsyncJobRunner.submit(() -> patientService.getAll(req), result -> table.refresh());
- *
- * Usage — data cleaning with progress:
- *   AsyncJobRunner.clean(
- *       dirtyRows,
- *       row  -> pipeline.run(row),
- *       done -> EventBus.publish(AppEventType.DATA_CLEANING_COMPLETED, done)
- *   );
  */
 public final class AsyncJobRunner {
 
@@ -101,56 +90,5 @@ public final class AsyncJobRunner {
                 });
             }
         });
-    }
-
-    // ── Batch data cleaning ───────────────────────────────────────────────────
-
-    /**
-     * Processes a list of items in batches on a background thread, reporting
-     * progress through the EventBus (DATA_CLEANING_PROGRESS with Integer 0–100).
-     *
-     * Items that fail are logged and skipped. When finished, DATA_CLEANING_COMPLETED
-     * is published with the list of successfully cleaned items.
-     *
-     * @param items     the raw data to clean
-     * @param pipe      transformation applied to each item (may throw — item is skipped)
-     * @param onDone    called on the FX thread with the cleaned list when finished
-     */
-    public static <T, R> void clean(List<T> items,
-                                    DataPipe<T, R> pipe,
-                                    Consumer<List<R>> onDone) {
-        Task<List<R>> task = new Task<>() {
-            @Override
-            protected List<R> call() {
-                EventBus.publish(AppEventType.DATA_CLEANING_STARTED, items.size());
-                List<R> cleaned = new java.util.ArrayList<>(items.size());
-                int total = items.size();
-
-                for (int i = 0; i < total; i++) {
-                    try {
-                        cleaned.add(pipe.process(items.get(i)));
-                    } catch (Exception e) {
-                        logger.warn("Cleaning skipped item " + i + ": " + e.getMessage());
-                    }
-                    int pct = (int) (((i + 1) / (double) total) * 100);
-                    updateProgress(i + 1, total);
-                    EventBus.publish(AppEventType.DATA_CLEANING_PROGRESS, pct);
-                }
-                return cleaned;
-            }
-        };
-
-        task.setOnSucceeded(e -> {
-            List<R> result = task.getValue();
-            EventBus.publish(AppEventType.DATA_CLEANING_COMPLETED, result);
-            onDone.accept(result);
-        });
-
-        task.setOnFailed(e -> {
-            logger.error("Data cleaning task failed", task.getException());
-            EventBus.publish(AppEventType.DATA_CLEANING_FAILED, task.getException());
-        });
-
-        POOL.submit(task);
     }
 }

@@ -1,7 +1,12 @@
 package hospital.management.pages.doctor;
 
 import hospital.management.pages.BasePageController;
-import hospital.management.backend.model.doctor.Department;
+import hospital.management.backend.dao.department.DepartmentDAOImpl;
+import hospital.management.backend.dto.doctor.CreateDepartmentDTO;
+import hospital.management.backend.dto.doctor.DepartmentDTO;
+import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.service.department.DepartmentServiceImpl;
+import hospital.management.backend.service.department.interfaces.DepartmentService;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.doctor.DepartmentTableController;
 import javafx.fxml.FXML;
@@ -11,9 +16,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 public class DepartmentsPageController extends BasePageController {
+
+    private final DepartmentService departmentService = new DepartmentServiceImpl(new DepartmentDAOImpl());
 
     @FXML private DepartmentTableController departmentTableController;
 
@@ -21,15 +27,19 @@ public class DepartmentsPageController extends BasePageController {
     @FXML private TextField searchField;
     @FXML private Button    addDeptBtn;
 
-    private final List<Department> departments = new ArrayList<>();
+    private List<DepartmentDTO> departments = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.DEPARTMENTS);
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
+        applyCreateVisibility(addDeptBtn, PageRoute.DEPARTMENTS);
         addDeptBtn.setOnAction(e -> openDepartmentDialog(null));
-        departmentTableController.setRowActions(this::openDepartmentDialog, this::confirmDeleteDepartment, this::viewDepartmentDetail);
+        departmentTableController.setRowActions(
+            allowUpdate(PageRoute.DEPARTMENTS, this::openDepartmentDialog),
+            allowDelete(PageRoute.DEPARTMENTS, this::confirmDeleteDepartment),
+            allowRead(PageRoute.DEPARTMENTS, this::viewDepartmentDetail));
 
         refreshTable();
     }
@@ -39,11 +49,16 @@ public class DepartmentsPageController extends BasePageController {
     }
 
     private void refreshTable() {
-        departmentTableController.setItems(departments);
-        totalLabel.setText("Total: " + departments.size() + " departments");
+        try {
+            departments = departmentService.findAll();
+            departmentTableController.setItems(departments);
+            totalLabel.setText("Total: " + departments.size() + " departments");
+        } catch (Exception e) {
+            toastError("Failed to load departments: " + e.getMessage());
+        }
     }
 
-    private void viewDepartmentDetail(Department department) {
+    private void viewDepartmentDetail(DepartmentDTO department) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Name", department.getName());
         fields.put("Location", department.getLocation());
@@ -51,18 +66,22 @@ public class DepartmentsPageController extends BasePageController {
         detailViewController.show("Department Details", "fas-hospital", fields);
     }
 
-    private void confirmDeleteDepartment(Department department) {
+    private void confirmDeleteDepartment(DepartmentDTO department) {
         confirm("Delete Department",
                 "Are you sure you want to delete " + department.getName() + "? This cannot be undone.",
                 () -> {
-                    departments.remove(department);
-                    refreshTable();
-                    toastSuccess("Department deleted.");
+                    try {
+                        departmentService.delete(department.getDepartmentId());
+                        refreshTable();
+                        toastSuccess("Department deleted.");
+                    } catch (Exception e) {
+                        toastError("Failed to delete department: " + e.getMessage());
+                    }
                 });
     }
 
     /** Opens the shared form dialog in Add mode (department == null) or Update mode. */
-    private void openDepartmentDialog(Department department) {
+    private void openDepartmentDialog(DepartmentDTO department) {
         boolean addMode = department == null;
 
         TextField name     = new TextField();
@@ -86,16 +105,23 @@ public class DepartmentsPageController extends BasePageController {
                 return;
             }
 
-            Department target = addMode ? new Department() : department;
-            if (addMode) target.setDepartmentId(UUID.randomUUID().toString());
-            target.setName(nm);
-            target.setLocation(loc);
-            target.setPhone(phone.getText());
-
-            if (addMode) departments.add(target);
-            refreshTable();
-            formDialogController.close();
-            toastSuccess(addMode ? "Department added." : "Department updated.");
+            try {
+                CreateDepartmentDTO dto = new CreateDepartmentDTO(nm, loc, phone.getText());
+                if (addMode) {
+                    departmentService.create(dto);
+                } else {
+                    departmentService.update(department.getDepartmentId(), dto);
+                }
+                refreshTable();
+                formDialogController.close();
+                toastSuccess(addMode ? "Department added." : "Department updated.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save department: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
         });
 
         formDialogController.addField("Name", "fas-hospital", name);

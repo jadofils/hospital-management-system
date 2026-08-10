@@ -4,9 +4,15 @@ import hospital.management.pages.BasePageController;
 import hospital.management.pages.QuickAddCapable;
 import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
 import hospital.management.backend.dao.department.DoctorDAOImpl;
+import hospital.management.backend.dao.finance.InvoiceDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
-import hospital.management.backend.model.finance.Invoice;
+import hospital.management.backend.dto.finance.CreateInvoiceDTO;
+import hospital.management.backend.dto.finance.InvoiceDTO;
+import hospital.management.backend.dto.finance.InvoiceSummaryDTO;
+import hospital.management.backend.exceptions.AppException;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.finance.InvoiceServiceImpl;
+import hospital.management.backend.service.finance.interfaces.InvoiceService;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.backend.utils.pagination.CursorPagination;
@@ -16,24 +22,30 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.finance.InvoiceTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
+import javafx.print.PrinterJob;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.text.Text;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class InvoicePageController extends BasePageController implements QuickAddCapable {
 
+    private static final String STATUS_PAID = "paid";
+
+    private final InvoiceService invoiceService = new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl());
     private final PatientServiceImpl patientService = new PatientServiceImpl(new PatientDAOImpl());
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
@@ -46,10 +58,11 @@ public class InvoicePageController extends BasePageController implements QuickAd
     @FXML private Label pendingLabel;
 
     @FXML private Button newInvoiceBtn;
+    @FXML private Button importCsvBtn;
     @FXML private Button exportCsvBtn;
     @FXML private Button printReportBtn;
 
-    private final List<Invoice> invoices = new ArrayList<>();
+    private final List<InvoiceDTO> invoices = new ArrayList<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.BILLING);
@@ -58,21 +71,55 @@ public class InvoicePageController extends BasePageController implements QuickAd
         paidLabel.setText("$0.00");
         pendingLabel.setText("$0.00");
 
-        newInvoiceBtn.setOnAction(e -> openInvoiceDialog(null));
-        exportCsvBtn.setOnAction(e -> toast("Export not yet implemented.", NotificationType.INFO));
-        printReportBtn.setOnAction(e -> toast("Print not yet implemented.", NotificationType.INFO));
+        applyCreateVisibility(newInvoiceBtn, PageRoute.BILLING);
+        applyCreateVisibility(importCsvBtn, PageRoute.BILLING);
+        newInvoiceBtn.setOnAction(e -> openInvoiceDialog());
+        importCsvBtn.setOnAction(e -> withSpinner(importCsvBtn, this::importInvoicesCsv));
+        exportCsvBtn.setOnAction(e -> withSpinner(exportCsvBtn, this::exportInvoicesCsv));
+        printReportBtn.setOnAction(e -> printReport());
+        printReportBtn.setVisible(canRead(PageRoute.BILLING));
+        printReportBtn.setManaged(canRead(PageRoute.BILLING));
 
-        invoiceTableController.setRowActions(this::openInvoiceDialog, this::confirmDeleteInvoice, this::viewInvoiceDetail);
-        invoiceTableController.setOnChangeStatus(this::openInvoiceStatusDialog);
+        invoiceTableController.setRowActions(
+            canUpdate(PageRoute.BILLING) ? invoice -> toast("Invoices can't be edited after issuance.", NotificationType.INFO) : null,
+            allowDelete(PageRoute.BILLING, this::confirmDeleteInvoice),
+            allowRead(PageRoute.BILLING, this::viewInvoiceDetail));
+        invoiceTableController.setOnChangeStatus(canUpdate(PageRoute.BILLING) ? this::markInvoicePaid : null);
 
         refreshTable();
     }
 
     private void refreshTable() {
-        invoiceTableController.setItems(invoices);
+        try {
+            invoices.clear();
+            List<InvoiceSummaryDTO> summaries =
+                    invoiceService.findAll(CursorPagination.firstPage(500)).getItems();
+            for (InvoiceSummaryDTO summary : summaries) {
+                invoices.add(invoiceService.findById(summary.getInvoiceId()));
+            }
+            invoiceTableController.setItems(invoices);
+            updateSummaryLabels();
+        } catch (Exception e) {
+            toastError("Failed to load invoices: " + e.getMessage());
+        }
     }
 
-    private void viewInvoiceDetail(Invoice invoice) {
+    private void updateSummaryLabels() {
+        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal paid = BigDecimal.ZERO;
+        for (InvoiceDTO invoice : invoices) {
+            BigDecimal amount = invoice.getTotalAmount() == null ? BigDecimal.ZERO : invoice.getTotalAmount();
+            total = total.add(amount);
+            if (STATUS_PAID.equalsIgnoreCase(invoice.getPaymentStatus())) {
+                paid = paid.add(amount);
+            }
+        }
+        totalRevenueLabel.setText("$" + total.toPlainString());
+        paidLabel.setText("$" + paid.toPlainString());
+        pendingLabel.setText("$" + total.subtract(paid).toPlainString());
+    }
+
+    private void viewInvoiceDetail(InvoiceDTO invoice) {
         Map<String, String> fields = new LinkedHashMap<>();
         try {
             fields.put("Patient", entityLookupService.patientLabel(invoice.getPatientId()));
@@ -86,25 +133,46 @@ public class InvoicePageController extends BasePageController implements QuickAd
         detailViewController.show("Invoice Details", "fas-file-invoice-dollar", fields);
     }
 
-    private void confirmDeleteInvoice(Invoice invoice) {
+    private void confirmDeleteInvoice(InvoiceDTO invoice) {
         confirm("Delete Invoice",
                 "Are you sure you want to delete invoice " + invoice.getInvoiceId() + "? This cannot be undone.",
                 () -> {
-                    invoices.remove(invoice);
-                    refreshTable();
-                    toastSuccess("Invoice deleted.");
+                    try {
+                        invoiceService.delete(invoice.getInvoiceId());
+                        refreshTable();
+                        toastSuccess("Invoice deleted.");
+                    } catch (Exception e) {
+                        toastError("Failed to delete invoice: " + e.getMessage());
+                    }
+                });
+    }
+
+    /** The backend's only payment-status transition is to mark an unpaid invoice as paid. */
+    private void markInvoicePaid(InvoiceDTO invoice) {
+        if (STATUS_PAID.equalsIgnoreCase(invoice.getPaymentStatus())) {
+            toast("This invoice is already paid.", NotificationType.INFO);
+            return;
+        }
+        confirm("Mark Invoice Paid",
+                "Are you sure you want to mark invoice " + invoice.getInvoiceId() + " as paid?",
+                () -> {
+                    try {
+                        invoiceService.markPaid(invoice.getInvoiceId());
+                        refreshTable();
+                        toastSuccess("Invoice marked as paid.");
+                    } catch (Exception e) {
+                        toastError("Failed to update invoice status: " + e.getMessage());
+                    }
                 });
     }
 
     @Override
     public void openAddDialog() {
-        openInvoiceDialog(null);
+        openInvoiceDialog();
     }
 
-    /** Opens the shared form dialog in Add mode (invoice == null) or Update mode. */
-    private void openInvoiceDialog(Invoice invoice) {
-        boolean addMode = invoice == null;
-
+    /** Opens the shared form dialog to generate a new invoice. */
+    private void openInvoiceDialog() {
         LoadingIdComboBox patientIdField     = new LoadingIdComboBox();
         LoadingIdComboBox appointmentIdField = new LoadingIdComboBox();
         EntityIdComboBox patientId     = patientIdField.getComboBox();
@@ -117,11 +185,7 @@ public class InvoicePageController extends BasePageController implements QuickAd
         List<Control> otherFields = List.of(totalAmount);
         otherFields.forEach(f -> f.setDisable(true));
 
-        if (!addMode) {
-            totalAmount.setText(invoice.getTotalAmount() == null ? "" : invoice.getTotalAmount().toPlainString());
-        }
-
-        formDialogController.open(addMode ? "Add Invoice" : "Update Invoice", "fas-file-invoice-dollar", addMode, v -> {
+        formDialogController.open("Add Invoice", "fas-file-invoice-dollar", true, v -> {
             String pid = patientId.getSelectedId();
             String aid = appointmentId.getSelectedId();
             String amountText = totalAmount.getText() == null ? "" : totalAmount.getText().trim();
@@ -141,38 +205,32 @@ public class InvoicePageController extends BasePageController implements QuickAd
                 return;
             }
 
-            Invoice target = addMode ? new Invoice() : invoice;
-            if (addMode) {
-                target.setInvoiceId(UUID.randomUUID().toString());
-                target.setPaymentStatus("Pending");
+            try {
+                invoiceService.generate(new CreateInvoiceDTO(aid, pid, amount));
+                refreshTable();
+                formDialogController.close();
+                toastSuccess("Invoice added.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to save invoice: " + ex.getMessage());
+                formDialogController.setLoading(false);
             }
-            target.setPatientId(pid);
-            target.setAppointmentId(aid);
-            target.setTotalAmount(amount);
-            if (addMode) {
-                target.setIssuedAt(LocalDateTime.now());
-            } else {
-                target.setUpdatedAt(LocalDateTime.now());
-            }
-
-            if (addMode) invoices.add(target);
-            refreshTable();
-            formDialogController.close();
-            toastSuccess(addMode ? "Invoice added." : "Invoice updated.");
         });
 
         formDialogController.addField("Patient", "fas-user", patientIdField);
         formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
         formDialogController.addField("Total Amount", "fas-dollar-sign", totalAmount);
 
-        loadInvoiceDropdowns(patientIdField, appointmentIdField, otherFields, addMode ? null : invoice);
+        loadInvoiceDropdowns(patientIdField, appointmentIdField, otherFields);
     }
 
     /** Loads the patient/appointment dropdown options asynchronously, showing each dropdown's own
      *  spinner while its data is in flight and keeping the rest of the form disabled until
      *  both have finished loading. */
     private void loadInvoiceDropdowns(LoadingIdComboBox patientIdField, LoadingIdComboBox appointmentIdField,
-                                       List<Control> otherFields, Invoice existing) {
+                                       List<Control> otherFields) {
         EntityIdComboBox patientId = patientIdField.getComboBox();
         EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
 
@@ -193,7 +251,6 @@ public class InvoicePageController extends BasePageController implements QuickAd
             items -> {
                 patientId.setOptions(items.stream()
                         .map(p -> new EntityIdComboBox.Option(p.getPatientId(), p.getFullName())).toList());
-                if (existing != null) patientId.selectById(existing.getPatientId());
                 patientIdField.setLoading(false);
                 onOneLoaded.run();
             },
@@ -210,7 +267,6 @@ public class InvoicePageController extends BasePageController implements QuickAd
                         .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
                                 a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
                         .toList());
-                if (existing != null) appointmentId.selectById(existing.getAppointmentId());
                 appointmentIdField.setLoading(false);
                 onOneLoaded.run();
             },
@@ -221,26 +277,175 @@ public class InvoicePageController extends BasePageController implements QuickAd
             });
     }
 
-    /** Minimal single-field dialog for changing an existing invoice's payment status, kept out of the main Add/Edit form. */
-    private void openInvoiceStatusDialog(Invoice invoice) {
-        ComboBox<String> paymentStatus = new ComboBox<>();
-        paymentStatus.getStyleClass().add("form-combo");
-        paymentStatus.getItems().addAll("Pending", "Paid", "Overdue", "Cancelled");
-        paymentStatus.setValue(invoice.getPaymentStatus());
-
-        formDialogController.open("Change Payment Status", "fas-info-circle", false, v -> {
-            if (paymentStatus.getValue() == null) {
-                formDialogController.setError("Payment status is required.");
-                formDialogController.setLoading(false);
+    private void exportInvoicesCsv() {
+        try {
+            if (invoices.isEmpty()) {
+                toastError("No invoices available to export.");
                 return;
             }
-            invoice.setPaymentStatus(paymentStatus.getValue());
-            invoice.setUpdatedAt(LocalDateTime.now());
-            refreshTable();
-            formDialogController.close();
-            toastSuccess("Invoice payment status updated.");
-        });
 
-        formDialogController.addField("Payment Status", "fas-info-circle", paymentStatus);
+            List<InvoiceDTO> source = chooseInvoiceExportSource();
+            if (source == null || source.isEmpty()) {
+                return;
+            }
+
+            List<Map<String, Object>> rows = new ArrayList<>();
+            for (InvoiceDTO invoice : source) {
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("invoice_id", invoice.getInvoiceId());
+                row.put("appointment_id", invoice.getAppointmentId());
+                row.put("patient_id", invoice.getPatientId());
+                row.put("total_amount", invoice.getTotalAmount());
+                row.put("payment_status", invoice.getPaymentStatus());
+                row.put("issued_at", invoice.getIssuedAt());
+                rows.add(row);
+            }
+
+            boolean saved = CsvUiIO.exportRows(exportCsvBtn.getScene().getWindow(), "invoices.csv", rows);
+            if (saved) {
+                toastSuccess("Invoices exported successfully.");
+            }
+        } catch (Exception e) {
+            toastError("Failed to export invoices: " + e.getMessage());
+        }
+    }
+
+    private List<InvoiceDTO> chooseInvoiceExportSource() {
+        ChoiceDialog<String> dialog = new ChoiceDialog<>("All loaded rows", "All loaded rows", "Current table view");
+        dialog.setTitle("Export Invoices");
+        dialog.setHeaderText("Choose what to export");
+        dialog.setContentText("Export scope:");
+        String choice = dialog.showAndWait().orElse(null);
+        if (choice == null) {
+            return List.of();
+        }
+        if ("Current table view".equals(choice)) {
+            return new ArrayList<>(invoiceTableController.getTable().getItems());
+        }
+        return invoices;
+    }
+
+    private void importInvoicesCsv() {
+        try {
+            List<Map<String, String>> rows = CsvUiIO.importRows(importCsvBtn.getScene().getWindow(), "Import Invoices CSV");
+            if (rows.isEmpty()) {
+                return;
+            }
+
+            int success = 0;
+            int failed = 0;
+            List<String> failures = new ArrayList<>();
+
+            for (Map<String, String> row : rows) {
+                try {
+                    String appointmentId = readColumn(row, "appointment_id", "appointmentId");
+                    String patientId = readColumn(row, "patient_id", "patientId");
+                    String totalAmount = readColumn(row, "total_amount", "totalAmount");
+
+                    if (appointmentId == null || patientId == null || totalAmount == null) {
+                        throw new IllegalArgumentException("Missing required columns appointment_id, patient_id, total_amount");
+                    }
+
+                    invoiceService.generate(new CreateInvoiceDTO(
+                            appointmentId.trim(),
+                            patientId.trim(),
+                            new BigDecimal(totalAmount.trim())));
+                    success++;
+                } catch (Exception ex) {
+                    failed++;
+                    if (failures.size() < 3) {
+                        failures.add(ex.getMessage());
+                    }
+                }
+            }
+
+            refreshTable();
+            if (failed == 0) {
+                toastSuccess("Imported " + success + " invoice rows.");
+            } else {
+                String details = failures.isEmpty() ? "" : " Example errors: " + String.join(" | ", failures);
+                toastError("Imported " + success + " rows, failed " + failed + "." + details);
+            }
+        } catch (Exception e) {
+            toastError("Failed to import invoices: " + e.getMessage());
+        }
+    }
+
+    private String readColumn(Map<String, String> row, String preferred, String alternate) {
+        if (row.containsKey(preferred)) {
+            return row.get(preferred);
+        }
+        if (row.containsKey(alternate)) {
+            return row.get(alternate);
+        }
+
+        Map<String, String> normalized = new HashMap<>();
+        row.forEach((k, v) -> normalized.put(normalizeHeader(k), v));
+        String normalizedPreferred = normalizeHeader(preferred);
+        if (normalized.containsKey(normalizedPreferred)) {
+            return normalized.get(normalizedPreferred);
+        }
+        return normalized.get(normalizeHeader(alternate));
+    }
+
+    private String normalizeHeader(String header) {
+        if (header == null) {
+            return "";
+        }
+        return header.trim().toLowerCase().replace(" ", "_");
+    }
+
+    private void printReport() {
+        if (invoices.isEmpty()) {
+            toastError("No billing data available to print.");
+            return;
+        }
+
+        BigDecimal total = BigDecimal.ZERO;
+        BigDecimal paid = BigDecimal.ZERO;
+        for (InvoiceDTO invoice : invoices) {
+            BigDecimal amount = invoice.getTotalAmount() == null ? BigDecimal.ZERO : invoice.getTotalAmount();
+            total = total.add(amount);
+            if (STATUS_PAID.equalsIgnoreCase(invoice.getPaymentStatus())) {
+                paid = paid.add(amount);
+            }
+        }
+
+        StringBuilder content = new StringBuilder();
+        content.append("Hospital Billing Report\n\n");
+        content.append("Total invoices: ").append(invoices.size()).append("\n");
+        content.append("Total revenue: $").append(total.toPlainString()).append("\n");
+        content.append("Paid amount: $").append(paid.toPlainString()).append("\n");
+        content.append("Pending amount: $").append(total.subtract(paid).toPlainString()).append("\n\n");
+        content.append("Invoice ID, Patient ID, Appointment ID, Amount, Status, Issued At\n");
+        for (InvoiceDTO invoice : invoices) {
+            content.append(invoice.getInvoiceId()).append(",")
+                    .append(invoice.getPatientId()).append(",")
+                    .append(invoice.getAppointmentId()).append(",")
+                    .append(invoice.getTotalAmount() == null ? "0" : invoice.getTotalAmount().toPlainString()).append(",")
+                    .append(invoice.getPaymentStatus() == null ? "" : invoice.getPaymentStatus()).append(",")
+                    .append(invoice.getIssuedAt() == null ? "" : invoice.getIssuedAt())
+                    .append("\n");
+        }
+
+        PrinterJob job = PrinterJob.createPrinterJob();
+        if (job == null) {
+            toastError("No printer available.");
+            return;
+        }
+        Text printable = new Text(content.toString());
+        printable.setWrappingWidth(520);
+
+        boolean proceed = job.showPrintDialog(printReportBtn.getScene().getWindow());
+        if (!proceed) {
+            return;
+        }
+        boolean success = job.printPage(printable);
+        if (success) {
+            job.endJob();
+            toastSuccess("Billing report sent to printer.");
+        } else {
+            toastError("Failed to print billing report.");
+        }
     }
 }

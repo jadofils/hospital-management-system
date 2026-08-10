@@ -29,10 +29,15 @@
 
                 <HBox spacing="12" alignment="CENTER_LEFT">
                     <FontIcon iconLiteral="fas-calendar-alt" iconSize="18" styleClass="page-title-icon"/>
-                    <Label text="My Schedule" styleClass="section-title" HBox.hgrow="ALWAYS"/>
+                    <Label fx:id="pageTitleLabel" text="My Schedule" styleClass="section-title" HBox.hgrow="ALWAYS"/>
                     <Button fx:id="addSlotBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Availability">
                         <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
                     </Button>
+                </HBox>
+
+                <HBox fx:id="doctorSelectorBox" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
+                    <Label text="Doctor:" styleClass="form-label"/>
+                    <ComboBox fx:id="doctorSelector" promptText="Select a doctor" prefWidth="240" styleClass="form-combo"/>
                 </HBox>
 
                 <!-- Weekly schedule grid -->

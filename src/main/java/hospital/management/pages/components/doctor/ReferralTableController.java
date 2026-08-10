@@ -1,7 +1,7 @@
 package hospital.management.pages.components.doctor;
 
 import hospital.management.pages.components.PaginatedTableController;
-import hospital.management.backend.model.doctor.Referral;
+import hospital.management.backend.dto.doctor.ReferralDTO;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -10,22 +10,22 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
-public class ReferralTableController extends PaginatedTableController<Referral> {
+public class ReferralTableController extends PaginatedTableController<ReferralDTO> {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    @FXML private TableColumn<Referral, String> referralIdCol;
-    @FXML private TableColumn<Referral, String> fromDoctorCol;
-    @FXML private TableColumn<Referral, String> toDoctorCol;
-    @FXML private TableColumn<Referral, String> reasonCol;
-    @FXML private TableColumn<Referral, String> statusCol;
-    @FXML private TableColumn<Referral, Void>   changeStatusCol;
-    @FXML private TableColumn<Referral, String> dateCol;
-    @FXML private TableColumn<Referral, Void>   actionsCol;
+    @FXML private TableColumn<ReferralDTO, String> referralIdCol;
+    @FXML private TableColumn<ReferralDTO, String> fromDoctorCol;
+    @FXML private TableColumn<ReferralDTO, String> toDoctorCol;
+    @FXML private TableColumn<ReferralDTO, String> reasonCol;
+    @FXML private TableColumn<ReferralDTO, String> statusCol;
+    @FXML private TableColumn<ReferralDTO, Void>   changeStatusCol;
+    @FXML private TableColumn<ReferralDTO, String> dateCol;
+    @FXML private TableColumn<ReferralDTO, Void>   actionsCol;
 
-    private Consumer<Referral> onChangeStatus;
+    private Consumer<ReferralDTO> onChangeStatus;
 
-    public void setOnChangeStatus(Consumer<Referral> onChangeStatus) {
+    public void setOnChangeStatus(Consumer<ReferralDTO> onChangeStatus) {
         this.onChangeStatus = onChangeStatus;
     }
 
@@ -46,7 +46,7 @@ public class ReferralTableController extends PaginatedTableController<Referral> 
     }
 
     @Override
-    protected boolean matches(Referral referral, String lowerQuery) {
+    protected boolean matches(ReferralDTO referral, String lowerQuery) {
         String reason = referral.getReason();
         String status = referral.getStatus();
         return (reason != null && reason.toLowerCase().contains(lowerQuery))

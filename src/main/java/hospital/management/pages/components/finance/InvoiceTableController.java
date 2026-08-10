@@ -1,7 +1,7 @@
 package hospital.management.pages.components.finance;
 
 import hospital.management.pages.components.PaginatedTableController;
-import hospital.management.backend.model.finance.Invoice;
+import hospital.management.backend.dto.finance.InvoiceDTO;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -12,22 +12,22 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.function.Consumer;
 
-public class InvoiceTableController extends PaginatedTableController<Invoice> {
+public class InvoiceTableController extends PaginatedTableController<InvoiceDTO> {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
-    @FXML private TableColumn<Invoice, String>     invoiceIdColumn;
-    @FXML private TableColumn<Invoice, String>     patientIdColumn;
-    @FXML private TableColumn<Invoice, String>     appointmentIdColumn;
-    @FXML private TableColumn<Invoice, BigDecimal> totalAmountColumn;
-    @FXML private TableColumn<Invoice, String>     paymentStatusColumn;
-    @FXML private TableColumn<Invoice, Void>       changeStatusColumn;
-    @FXML private TableColumn<Invoice, String>     issuedAtColumn;
-    @FXML private TableColumn<Invoice, Void>       actionsColumn;
+    @FXML private TableColumn<InvoiceDTO, String>     invoiceIdColumn;
+    @FXML private TableColumn<InvoiceDTO, String>     patientIdColumn;
+    @FXML private TableColumn<InvoiceDTO, String>     appointmentIdColumn;
+    @FXML private TableColumn<InvoiceDTO, BigDecimal> totalAmountColumn;
+    @FXML private TableColumn<InvoiceDTO, String>     paymentStatusColumn;
+    @FXML private TableColumn<InvoiceDTO, Void>       changeStatusColumn;
+    @FXML private TableColumn<InvoiceDTO, String>     issuedAtColumn;
+    @FXML private TableColumn<InvoiceDTO, Void>       actionsColumn;
 
-    private Consumer<Invoice> onChangeStatus;
+    private Consumer<InvoiceDTO> onChangeStatus;
 
-    public void setOnChangeStatus(Consumer<Invoice> onChangeStatus) {
+    public void setOnChangeStatus(Consumer<InvoiceDTO> onChangeStatus) {
         this.onChangeStatus = onChangeStatus;
     }
 
@@ -48,7 +48,7 @@ public class InvoiceTableController extends PaginatedTableController<Invoice> {
     }
 
     @Override
-    protected boolean matches(Invoice invoice, String lowerQuery) {
+    protected boolean matches(InvoiceDTO invoice, String lowerQuery) {
         String patientId = invoice.getPatientId();
         String paymentStatus = invoice.getPaymentStatus();
         return (patientId != null && patientId.toLowerCase().contains(lowerQuery))

@@ -2,6 +2,7 @@
 <?import java.net.URL?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.ImageView?>
 <?import org.kordamp.ikonli.javafx.FontIcon?>
 <StackPane xmlns="http://javafx.com/javafx"
            xmlns:fx="http://javafx.com/fxml"
@@ -37,7 +38,7 @@
                 <!-- Profile summary card -->
                 <HBox spacing="20" styleClass="card" alignment="CENTER_LEFT">
                     <VBox alignment="CENTER" spacing="8" minWidth="100">
-                        <FontIcon iconLiteral="fas-user-circle" iconSize="64" styleClass="profile-avatar-icon"/>
+                        <ImageView fx:id="avatarImage" fitWidth="96" fitHeight="96" preserveRatio="true" styleClass="profile-avatar-image"/>
                         <Button fx:id="changePhotoBtn" styleClass="secondary-button" text="Change Photo"/>
                     </VBox>
                     <VBox spacing="4" HBox.hgrow="ALWAYS">

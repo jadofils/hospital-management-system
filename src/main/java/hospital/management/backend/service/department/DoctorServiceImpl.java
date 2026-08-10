@@ -71,6 +71,16 @@ public class DoctorServiceImpl implements DoctorService {
     }
 
     @Override
+    public DoctorDTO findByEmail(String email) throws Exception {
+        if (email == null || email.isBlank()) {
+            throw new ValidationException("email", "Email cannot be blank");
+        }
+        Doctor doctor = doctorDAO.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Doctor with email", email));
+        return DoctorMapper.toDTO(doctor);
+    }
+
+    @Override
     public PageResult<DoctorDTO> findAll(PageRequest request) throws Exception {
         // Cursor-based pagination has no stable page number to key a cache entry on
         // (CacheKey.doctorList(page, size) assumes classic offset paging), so this
