@@ -586,6 +586,5 @@ COMMIT;
 
 -- =====================================================================
 -- End of schema creation script.
--- Next: hospital_objects.sql → hospital_rbac_seed_postgresql.sql
---       → hospital_indexes_postgresql.sql
+-- Next: hospital_rbac_seed_postgresql.sql → hospital_seed_data.sql
 -- =====================================================================
