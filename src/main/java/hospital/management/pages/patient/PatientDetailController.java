@@ -15,6 +15,7 @@ import hospital.management.backend.dao.pharmacy.MedicationDAOImpl;
 import hospital.management.backend.dao.pharmacy.PrescriptionDAOImpl;
 import hospital.management.backend.dao.pharmacy.PrescriptionItemDAOImpl;
 import hospital.management.backend.dto.clinical.AppointmentDTO;
+import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
 import hospital.management.backend.dto.clinical.CreateMedicalRecordDTO;
 import hospital.management.backend.dto.clinical.MedicalRecordDTO;
 import hospital.management.backend.dto.finance.InvoiceDTO;
@@ -107,7 +108,8 @@ public class PatientDetailController extends BasePageController {
     private final PrescriptionService prescriptionService =
             new PrescriptionServiceImpl(new PrescriptionDAOImpl(), new PrescriptionItemDAOImpl());
     private final LabService labService = new LabServiceImpl(new LabOrderDAOImpl(), new LabResultDAOImpl());
-    private final InvoiceService invoiceService = new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl());
+    private final InvoiceService invoiceService =
+        new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl(), new AppointmentDAOImpl());
     private final PharmacyServiceImpl pharmacyService = new PharmacyServiceImpl(
         new MedicationDAOImpl(), new MedicalInventoryDAOImpl());
     private final PatientNotesNoSqlService patientNotesNoSqlService = new PatientNotesNoSqlService();
@@ -117,6 +119,7 @@ public class PatientDetailController extends BasePageController {
     // Header
     @FXML private Label  patientNameLabel;
     @FXML private Button backBtn;
+    @FXML private Button continueBtn;
 
     // Summary card labels
     @FXML private Label fullNameLabel;
@@ -187,6 +190,7 @@ public class PatientDetailController extends BasePageController {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PATIENTS);
 
         backBtn.setOnAction(e -> navigateBack());
+        setupContinueButton(continueBtn, PageRoute.PATIENT_DETAIL);
         editPatientBtn.setOnAction(e -> openEditPatientDialog());
         editPatientBtn.setVisible(canUpdate(PageRoute.PATIENT_DETAIL));
         editPatientBtn.setManaged(canUpdate(PageRoute.PATIENT_DETAIL));
@@ -354,7 +358,8 @@ public class PatientDetailController extends BasePageController {
     public void loadPatient(PatientDTO patient) {
         this.currentPatient = patient;
         fullNameLabel.setText(patient.getFullName());
-        patientIdLabel.setText("ID: " + patient.getPatientId());
+        patientIdLabel.setVisible(false);
+        patientIdLabel.setManaged(false);
         dobLabel.setText("DOB: " + (patient.getDob() != null ? patient.getDob() : "—"));
         genderLabel.setText("Gender: " + (patient.getGender() != null ? patient.getGender() : "—"));
         phoneLabel.setText("Phone: " + (patient.getPhone() != null ? patient.getPhone() : "—"));
@@ -801,10 +806,15 @@ public class PatientDetailController extends BasePageController {
         AsyncJobRunner.submit(
             () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
             items -> {
-                appointmentId.setOptions(items.stream()
+                String patientId = currentPatient != null ? currentPatient.getPatientId() : null;
+                List<AppointmentSummaryDTO> patientAppointments = patientId == null
+                        ? items
+                        : items.stream().filter(a -> patientId.equals(a.getPatientId())).toList();
+                appointmentId.setOptions(patientAppointments.stream()
                         .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
                                 a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
                         .toList());
+                appointmentId.setEditable(false);
                 appointmentIdField.setLoading(false);
                 onOneLoaded.run();
             },
@@ -831,9 +841,15 @@ public class PatientDetailController extends BasePageController {
 
     /** Loads the appointment dropdown options asynchronously (shared by the Medical Record and
      *  Prescription dialogs), showing its own spinner while data is in flight and keeping the
-     *  rest of the calling form disabled until it finishes loading. */
+     *  rest of the calling form disabled until it finishes loading.
+     *
+     *  <p>Options are restricted to the currently loaded patient's own appointments only, and the
+     *  dropdown is made read-only afterwards — this drill-down is scoped to a single patient, so a
+     *  wider list (or free-text typing) could silently attach a record to the wrong patient.</p>
+     */
     private void loadAppointmentDropdown(LoadingIdComboBox appointmentIdField, List<Control> otherFields, String existingAppointmentId) {
         EntityIdComboBox appointmentId = appointmentIdField.getComboBox();
+        String patientId = currentPatient != null ? currentPatient.getPatientId() : null;
 
         appointmentIdField.setLoading(true);
         formDialogController.setLoading(true);
@@ -841,10 +857,14 @@ public class PatientDetailController extends BasePageController {
         AsyncJobRunner.submit(
             () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
             items -> {
-                appointmentId.setOptions(items.stream()
+                List<AppointmentSummaryDTO> patientAppointments = patientId == null
+                        ? items
+                        : items.stream().filter(a -> patientId.equals(a.getPatientId())).toList();
+                appointmentId.setOptions(patientAppointments.stream()
                         .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
                                 a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
                         .toList());
+                appointmentId.setEditable(false);
                 if (existingAppointmentId != null) appointmentId.selectById(existingAppointmentId);
                 appointmentIdField.setLoading(false);
                 otherFields.forEach(f -> f.setDisable(false));
