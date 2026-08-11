@@ -31,9 +31,8 @@ xvfb-run --auto-servernum mvn -B test
 2. Create a `.env` file in the project root (see `.env.example` if present, or reference `EnvConfig.java`)
 3. Execute the SQL scripts in order:
    - `src/main/resources/hospital/management/sql/hospital_schema.sql`
-   - `src/main/resources/hospital/management/sql/hospital_objects.sql`
    - `src/main/resources/hospital/management/sql/hospital_rbac_seed_postgresql.sql`
-   - `src/main/resources/hospital/management/sql/hospital_indexes_postgresql.sql`
+   - `src/main/resources/hospital/management/sql/hospital_seed_data.sql`
 4. Run `mvn clean javafx:run`
 
 **Required `.env` keys:** `DB_URL`, `DB_USER`, `DB_PASSWORD`, `REDIS_HOST`, `REDIS_PORT`, `MONGO_URL`, `JWT_SECRET`, `ENCRYPTION_KEY`, `BCRYPT_ROUNDS`, `GMAIL_*`, `CLOUDINARY_*`, `APP_PAGE_SIZE`, `APP_MAX_UPLOAD_SIZE_MB`

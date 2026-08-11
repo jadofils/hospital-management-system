@@ -3,7 +3,7 @@
 **Engine:** PostgreSQL  
 **Schema version:** UUID-based (all PKs use `gen_random_uuid()` via the `pgcrypto` extension)  
 **Total tables:** 25  
-**Script execution order:** `hospital_schema.sql` → `hospital_objects.sql` → `hospital_rbac_seed_postgresql.sql` → `hospital_indexes_postgresql.sql`
+**Script execution order:** `hospital_schema.sql` → `hospital_rbac_seed_postgresql.sql` → `hospital_seed_data.sql`
 
 Conceptual diagrams: `CONCEPTUAL_LEVEL_DIAGRAMS.md`
 Root sample-data entrypoint: `sample_data_postgresql.sql`
@@ -14,10 +14,9 @@ Root sample-data entrypoint: `sample_data_postgresql.sql`
 
 | Step | File | Purpose |
 |------|------|---------|
-| 1 | `hospital_schema.sql` | Creates all 25 tables, constraints, basic indexes, `updated_at` triggers |
-| 2 | `hospital_objects.sql` | Views, stored procedures, business-logic triggers, DCL roles |
-| 3 | `hospital_rbac_seed_postgresql.sql` | Seed: departments, doctors, roles, permissions, users |
-| 4 | `hospital_indexes_postgresql.sql` | Composite, GIN trigram, and partial active-record indexes |
+| 1 | `hospital_schema.sql` | Creates all tables, constraints, indexes, `updated_at` triggers, and the `set_updated_at()` trigger function (consolidated — views/routines/indexes now live inline rather than in separate files) |
+| 2 | `hospital_rbac_seed_postgresql.sql` | Seed: departments, doctors, roles, permissions, users |
+| 3 | `hospital_seed_data.sql` | Seed: realistic rows across every table for development |
 
 Quick start on a fresh database:
 
@@ -25,9 +24,8 @@ Quick start on a fresh database:
 createdb hospital_db
 psql -U your_user -d hospital_db \
   -f hospital_schema.sql \
-  -f hospital_objects.sql \
   -f hospital_rbac_seed_postgresql.sql \
-  -f hospital_indexes_postgresql.sql
+  -f hospital_seed_data.sql
 ```
 
 ---
