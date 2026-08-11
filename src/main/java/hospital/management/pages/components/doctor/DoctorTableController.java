@@ -2,6 +2,7 @@ package hospital.management.pages.components.doctor;
 
 import hospital.management.pages.components.PaginatedTableController;
 import hospital.management.backend.dto.doctor.DoctorDTO;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -15,6 +16,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 public class DoctorTableController extends PaginatedTableController<DoctorDTO> {
+
+    private final EntityLookupService lookupService = new EntityLookupService();
 
     @FXML private TableColumn<DoctorDTO, String> idColumn;
     @FXML private TableColumn<DoctorDTO, String> nameColumn;
@@ -47,15 +50,22 @@ public class DoctorTableController extends PaginatedTableController<DoctorDTO> {
 
     @Override
     protected void configureColumns() {
-        idColumn.setCellValueFactory(new PropertyValueFactory<>("doctorId"));
+        idColumn.setVisible(false);
         nameColumn.setCellValueFactory(cell ->
                 new SimpleStringProperty(cell.getValue().getFullName()));
         specializationColumn.setCellValueFactory(new PropertyValueFactory<>("specialization"));
-        departmentColumn.setCellValueFactory(new PropertyValueFactory<>("departmentId"));
+        departmentColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(resolveLabel(() -> lookupService.departmentLabel(cell.getValue().getDepartmentId()))));
         roleColumn.setCellValueFactory(cell ->
                 new SimpleStringProperty(roleByDoctorId.getOrDefault(cell.getValue().getDoctorId(), "—")));
         phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phone"));
         emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
+        addSortOption("Name", nameColumn);
+        addSortOption("Specialization", specializationColumn);
+        addSortOption("Department", departmentColumn);
+        addSortOption("Role", roleColumn);
+        addSortOption("Phone", phoneColumn);
+        addSortOption("Email", emailColumn);
         wireDoctorActionsColumn();
     }
 

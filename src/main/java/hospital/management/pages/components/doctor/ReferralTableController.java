@@ -2,6 +2,7 @@ package hospital.management.pages.components.doctor;
 
 import hospital.management.pages.components.PaginatedTableController;
 import hospital.management.backend.dto.doctor.ReferralDTO;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -13,6 +14,8 @@ import java.util.function.Consumer;
 public class ReferralTableController extends PaginatedTableController<ReferralDTO> {
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    private final EntityLookupService lookupService = new EntityLookupService();
 
     @FXML private TableColumn<ReferralDTO, String> referralIdCol;
     @FXML private TableColumn<ReferralDTO, String> fromDoctorCol;
@@ -31,9 +34,13 @@ public class ReferralTableController extends PaginatedTableController<ReferralDT
 
     @Override
     protected void configureColumns() {
-        referralIdCol.setCellValueFactory(new PropertyValueFactory<>("referralId"));
-        fromDoctorCol.setCellValueFactory(new PropertyValueFactory<>("referringDoctorId"));
-        toDoctorCol.setCellValueFactory(new PropertyValueFactory<>("referredToDoctorId"));
+        referralIdCol.setVisible(false);
+        fromDoctorCol.setText("From Doctor");
+        fromDoctorCol.setCellValueFactory(cell ->
+                new SimpleStringProperty(resolveLabel(() -> lookupService.doctorLabel(cell.getValue().getReferringDoctorId()))));
+        toDoctorCol.setText("To Doctor");
+        toDoctorCol.setCellValueFactory(cell ->
+                new SimpleStringProperty(resolveLabel(() -> lookupService.doctorLabel(cell.getValue().getReferredToDoctorId()))));
         reasonCol.setCellValueFactory(new PropertyValueFactory<>("reason"));
         statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
         wireSingleActionColumn(changeStatusCol, "fas-flag",
@@ -42,6 +49,11 @@ public class ReferralTableController extends PaginatedTableController<ReferralDT
             var createdAt = cell.getValue().getCreatedAt();
             return new SimpleStringProperty(createdAt == null ? "" : createdAt.format(DATE_FORMAT));
         });
+        addSortOption("From Doctor", fromDoctorCol);
+        addSortOption("To Doctor", toDoctorCol);
+        addSortOption("Reason", reasonCol);
+        addSortOption("Status", statusCol);
+        addSortOption("Date", dateCol);
         wireActionsColumn(actionsCol);
     }
 

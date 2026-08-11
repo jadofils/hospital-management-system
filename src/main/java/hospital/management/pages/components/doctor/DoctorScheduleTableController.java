@@ -45,6 +45,11 @@ public class DoctorScheduleTableController extends PaginatedTableController<Doct
         // name. Call the getter directly and expose a plain Yes/No string instead.
         availableColumn.setCellValueFactory(cell ->
                 new SimpleStringProperty(Boolean.TRUE.equals(cell.getValue().getIsAvailable()) ? "Yes" : "No"));
+        addSortOption("Doctor", doctorNameColumn);
+        addSortOption("Day", dayOfWeekColumn);
+        addSortOption("Start", startTimeColumn);
+        addSortOption("End", endTimeColumn);
+        addSortOption("Available", availableColumn);
         wireActionsColumn(actionsColumn);
     }
 

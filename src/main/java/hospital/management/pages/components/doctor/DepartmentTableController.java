@@ -16,10 +16,13 @@ public class DepartmentTableController extends PaginatedTableController<Departme
 
     @Override
     protected void configureColumns() {
-        deptIdColumn.setCellValueFactory(new PropertyValueFactory<>("departmentId"));
+        deptIdColumn.setVisible(false);
         nameColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         locationColumn.setCellValueFactory(new PropertyValueFactory<>("location"));
         phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phone"));
+        addSortOption("Name", nameColumn);
+        addSortOption("Location", locationColumn);
+        addSortOption("Phone", phoneColumn);
         wireActionsColumn(actionsColumn);
     }
 
