@@ -11,6 +11,10 @@ import hospital.management.backend.dto.clinical.AppointmentDTO;
 import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
 import hospital.management.backend.dto.clinical.CreateAppointmentDTO;
 import hospital.management.backend.dto.clinical.UpdateAppointmentDTO;
+import hospital.management.backend.dao.finance.InvoiceDAOImpl;
+import hospital.management.backend.dto.finance.InvoiceDTO;
+import hospital.management.backend.service.finance.InvoiceServiceImpl;
+import hospital.management.backend.service.finance.interfaces.InvoiceService;
 import hospital.management.backend.dto.doctor.DoctorDTO;
 import hospital.management.backend.dto.doctor.DoctorScheduleDTO;
 import hospital.management.backend.exceptions.AppException;
@@ -29,6 +33,7 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.clinical.AppointmentTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.components.shared.widgets.CalendarController;
 import hospital.management.pages.components.shared.widgets.TimeField;
 import hospital.management.pages.utils.CsvUiIO;
@@ -61,13 +66,18 @@ public class AppointmentsPageController extends BasePageController implements Qu
     private final DoctorServiceImpl doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
     private final DoctorScheduleService scheduleService = new DoctorScheduleServiceImpl(new DoctorScheduleDAOImpl());
     private final EntityLookupService entityLookupService = new EntityLookupService();
+    private final InvoiceService invoiceService =
+        new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl(), new AppointmentDAOImpl());
 
     @FXML private CalendarController calendarController;
     @FXML private AppointmentTableController appointmentTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private Button addAppointmentBtn;
     @FXML private Button importBtn;
     @FXML private Button exportBtn;
+    @FXML private Button continueBtn;
+    @FXML private ComboBox<String> billingFilter;
 
     private final List<AppointmentDTO> appointments = new ArrayList<>();
     private LocalDate selectedDate;
@@ -89,11 +99,23 @@ public class AppointmentsPageController extends BasePageController implements Qu
         addAppointmentBtn.setOnAction(e -> openAppointmentDialog(null));
         importBtn.setOnAction(e -> withSpinner(importBtn, this::importAppointments));
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportAppointments));
+        setupContinueButton(continueBtn, PageRoute.APPOINTMENTS);
         appointmentTableController.setRowActions(
             allowUpdate(PageRoute.APPOINTMENTS, this::openAppointmentDialog),
             allowDelete(PageRoute.APPOINTMENTS, this::confirmDeleteAppointment),
             allowRead(PageRoute.APPOINTMENTS, this::viewAppointmentDetail));
         appointmentTableController.setOnChangeStatus(canUpdate(PageRoute.APPOINTMENTS) ? this::openAppointmentStatusDialog : null);
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> appointmentTableController.applySort(field, asc));
+            sortBarController.addOptions(appointmentTableController.getSortOptionLabels());
+        }
+
+        if (billingFilter != null) {
+            billingFilter.getItems().setAll(FILTER_ALL, FILTER_NEEDS_BILLING, FILTER_PAID);
+            billingFilter.setValue(FILTER_ALL);
+            billingFilter.setOnAction(e -> applyFilter());
+        }
 
         if (calendarController != null) {
             calendarController.setOnDateSelected(this::loadAppointmentsForDate);
@@ -113,7 +135,14 @@ public class AppointmentsPageController extends BasePageController implements Qu
             List<AppointmentSummaryDTO> summaries =
                     appointmentService.findAll(CursorPagination.firstPage(500)).getItems();
             for (AppointmentSummaryDTO summary : summaries) {
-                appointments.add(appointmentService.findById(summary.getAppointmentId()));
+                AppointmentDTO appointment = appointmentService.findById(summary.getAppointmentId());
+                try {
+                    appointment.setBillingStatus(invoiceService.findByAppointment(appointment.getAppointmentId())
+                            .map(InvoiceDTO::getPaymentStatus).orElse(null));
+                } catch (Exception ex) {
+                    appointment.setBillingStatus(null);
+                }
+                appointments.add(appointment);
             }
             selectedDate = null;
             applyFilter();
@@ -127,9 +156,24 @@ public class AppointmentsPageController extends BasePageController implements Qu
                 .filter(a -> selectedDate == null
                         || (a.getAppointmentDate() != null
                             && a.getAppointmentDate().toLocalDate().equals(selectedDate)))
+                .filter(this::matchesBillingFilter)
                 .toList();
         appointmentTableController.setItems(visible);
     }
+
+    /** Applies the "All / Paid / Needs billing" dropdown. "Needs billing" = a completed
+     *  appointment whose invoice is missing or not fully paid. */
+    private boolean matchesBillingFilter(AppointmentDTO a) {
+        String choice = billingFilter == null ? FILTER_ALL : billingFilter.getValue();
+        if (choice == null || FILTER_ALL.equals(choice)) return true;
+        if (FILTER_PAID.equals(choice)) return "paid".equalsIgnoreCase(a.getBillingStatus());
+        boolean completed = AppointmentStatus.COMPLETED.getDbValue().equalsIgnoreCase(a.getStatus());
+        return completed && !"paid".equalsIgnoreCase(a.getBillingStatus());
+    }
+
+    private static final String FILTER_ALL = "All";
+    private static final String FILTER_PAID = "Paid";
+    private static final String FILTER_NEEDS_BILLING = "Needs billing";
 
     private void exportAppointments() {
         try {
@@ -272,7 +316,10 @@ public class AppointmentsPageController extends BasePageController implements Qu
         appointmentDate.getStyleClass().add("form-date-picker");
 
         // Real-time: date must not be in the past for new appointments
-        if (addMode) FxFormValidator.attachNotPastDate(appointmentDate, null, "Appointment date");
+        if (addMode) {
+            FxFormValidator.attachNotPastDate(appointmentDate, null, "Appointment date");
+            FxFormValidator.disallowPastDates(appointmentDate);
+        }
         FxFormValidator.attachMaxLength(reason, null, 500, "Reason");
 
         List<Node> otherFields = List.of(appointmentDate, appointmentTime, reason);
@@ -342,10 +389,10 @@ public class AppointmentsPageController extends BasePageController implements Qu
             }
         });
 
-        formDialogController.addField("Patient", "fas-user-injured", patientIdField);
-        formDialogController.addField("Doctor", "fas-user-md", doctorIdField);
-        formDialogController.addField("Appointment Date", "fas-calendar", appointmentDate);
-        formDialogController.addField("Appointment Time", "fas-clock", appointmentTime);
+        formDialogController.addRequiredField("Patient", "fas-user-injured", patientIdField);
+        formDialogController.addRequiredField("Doctor", "fas-user-md", doctorIdField);
+        formDialogController.addRequiredField("Appointment Date", "fas-calendar", appointmentDate);
+        formDialogController.addRequiredField("Appointment Time", "fas-clock", appointmentTime);
         formDialogController.addField("Reason", "fas-notes-medical", reason);
 
         loadAppointmentDropdowns(patientIdField, doctorIdField, otherFields, addMode ? null : appointment);

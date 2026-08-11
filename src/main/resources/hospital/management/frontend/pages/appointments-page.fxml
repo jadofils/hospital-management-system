@@ -52,6 +52,7 @@
                         <FontIcon iconLiteral="fas-list-ul" iconSize="14" styleClass="page-title-icon"/>
                         <Label text="Appointments for selected date" styleClass="subheading"
                                HBox.hgrow="ALWAYS"/>
+                        <ComboBox fx:id="billingFilter" styleClass="filter-combobox" prefWidth="130"/>
                         <Button fx:id="importBtn" styleClass="secondary-button"
                                 contentDisplay="LEFT" text="Import">
                             <graphic><FontIcon iconLiteral="fas-file-import" iconSize="13"/></graphic>
@@ -64,6 +65,8 @@
                                 contentDisplay="LEFT" text="New Appointment">
                             <graphic><FontIcon iconLiteral="fas-calendar-plus" iconSize="13"/></graphic>
                         </Button>
+                        <Button fx:id="continueBtn" styleClass="continue-button"/>
+                        <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
                     </HBox>
 
                     <fx:include fx:id="appointmentTable"

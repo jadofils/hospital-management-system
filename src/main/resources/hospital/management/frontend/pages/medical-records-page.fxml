@@ -34,6 +34,7 @@
                     <Button fx:id="addRecordBtn" styleClass="primary-button" contentDisplay="LEFT" text="New Record">
                         <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
                     </Button>
+                    <Button fx:id="continueBtn" styleClass="continue-button"/>
                 </HBox>
 
                 <HBox spacing="12" alignment="CENTER_LEFT">
@@ -44,6 +45,8 @@
                     </HBox>
                     <DatePicker fx:id="fromDatePicker" promptText="From date" prefWidth="150"/>
                     <DatePicker fx:id="toDatePicker"   promptText="To date"   prefWidth="150"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
                 </HBox>
 
                 <fx:include fx:id="medicalRecordTable"

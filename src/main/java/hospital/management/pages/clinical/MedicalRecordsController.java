@@ -21,6 +21,7 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.clinical.MedicalRecordTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -37,11 +38,13 @@ public class MedicalRecordsController extends BasePageController {
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private MedicalRecordTableController medicalRecordTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private TextField  searchField;
     @FXML private DatePicker fromDatePicker;
     @FXML private DatePicker toDatePicker;
     @FXML private Button     addRecordBtn;
+    @FXML private Button     continueBtn;
 
     private final List<MedicalRecordDTO> records = new ArrayList<>();
 
@@ -52,10 +55,16 @@ public class MedicalRecordsController extends BasePageController {
 
         applyCreateVisibility(addRecordBtn, PageRoute.MEDICAL_RECORDS);
         addRecordBtn.setOnAction(e -> openRecordDialog(null));
+        setupContinueButton(continueBtn, PageRoute.MEDICAL_RECORDS);
         medicalRecordTableController.setRowActions(
             allowUpdate(PageRoute.MEDICAL_RECORDS, this::openRecordDialog),
             allowDelete(PageRoute.MEDICAL_RECORDS, this::confirmDeleteRecord),
             allowRead(PageRoute.MEDICAL_RECORDS, this::viewRecordDetail));
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> medicalRecordTableController.applySort(field, asc));
+            sortBarController.addOptions(medicalRecordTableController.getSortOptionLabels());
+        }
 
         refreshTable();
     }
