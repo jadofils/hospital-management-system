@@ -27,7 +27,9 @@ public class AppointmentMapper {
         if (a == null) return null;
         return new AppointmentSummaryDTO(
             a.getAppointmentId(),
+            a.getPatientId(),
             patientName,
+            a.getDoctorId(),
             doctorName,
             a.getAppointmentDate(),
             a.getStatus()
