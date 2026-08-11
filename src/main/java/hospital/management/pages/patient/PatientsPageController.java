@@ -14,6 +14,7 @@ import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.patient.PatientTableController;
 import hospital.management.pages.components.shared.search.AdvancedSearchController;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -37,12 +38,14 @@ public class PatientsPageController extends BasePageController implements QuickA
 
     @FXML private PatientTableController patientTableController;
     @FXML private AdvancedSearchController advancedSearchController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private TextField searchField;
     @FXML private ComboBox<String> statusFilter;
     @FXML private Button addPatientBtn;
     @FXML private Button importBtn;
     @FXML private Button exportBtn;
+    @FXML private Button continueBtn;
     @FXML private Label totalLabel;
 
     private List<PatientDTO> patients = new ArrayList<>();
@@ -65,6 +68,7 @@ public class PatientsPageController extends BasePageController implements QuickA
         addPatientBtn.setOnAction(e -> openPatientDialog(null));
         importBtn.setOnAction(e -> withSpinner(importBtn, this::importPatients));
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportPatients));
+        setupContinueButton(continueBtn, PageRoute.PATIENTS);
         patientTableController.setRowActions(
             allowUpdate(PageRoute.PATIENTS, this::openPatientDialog),
             allowDelete(PageRoute.PATIENTS, this::confirmDeletePatient),
@@ -73,6 +77,11 @@ public class PatientsPageController extends BasePageController implements QuickA
         if (advancedSearchController != null) {
             advancedSearchController.setOnSearch(this::applyAdvancedSearch);
             advancedSearchController.setOnReset(this::refreshTable);
+        }
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> patientTableController.applySort(field, asc));
+            sortBarController.addOptions(patientTableController.getSortOptionLabels());
         }
 
         refreshTable();
@@ -370,10 +379,10 @@ public class PatientsPageController extends BasePageController implements QuickA
             }
         });
 
-        formDialogController.addField("First Name", "fas-user", firstName);
-        formDialogController.addField("Last Name", "fas-user", lastName);
-        formDialogController.addField("Date of Birth", "fas-calendar", dob);
-        formDialogController.addField("Gender", "fas-venus-mars", gender);
+        formDialogController.addRequiredField("First Name", "fas-user", firstName);
+        formDialogController.addRequiredField("Last Name", "fas-user", lastName);
+        formDialogController.addRequiredField("Date of Birth", "fas-calendar", dob);
+        formDialogController.addRequiredField("Gender", "fas-venus-mars", gender);
         formDialogController.addField("Phone", "fas-phone", phone);
         formDialogController.addField("Email", "fas-envelope", email);
         formDialogController.addField("Address", "fas-map-marker-alt", address);
