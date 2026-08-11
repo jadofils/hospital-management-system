@@ -1,7 +1,6 @@
 -- Root sample-data entrypoint for local/demo environments.
 -- Run this after applying:
 --   1) src/main/resources/hospital/management/sql/hospital_schema.sql
---   2) src/main/resources/hospital/management/sql/hospital_objects.sql
 
 BEGIN;
 
