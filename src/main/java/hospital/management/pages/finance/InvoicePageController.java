@@ -6,6 +6,7 @@ import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
 import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dao.finance.InvoiceDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
+import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
 import hospital.management.backend.dto.finance.CreateInvoiceDTO;
 import hospital.management.backend.dto.finance.InvoiceDTO;
 import hospital.management.backend.dto.finance.InvoiceSummaryDTO;
@@ -23,6 +24,7 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.finance.InvoiceTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.print.PrinterJob;
@@ -46,13 +48,15 @@ public class InvoicePageController extends BasePageController implements QuickAd
 
     private static final String STATUS_PAID = "paid";
 
-    private final InvoiceService invoiceService = new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl());
+    private final InvoiceService invoiceService =
+        new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl(), new AppointmentDAOImpl());
     private final PatientServiceImpl patientService = new PatientServiceImpl(new PatientDAOImpl());
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private InvoiceTableController invoiceTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private Label totalRevenueLabel;
     @FXML private Label paidLabel;
@@ -62,6 +66,7 @@ public class InvoicePageController extends BasePageController implements QuickAd
     @FXML private Button importCsvBtn;
     @FXML private Button exportCsvBtn;
     @FXML private Button printReportBtn;
+    @FXML private Button continueBtn;
 
     private final List<InvoiceDTO> invoices = new ArrayList<>();
 
@@ -80,12 +85,18 @@ public class InvoicePageController extends BasePageController implements QuickAd
         printReportBtn.setOnAction(e -> printReport());
         printReportBtn.setVisible(canRead(PageRoute.BILLING));
         printReportBtn.setManaged(canRead(PageRoute.BILLING));
+        setupContinueButton(continueBtn, PageRoute.BILLING);
 
         invoiceTableController.setRowActions(
             canUpdate(PageRoute.BILLING) ? invoice -> toast("Invoices can't be edited after issuance.", NotificationType.INFO) : null,
             allowDelete(PageRoute.BILLING, this::confirmDeleteInvoice),
             allowRead(PageRoute.BILLING, this::viewInvoiceDetail));
         invoiceTableController.setOnChangeStatus(canUpdate(PageRoute.BILLING) ? this::markInvoicePaid : null);
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> invoiceTableController.applySort(field, asc));
+            sortBarController.addOptions(invoiceTableController.getSortOptionLabels());
+        }
 
         refreshTable();
     }
@@ -262,7 +273,9 @@ public class InvoicePageController extends BasePageController implements QuickAd
 
     /** Loads the patient/appointment dropdown options asynchronously, showing each dropdown's own
      *  spinner while its data is in flight and keeping the rest of the form disabled until
-     *  both have finished loading. */
+     *  both have finished loading. Once loaded, the appointment dropdown is filtered to the
+     *  selected patient's appointments only — an invoice can never be attached to another
+     *  patient's appointment. */
     private void loadInvoiceDropdowns(LoadingIdComboBox patientIdField, LoadingIdComboBox appointmentIdField,
                                        List<Control> otherFields) {
         EntityIdComboBox patientId = patientIdField.getComboBox();
@@ -272,13 +285,32 @@ public class InvoicePageController extends BasePageController implements QuickAd
         appointmentIdField.setLoading(true);
         formDialogController.setLoading(true);
 
+        List<EntityIdComboBox.Option> allAppointments = new ArrayList<>();
+        Map<String, String> appointmentPatient = new HashMap<>();
         AtomicInteger pending = new AtomicInteger(2);
+
         Runnable onOneLoaded = () -> {
             if (pending.decrementAndGet() == 0) {
                 otherFields.forEach(f -> f.setDisable(false));
                 formDialogController.setLoading(false);
             }
         };
+
+        patientId.valueProperty().addListener((obs, oldVal, newVal) -> {
+            String selectedPatient = newVal == null ? null : newVal.id();
+            if (selectedPatient == null) {
+                appointmentId.setOptions(allAppointments);
+                return;
+            }
+            appointmentId.setOptions(allAppointments.stream()
+                    .filter(o -> selectedPatient.equals(appointmentPatient.get(o.id())))
+                    .toList());
+            // Drop any appointment that belongs to a different patient than the newly selected one.
+            String current = appointmentId.getSelectedId();
+            if (current != null && !selectedPatient.equals(appointmentPatient.get(current))) {
+                appointmentId.setValue(null);
+            }
+        });
 
         AsyncJobRunner.submit(
             () -> patientService.findAll(CursorPagination.firstPage(1000)).getItems(),
@@ -297,10 +329,21 @@ public class InvoicePageController extends BasePageController implements QuickAd
         AsyncJobRunner.submit(
             () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
             items -> {
-                appointmentId.setOptions(items.stream()
-                        .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
-                                a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
-                        .toList());
+                allAppointments.clear();
+                appointmentPatient.clear();
+                for (AppointmentSummaryDTO a : items) {
+                    appointmentPatient.put(a.getAppointmentId(), a.getPatientId());
+                    allAppointments.add(new EntityIdComboBox.Option(a.getAppointmentId(),
+                            a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()));
+                }
+                String selectedPatient = patientId.getSelectedId();
+                if (selectedPatient == null) {
+                    appointmentId.setOptions(allAppointments);
+                } else {
+                    appointmentId.setOptions(allAppointments.stream()
+                            .filter(o -> selectedPatient.equals(appointmentPatient.get(o.id())))
+                            .toList());
+                }
                 appointmentIdField.setLoading(false);
                 onOneLoaded.run();
             },

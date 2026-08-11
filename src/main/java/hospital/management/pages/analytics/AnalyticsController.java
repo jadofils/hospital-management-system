@@ -44,7 +44,8 @@ public class AnalyticsController extends BasePageController {
     private final PatientServiceImpl patientService = new PatientServiceImpl(new PatientDAOImpl());
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
-    private final InvoiceServiceImpl invoiceService = new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl());
+    private final InvoiceServiceImpl invoiceService =
+        new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl(), new AppointmentDAOImpl());
     private final FeedbackServiceImpl feedbackService = new FeedbackServiceImpl(new PatientFeedbackDAOImpl());
     private final LabServiceImpl labService = new LabServiceImpl(new LabOrderDAOImpl(), new LabResultDAOImpl());
 

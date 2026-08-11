@@ -1,5 +1,6 @@
 package hospital.management.backend.service.finance;
 
+import hospital.management.backend.dao.clinical.interfaces.AppointmentDAO;
 import hospital.management.backend.dao.finance.interfaces.InvoiceDAO;
 import hospital.management.backend.dao.patient.interfaces.PatientDAO;
 import hospital.management.backend.dto.finance.CreateInvoiceDTO;
@@ -8,6 +9,7 @@ import hospital.management.backend.dto.finance.InvoiceSummaryDTO;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.exceptions.ValidationException;
 import hospital.management.backend.model.finance.Invoice;
+import hospital.management.backend.model.patient.Appointment;
 import hospital.management.backend.model.patient.Patient;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pagination.PageResult;
@@ -40,12 +42,13 @@ class InvoiceServiceImplTest {
 
     @Mock private InvoiceDAO invoiceDAO;
     @Mock private PatientDAO patientDAO;
+    @Mock private AppointmentDAO appointmentDAO;
 
     private InvoiceServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new InvoiceServiceImpl(invoiceDAO, patientDAO);
+        service = new InvoiceServiceImpl(invoiceDAO, patientDAO, appointmentDAO);
     }
 
     private Invoice sampleInvoice(String id, String appointmentId, String patientId) {
@@ -57,6 +60,16 @@ class InvoiceServiceImplTest {
         invoice.setPaymentStatus("unpaid");
         invoice.setIssuedAt(LocalDateTime.now());
         return invoice;
+    }
+
+    private Appointment sampleAppointment(String id, String patientId) {
+        Appointment appointment = new Appointment();
+        appointment.setAppointmentId(id);
+        appointment.setPatientId(patientId);
+        appointment.setDoctorId(UUID.randomUUID().toString());
+        appointment.setAppointmentDate(LocalDateTime.now().plusDays(1));
+        appointment.setStatus("scheduled");
+        return appointment;
     }
 
     // ── generate ──────────────────────────────────────────────────────────
@@ -112,6 +125,7 @@ class InvoiceServiceImplTest {
     void generate_throwsValidationException_whenInvoiceAlreadyExists() throws Exception {
         String appointmentId = UUID.randomUUID().toString();
         String patientId = UUID.randomUUID().toString();
+        when(appointmentDAO.findById(appointmentId)).thenReturn(Optional.of(sampleAppointment(appointmentId, patientId)));
         when(invoiceDAO.findByAppointmentId(appointmentId))
                 .thenReturn(Optional.of(sampleInvoice(UUID.randomUUID().toString(), appointmentId, patientId)));
         CreateInvoiceDTO dto = new CreateInvoiceDTO(appointmentId, patientId, new BigDecimal("100"));
@@ -121,10 +135,38 @@ class InvoiceServiceImplTest {
     }
 
     @Test
+    @DisplayName("generate throws ValidationException when the appointment belongs to another patient")
+    void generate_throwsValidationException_whenAppointmentBelongsToAnotherPatient() throws Exception {
+        String appointmentId = UUID.randomUUID().toString();
+        String patientId = UUID.randomUUID().toString();
+        String otherPatientId = UUID.randomUUID().toString();
+        when(appointmentDAO.findById(appointmentId))
+                .thenReturn(Optional.of(sampleAppointment(appointmentId, otherPatientId)));
+        CreateInvoiceDTO dto = new CreateInvoiceDTO(appointmentId, patientId, new BigDecimal("100"));
+
+        assertThrows(ValidationException.class, () -> service.generate(dto));
+        verify(invoiceDAO, never()).save(any());
+        verify(invoiceDAO, never()).findByAppointmentId(anyString());
+    }
+
+    @Test
+    @DisplayName("generate throws ResourceNotFoundException when the appointment doesn't exist")
+    void generate_throwsResourceNotFoundException_whenAppointmentMissing() throws Exception {
+        String appointmentId = UUID.randomUUID().toString();
+        String patientId = UUID.randomUUID().toString();
+        when(appointmentDAO.findById(appointmentId)).thenReturn(Optional.empty());
+        CreateInvoiceDTO dto = new CreateInvoiceDTO(appointmentId, patientId, new BigDecimal("100"));
+
+        assertThrows(ResourceNotFoundException.class, () -> service.generate(dto));
+        verify(invoiceDAO, never()).save(any());
+    }
+
+    @Test
     @DisplayName("generate saves a new invoice defaulting its payment status to 'unpaid' when everything is valid")
     void generate_savesInvoice_whenValid() throws Exception {
         String appointmentId = UUID.randomUUID().toString();
         String patientId = UUID.randomUUID().toString();
+        when(appointmentDAO.findById(appointmentId)).thenReturn(Optional.of(sampleAppointment(appointmentId, patientId)));
         when(invoiceDAO.findByAppointmentId(appointmentId)).thenReturn(Optional.empty());
         when(invoiceDAO.save(any(Invoice.class))).thenAnswer(inv -> {
             Invoice i = inv.getArgument(0);

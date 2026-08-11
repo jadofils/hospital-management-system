@@ -80,6 +80,9 @@
                 <Button fx:id="printReportBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Print Report">
                     <graphic><FontIcon iconLiteral="fas-print" iconSize="13"/></graphic>
                 </Button>
+                <Button fx:id="continueBtn" styleClass="continue-button"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
             </HBox>
 
             <!-- Invoice table -->

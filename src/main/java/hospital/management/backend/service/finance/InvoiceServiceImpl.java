@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import hospital.management.backend.cache.CacheDomain;
 import hospital.management.backend.cache.CacheKey;
 import hospital.management.backend.cache.CacheService;
+import hospital.management.backend.dao.clinical.interfaces.AppointmentDAO;
 import hospital.management.backend.dao.finance.interfaces.InvoiceDAO;
 import hospital.management.backend.dao.patient.interfaces.PatientDAO;
 import hospital.management.backend.dto.finance.CreateInvoiceDTO;
@@ -13,6 +14,7 @@ import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.exceptions.ValidationException;
 import hospital.management.backend.mapper.finance.InvoiceMapper;
 import hospital.management.backend.model.finance.Invoice;
+import hospital.management.backend.model.patient.Appointment;
 import hospital.management.backend.model.patient.Patient;
 import hospital.management.backend.service.finance.interfaces.InvoiceService;
 import hospital.management.backend.utils.ValidatorUtils;
@@ -32,12 +34,14 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     private static final String STATUS_PAID = "paid";
 
-    private final InvoiceDAO invoiceDAO;
-    private final PatientDAO patientDAO;
+    private final InvoiceDAO      invoiceDAO;
+    private final PatientDAO      patientDAO;
+    private final AppointmentDAO  appointmentDAO;
 
-    public InvoiceServiceImpl(InvoiceDAO invoiceDAO, PatientDAO patientDAO) {
-        this.invoiceDAO = invoiceDAO;
-        this.patientDAO = patientDAO;
+    public InvoiceServiceImpl(InvoiceDAO invoiceDAO, PatientDAO patientDAO, AppointmentDAO appointmentDAO) {
+        this.invoiceDAO     = invoiceDAO;
+        this.patientDAO     = patientDAO;
+        this.appointmentDAO = appointmentDAO;
     }
 
     @Override
@@ -49,6 +53,15 @@ public class InvoiceServiceImpl implements InvoiceService {
         if (dto.getTotalAmount() == null || dto.getTotalAmount().compareTo(BigDecimal.ZERO) < 0) {
             throw new ValidationException("totalAmount", "Total amount must be zero or greater.");
         }
+
+        // An invoice can only be issued for an appointment that belongs to this patient.
+        Appointment appointment = appointmentDAO.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment", appointmentId));
+        if (!patientId.equals(appointment.getPatientId())) {
+            throw new ValidationException("appointmentId",
+                    "The selected appointment does not belong to the selected patient.");
+        }
+
         if (invoiceDAO.findByAppointmentId(appointmentId).isPresent()) {
             throw new ValidationException("appointmentId", "An invoice already exists for this appointment.");
         }
@@ -73,6 +86,11 @@ public class InvoiceServiceImpl implements InvoiceService {
         InvoiceDTO dto = InvoiceMapper.toDTO(invoice);
         CacheService.set(CacheKey.invoice(invoiceId), dto, CacheDomain.INVOICE);
         return dto;
+    }
+
+    @Override
+    public Optional<InvoiceDTO> findByAppointment(String appointmentId) throws Exception {
+        return invoiceDAO.findByAppointmentId(appointmentId).map(InvoiceMapper::toDTO);
     }
 
     @Override
