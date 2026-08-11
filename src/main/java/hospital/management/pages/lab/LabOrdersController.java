@@ -25,6 +25,7 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.lab.LabOrderTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -46,12 +47,14 @@ public class LabOrdersController extends BasePageController {
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private LabOrderTableController labOrderTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private TextField    searchField;
     @FXML private ComboBox<String> statusFilter;
     @FXML private Button       newOrderBtn;
     @FXML private Button       importBtn;
     @FXML private Button       exportBtn;
+    @FXML private Button       continueBtn;
 
     private final List<LabOrderDTO> labOrders = new ArrayList<>();
 
@@ -73,11 +76,17 @@ public class LabOrdersController extends BasePageController {
         newOrderBtn.setOnAction(e -> openLabOrderDialog());
         importBtn.setOnAction(e -> withSpinner(importBtn, this::importLabOrders));
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportLabOrders));
+        setupContinueButton(continueBtn, PageRoute.LAB_ORDERS);
         labOrderTableController.setRowActions(
             canUpdate(PageRoute.LAB_ORDERS) ? o -> toast("Lab orders can't be edited once placed.", NotificationType.INFO) : null,
             allowDelete(PageRoute.LAB_ORDERS, this::confirmDeleteLabOrder),
             allowRead(PageRoute.LAB_ORDERS, this::viewLabOrderDetail));
         labOrderTableController.setOnChangeStatus(canUpdate(PageRoute.LAB_ORDERS) ? this::openRecordResultDialog : null);
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> labOrderTableController.applySort(field, asc));
+            sortBarController.addOptions(labOrderTableController.getSortOptionLabels());
+        }
 
         refreshTable();
     }
@@ -305,6 +314,10 @@ public class LabOrdersController extends BasePageController {
         doctorIdField.setLoading(true);
         formDialogController.setLoading(true);
 
+        // Map each appointment to the doctor who holds it, so selecting an
+        // appointment auto-fills the doctor dropdown with the appointment's doctor.
+        Map<String, String> appointmentDoctorIds = new LinkedHashMap<>();
+
         AtomicInteger pending = new AtomicInteger(2);
         Runnable onOneLoaded = () -> {
             if (pending.decrementAndGet() == 0) {
@@ -316,10 +329,20 @@ public class LabOrdersController extends BasePageController {
         AsyncJobRunner.submit(
             () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
             items -> {
-                appointmentId.setOptions(items.stream()
-                        .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
-                                a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
-                        .toList());
+                List<EntityIdComboBox.Option> options = items.stream()
+                        .map(a -> {
+                            appointmentDoctorIds.put(a.getAppointmentId(), a.getDoctorId());
+                            return new EntityIdComboBox.Option(a.getAppointmentId(),
+                                    a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate());
+                        })
+                        .toList();
+                appointmentId.setOptions(options);
+                appointmentId.valueProperty().addListener((obs, oldVal, newVal) -> {
+                    if (newVal != null) {
+                        String docId = appointmentDoctorIds.get(newVal.id());
+                        if (docId != null) doctorId.selectById(docId);
+                    }
+                });
                 appointmentIdField.setLoading(false);
                 onOneLoaded.run();
             },
@@ -335,6 +358,11 @@ public class LabOrdersController extends BasePageController {
                 doctorId.setOptions(items.stream()
                         .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName())).toList());
                 doctorIdField.setLoading(false);
+                String selectedAppointmentId = appointmentId.getSelectedId();
+                if (selectedAppointmentId != null) {
+                    String docId = appointmentDoctorIds.get(selectedAppointmentId);
+                    if (docId != null) doctorId.selectById(docId);
+                }
                 onOneLoaded.run();
             },
             ex -> {
