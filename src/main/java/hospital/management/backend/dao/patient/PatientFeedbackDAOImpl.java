@@ -24,7 +24,7 @@ public class PatientFeedbackDAOImpl implements PatientFeedbackDAO {
     public PatientFeedback save(PatientFeedback feedback) throws Exception {
         String sql = "INSERT INTO patient_feedback " +
             "(patient_id, appointment_id, submitted_by, rating, comments, date_submitted) " +
-            "VALUES (?, ?, ?, ?, ?, ?) RETURNING feedback_id, created_at, updated_at";
+            "VALUES (?, ?, ?, ?, ?, ?) RETURNING feedback_id, date_submitted, created_at, updated_at";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             setNullableUUID(ps, 1, feedback.getPatientId());
@@ -37,6 +37,8 @@ public class PatientFeedbackDAOImpl implements PatientFeedbackDAO {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     feedback.setFeedbackId(rs.getObject("feedback_id", UUID.class).toString());
+                    Date ds = rs.getDate("date_submitted");
+                    feedback.setDateSubmitted(ds != null ? ds.toLocalDate() : null);
                     feedback.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
                     feedback.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
                 }
