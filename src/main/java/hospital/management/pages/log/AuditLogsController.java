@@ -8,6 +8,7 @@ import hospital.management.backend.service.log.interfaces.AuditService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.log.AuditLogTableController;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -29,6 +30,7 @@ public class AuditLogsController extends BasePageController {
     private final AuditService auditService = new AuditServiceImpl(new AuditLogDAOImpl());
 
     @FXML private AuditLogTableController auditLogTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private TextField    searchField;
     @FXML private ComboBox<String> actionFilter;
@@ -47,6 +49,11 @@ public class AuditLogsController extends BasePageController {
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         actionFilter.setOnAction(e -> applyFilter());
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportCsv));
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> auditLogTableController.applySort(field, asc));
+            sortBarController.addOptions(auditLogTableController.getSortOptionLabels());
+        }
 
         refreshTable();
     }

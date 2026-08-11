@@ -45,6 +45,8 @@
                     <ComboBox fx:id="actionFilter" promptText="All Actions" prefWidth="150" styleClass="filter-combo"/>
                     <DatePicker fx:id="fromDatePicker" promptText="From" prefWidth="140"/>
                     <DatePicker fx:id="toDatePicker"   promptText="To"   prefWidth="140"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
                 </HBox>
 
                 <fx:include fx:id="auditLogTable"

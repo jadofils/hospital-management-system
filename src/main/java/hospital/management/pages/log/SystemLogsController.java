@@ -8,6 +8,7 @@ import hospital.management.backend.service.log.interfaces.SystemLogService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.log.SystemLogTableController;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -24,6 +25,7 @@ public class SystemLogsController extends BasePageController {
     private final SystemLogService systemLogService = new SystemLogServiceImpl(new SystemLogDAOImpl());
 
     @FXML private SystemLogTableController systemLogTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private TextField    searchField;
     @FXML private ComboBox<String> levelFilter;
@@ -45,6 +47,11 @@ public class SystemLogsController extends BasePageController {
 
         purgeBtn.setOnAction(e -> confirmPurgeLogs());
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportCsv));
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> systemLogTableController.applySort(field, asc));
+            sortBarController.addOptions(systemLogTableController.getSortOptionLabels());
+        }
 
         refreshTable();
     }
