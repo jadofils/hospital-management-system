@@ -1,0 +1,18 @@
+/* ── Developer Dashboard ─────────────────────────────────────────────────── */
+
+/* Streaming console output for the Testing tab */
+.log-area {
+    -fx-font-family: "Courier New", monospace;
+    -fx-font-size: 0.82em;
+    -fx-background-color: #1E1E2E;
+    -fx-text-fill: #CDD6F4;
+    -fx-background-radius: 6;
+    -fx-border-color: #313244;
+    -fx-border-radius: 6;
+    -fx-control-inner-background: #1E1E2E;
+    -fx-highlight-fill: derive(#3498DB, 20%);
+}
+
+.log-area .content {
+    -fx-background-color: #1E1E2E;
+}

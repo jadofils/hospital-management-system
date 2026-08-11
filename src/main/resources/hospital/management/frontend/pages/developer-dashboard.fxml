@@ -17,6 +17,7 @@
         <URL value="@../../css/alerts.css"/>
         <URL value="@../../css/spinner.css"/>
         <URL value="@../../css/table.css"/>
+        <URL value="@../../css/developer-dashboard.css"/>
     </stylesheets>
 
     <BorderPane styleClass="page-root">
@@ -180,6 +181,104 @@
                             <Label text="Algorithms"         styleClass="stat-label" GridPane.columnIndex="0" GridPane.rowIndex="5"/>
                             <Label fx:id="algoLabel"         text="—"               GridPane.columnIndex="1" GridPane.rowIndex="5"/>
                         </GridPane>
+                    </VBox>
+
+                    <!-- ── Testing — JUnit / Mockito vs PostgreSQL ─────────── -->
+                    <VBox styleClass="chart-panel" spacing="10">
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-vial" iconSize="14" styleClass="chart-title-icon"/>
+                            <Label text="Testing — JUnit 5 / Mockito vs PostgreSQL (Surefire)" styleClass="chart-title" HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="runTestsBtn" styleClass="primary-button" contentDisplay="LEFT" text="Run All Tests">
+                                <graphic><FontIcon iconLiteral="fas-play" iconSize="13"/></graphic>
+                            </Button>
+                            <Button fx:id="cancelTestsBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Cancel" disable="true">
+                                <graphic><FontIcon iconLiteral="fas-stop" iconSize="13"/></graphic>
+                            </Button>
+                            <Label fx:id="testStatusLabel" text="Click &quot;Run All Tests&quot; to execute the suite via Maven." styleClass="stat-trend"/>
+                        </HBox>
+
+                        <HBox spacing="16">
+                            <VBox styleClass="stat-card stat-card-blue" spacing="4" HBox.hgrow="ALWAYS">
+                                <HBox spacing="8" alignment="CENTER_LEFT">
+                                    <FontIcon iconLiteral="fas-list-alt" iconSize="14"/>
+                                    <Label text="Tests Run" styleClass="stat-label"/>
+                                </HBox>
+                                <Label fx:id="testsRunValue"  text="—" styleClass="stat-value"/>
+                                <Label fx:id="testsRunTrend"  text="not run yet" styleClass="stat-trend"/>
+                            </VBox>
+                            <VBox styleClass="stat-card stat-card-green" spacing="4" HBox.hgrow="ALWAYS">
+                                <HBox spacing="8" alignment="CENTER_LEFT">
+                                    <FontIcon iconLiteral="fas-check-circle" iconSize="14"/>
+                                    <Label text="Passed" styleClass="stat-label"/>
+                                </HBox>
+                                <Label fx:id="testsPassedValue" text="—" styleClass="stat-value"/>
+                                <Label fx:id="testsPassedTrend" text="—" styleClass="stat-trend"/>
+                            </VBox>
+                            <VBox styleClass="stat-card stat-card-red" spacing="4" HBox.hgrow="ALWAYS">
+                                <HBox spacing="8" alignment="CENTER_LEFT">
+                                    <FontIcon iconLiteral="fas-times-circle" iconSize="14"/>
+                                    <Label text="Failed / Errors" styleClass="stat-label"/>
+                                </HBox>
+                                <Label fx:id="testsFailedValue" text="—" styleClass="stat-value"/>
+                                <Label fx:id="testsFailedTrend" text="—" styleClass="stat-trend"/>
+                            </VBox>
+                            <VBox styleClass="stat-card stat-card-yellow" spacing="4" HBox.hgrow="ALWAYS">
+                                <HBox spacing="8" alignment="CENTER_LEFT">
+                                    <FontIcon iconLiteral="fas-stopwatch" iconSize="14"/>
+                                    <Label text="Duration" styleClass="stat-label"/>
+                                </HBox>
+                                <Label fx:id="testsDurationValue" text="—" styleClass="stat-value"/>
+                                <Label fx:id="testsDurationTrend" text="—" styleClass="stat-trend"/>
+                            </VBox>
+                            <VBox styleClass="stat-card stat-card-blue" spacing="4" HBox.hgrow="ALWAYS">
+                                <HBox spacing="8" alignment="CENTER_LEFT">
+                                    <FontIcon iconLiteral="fas-percentage" iconSize="14"/>
+                                    <Label text="Pass Rate" styleClass="stat-label"/>
+                                </HBox>
+                                <Label fx:id="testsRateValue" text="—" styleClass="stat-value"/>
+                                <Label fx:id="testsRateTrend" text="—" styleClass="stat-trend"/>
+                            </VBox>
+                        </HBox>
+
+                        <TableView fx:id="testResultsTable" prefHeight="280">
+                            <columns>
+                                <TableColumn fx:id="testClassCol"   text="Test Class" prefWidth="380"/>
+                                <TableColumn fx:id="testTestsCol"   text="Tests"      prefWidth="70"/>
+                                <TableColumn fx:id="testFailuresCol" text="Failures"  prefWidth="80"/>
+                                <TableColumn fx:id="testErrorsCol"  text="Errors"     prefWidth="70"/>
+                                <TableColumn fx:id="testSkippedCol" text="Skipped"    prefWidth="70"/>
+                                <TableColumn fx:id="testTimeCol"    text="Time (s)"   prefWidth="90"/>
+                            </columns>
+                        </TableView>
+
+                        <Label text="Console Output" styleClass="stat-label"/>
+                        <TextArea fx:id="testLogArea" editable="false" wrapText="true" styleClass="log-area"
+                                  prefHeight="160" promptText="Maven console output streams here as the suite runs."/>
+                    </VBox>
+
+                    <!-- ── Algorithm & hashing benchmarks ───────────────────── -->
+                    <VBox styleClass="chart-panel" spacing="10">
+                        <HBox spacing="12" alignment="CENTER_LEFT">
+                            <FontIcon iconLiteral="fas-tachometer-alt" iconSize="14" styleClass="chart-title-icon"/>
+                            <Label text="Algorithm &amp; Hashing Benchmarks — in-process (DSA, SHA-256, BCrypt)" styleClass="chart-title" HBox.hgrow="ALWAYS"/>
+                            <Button fx:id="runAlgoBenchmarkBtn" styleClass="primary-button" contentDisplay="LEFT" text="Run Algorithm Benchmarks">
+                                <graphic><FontIcon iconLiteral="fas-play" iconSize="13"/></graphic>
+                            </Button>
+                            <Label fx:id="algoBenchmarkLabel" text="Not run yet." styleClass="stat-trend"/>
+                        </HBox>
+                        <TableView fx:id="algoBenchmarkTable" prefHeight="200">
+                            <columns>
+                                <TableColumn fx:id="algoNameCol"       text="Algorithm"   prefWidth="220"/>
+                                <TableColumn fx:id="algoComplexityCol" text="Complexity"  prefWidth="110"/>
+                                <TableColumn fx:id="algoAvgCol"        text="Avg (ms)"    prefWidth="100"/>
+                                <TableColumn fx:id="algoOpsCol"        text="Ops / sec"   prefWidth="120"/>
+                                <TableColumn fx:id="algoNoteCol"       text="Notes"       prefWidth="380"/>
+                            </columns>
+                        </TableView>
+                        <BarChart fx:id="algoBenchmarkChart" prefHeight="200" animated="false" legendVisible="false">
+                            <xAxis><CategoryAxis fx:id="algoBenchmarkXAxis"/></xAxis>
+                            <yAxis><NumberAxis   fx:id="algoBenchmarkYAxis" label="Avg (ms)"/></yAxis>
+                        </BarChart>
                     </VBox>
 
                     <!-- ── Database Objects ────────────────────────────────── -->

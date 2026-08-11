@@ -13,6 +13,7 @@ import hospital.management.backend.mongo.config.MongoConfig;
 import hospital.management.backend.service.analytics.DatabaseInspectionService;
 import hospital.management.backend.service.analytics.IndexComparisonService;
 import hospital.management.backend.service.analytics.PerformanceBenchmarkService;
+import hospital.management.backend.service.analytics.TestSuiteService;
 import hospital.management.backend.service.auth.UserServiceImpl;
 import hospital.management.backend.service.auth.interfaces.UserService;
 import hospital.management.backend.service.backup.BackupManifest;
@@ -24,8 +25,10 @@ import hospital.management.backend.utils.listeners.AppEventType;
 import hospital.management.backend.utils.listeners.EventBus;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
+import hospital.management.enums.NotificationType;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.BasePageController;
+import hospital.management.pages.components.shared.feedback.ButtonSpinner;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -48,7 +51,11 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class DeveloperDashboardController extends BasePageController {
@@ -63,6 +70,10 @@ public class DeveloperDashboardController extends BasePageController {
     private final BackupService               backupService       = new BackupService();
     private final IndexComparisonService      indexComparisonService = new IndexComparisonService();
     private final UserService                 userService         = new UserServiceImpl(new UserDAOImpl());
+    private final TestSuiteService            testSuiteService    = new TestSuiteService();
+
+    private final AtomicBoolean testRunCancelled = new AtomicBoolean(false);
+    private Future<?> testRunFuture;
 
     private static final DateTimeFormatter BACKUP_TS_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -192,6 +203,42 @@ public class DeveloperDashboardController extends BasePageController {
     private final RowSelection<UserDTO> maintenanceUserSelection = new RowSelection<>();
     private List<UserDTO> maintenanceUsers = List.of();
 
+    // ── Testing section ─────────────────────────────────────────────────────
+    @FXML private Button runTestsBtn;
+    @FXML private Button cancelTestsBtn;
+    @FXML private Label  testStatusLabel;
+    @FXML private Label  testsRunValue;
+    @FXML private Label  testsRunTrend;
+    @FXML private Label  testsPassedValue;
+    @FXML private Label  testsPassedTrend;
+    @FXML private Label  testsFailedValue;
+    @FXML private Label  testsFailedTrend;
+    @FXML private Label  testsDurationValue;
+    @FXML private Label  testsDurationTrend;
+    @FXML private Label  testsRateValue;
+    @FXML private Label  testsRateTrend;
+    @FXML private TableView<TestSuiteService.ClassResult> testResultsTable;
+    @FXML private TableColumn<TestSuiteService.ClassResult, String> testClassCol;
+    @FXML private TableColumn<TestSuiteService.ClassResult, String> testTestsCol;
+    @FXML private TableColumn<TestSuiteService.ClassResult, String> testFailuresCol;
+    @FXML private TableColumn<TestSuiteService.ClassResult, String> testErrorsCol;
+    @FXML private TableColumn<TestSuiteService.ClassResult, String> testSkippedCol;
+    @FXML private TableColumn<TestSuiteService.ClassResult, String> testTimeCol;
+    @FXML private TextArea testLogArea;
+
+    // ── Algorithm benchmark section ─────────────────────────────────────────
+    @FXML private Button runAlgoBenchmarkBtn;
+    @FXML private Label  algoBenchmarkLabel;
+    @FXML private TableView<TestSuiteService.AlgorithmBenchmark> algoBenchmarkTable;
+    @FXML private TableColumn<TestSuiteService.AlgorithmBenchmark, String> algoNameCol;
+    @FXML private TableColumn<TestSuiteService.AlgorithmBenchmark, String> algoComplexityCol;
+    @FXML private TableColumn<TestSuiteService.AlgorithmBenchmark, String> algoAvgCol;
+    @FXML private TableColumn<TestSuiteService.AlgorithmBenchmark, String> algoOpsCol;
+    @FXML private TableColumn<TestSuiteService.AlgorithmBenchmark, String> algoNoteCol;
+    @FXML private BarChart<String, Number> algoBenchmarkChart;
+    @FXML private CategoryAxis algoBenchmarkXAxis;
+    @FXML private NumberAxis   algoBenchmarkYAxis;
+
     /**
      * Tracks per-row checkbox selection for a {@code TableView<T>} without
      * touching the table's own (single-item, detail-view) selection model.
@@ -274,9 +321,15 @@ public class DeveloperDashboardController extends BasePageController {
         loadDbObjects();
         setupBackupTab();
         setupMaintenanceTab();
+        setupTestsSection();
+        setupAlgoBenchmarkSection();
 
         runBenchmarkBtn.setOnAction(e -> withSpinner(runBenchmarkBtn, this::runBenchmark));
         downloadReportBtn.setOnAction(e -> downloadReport());
+
+        runTestsBtn.setOnAction(e -> runTests());
+        cancelTestsBtn.setOnAction(e -> cancelTests());
+        runAlgoBenchmarkBtn.setOnAction(e -> runAlgorithmBenchmarks());
 
         refreshDbObjectsBtn.setOnAction(e -> withSpinner(refreshDbObjectsBtn, this::loadDbObjects));
         indexBenchmarkBtn.setOnAction(e -> confirm(
@@ -979,6 +1032,167 @@ public class DeveloperDashboardController extends BasePageController {
             },
             ex -> toastError("Failed to save report: " + ex.getMessage())
         );
+    }
+
+    // ── Testing section ────────────────────────────────────────────────────
+
+    private void setupTestsSection() {
+        testClassCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().className()));
+        testTestsCol.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().tests())));
+        testFailuresCol.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().failures())));
+        testErrorsCol.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().errors())));
+        testSkippedCol.setCellValueFactory(c -> new SimpleStringProperty(String.valueOf(c.getValue().skipped())));
+        testTimeCol.setCellValueFactory(c -> new SimpleStringProperty(String.format("%.2f", c.getValue().timeSeconds())));
+        testResultsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        testResultsTable.setPlaceholder(new Label("Run All Tests to see per-class results."));
+    }
+
+    private void runTests() {
+        testRunCancelled.set(false);
+        runTestsBtn.setDisable(true);
+        cancelTestsBtn.setDisable(false);
+        testStatusLabel.setText("Running test suite via Maven…");
+        testLogArea.clear();
+        testResultsTable.getItems().clear();
+        resetTestCards();
+
+        String root = testSuiteService.locateProjectRoot();
+        AtomicBoolean cancelled = testRunCancelled;
+        Consumer<String> sink = line -> Platform.runLater(() -> appendTestLog(line));
+
+        testRunFuture = AsyncJobRunner.submit(
+            () -> testSuiteService.runMavenTests(root, sink, cancelled),
+            summary -> {
+                runTestsBtn.setDisable(false);
+                cancelTestsBtn.setDisable(true);
+                renderTestSummary(summary);
+                if (summary.cancelled()) {
+                    testStatusLabel.setText("Test run cancelled — partial results shown.");
+                    toast("Test run cancelled", NotificationType.WARNING);
+                } else {
+                    testStatusLabel.setText(summary.success()
+                        ? "All tests passed ✓"
+                        : "Suite finished with failures ✗");
+                    if (summary.success()) {
+                        toastSuccess("Test suite passed: " + summary.tests() + " tests, "
+                            + summary.classes().size() + " classes");
+                    } else {
+                        toastError("Test suite failed: " + summary.failures() + " failure(s), "
+                            + summary.errors() + " error(s)");
+                    }
+                }
+            },
+            err -> {
+                runTestsBtn.setDisable(false);
+                cancelTestsBtn.setDisable(true);
+                testStatusLabel.setText("Test run failed — see console output.");
+                appendTestLog("\nERROR: " + err.getMessage());
+                toastError("Test run failed: " + err.getMessage());
+            });
+    }
+
+    private void cancelTests() {
+        testRunCancelled.set(true);
+        if (testRunFuture != null) testRunFuture.cancel(true);
+        appendTestLog("[cancelling test run…]");
+        testStatusLabel.setText("Cancelling…");
+    }
+
+    private void resetTestCards() {
+        testsRunValue.setText("—");
+        testsRunTrend.setText("running…");
+        testsPassedValue.setText("—");
+        testsPassedTrend.setText("—");
+        testsFailedValue.setText("—");
+        testsFailedTrend.setText("—");
+        testsDurationValue.setText("—");
+        testsDurationTrend.setText("—");
+        testsRateValue.setText("—");
+        testsRateTrend.setText("—");
+        testsFailedValue.setStyle("");
+    }
+
+    private void renderTestSummary(TestSuiteService.SuiteSummary summary) {
+        testResultsTable.setItems(FXCollections.observableArrayList(summary.classes()));
+
+        testsRunValue.setText(String.valueOf(summary.tests()));
+        testsRunTrend.setText(summary.classes().size() + " classes parsed");
+
+        int failed = summary.failures() + summary.errors();
+        int passed = Math.max(0, summary.tests() - failed - summary.skipped());
+        testsPassedValue.setText(String.valueOf(passed));
+        testsPassedTrend.setText(failed == 0 ? "100% clean ✓" : passed + " clean");
+
+        testsFailedValue.setText(String.valueOf(failed));
+        testsFailedTrend.setText(summary.skipped() > 0
+            ? summary.skipped() + " skipped"
+            : "none ✓");
+        testsFailedValue.setStyle(failed == 0
+            ? "-fx-text-fill: #27AE60; -fx-font-weight: bold;"
+            : "-fx-text-fill: #E74C3C; -fx-font-weight: bold;");
+
+        testsDurationValue.setText(String.format(Locale.ROOT, "%.1f s", summary.durationSeconds()));
+        testsDurationTrend.setText("reported by Surefire");
+
+        double rate = summary.tests() == 0 ? 0 : passed * 100.0 / summary.tests();
+        testsRateValue.setText(String.format(Locale.ROOT, "%.1f%%", rate));
+        testsRateTrend.setText("pass rate");
+    }
+
+    private void appendTestLog(String line) {
+        if (testLogArea == null) return;
+        if (testLogArea.getLength() > 100_000) testLogArea.clear();
+        testLogArea.appendText(TIME_FMT.format(LocalDateTime.now()) + "  " + line + "\n");
+        testLogArea.setScrollTop(Double.MAX_VALUE);
+    }
+
+    // ── Algorithm benchmark section ────────────────────────────────────────
+
+    private void setupAlgoBenchmarkSection() {
+        algoNameCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().algorithm()));
+        algoComplexityCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().complexity()));
+        algoAvgCol.setCellValueFactory(c -> new SimpleStringProperty(String.format(Locale.ROOT, "%.3f", c.getValue().avgMillis())));
+        algoOpsCol.setCellValueFactory(c -> new SimpleStringProperty(fmtOps(c.getValue().opsPerSec())));
+        algoNoteCol.setCellValueFactory(c -> new SimpleStringProperty(c.getValue().note()));
+        algoBenchmarkTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        algoBenchmarkTable.setPlaceholder(new Label("Run Algorithm Benchmarks to populate this table."));
+    }
+
+    private void runAlgorithmBenchmarks() {
+        ButtonSpinner.setLoading(runAlgoBenchmarkBtn, true);
+        algoBenchmarkLabel.setText("Running in-process benchmarks…");
+        AsyncJobRunner.submit(
+            () -> testSuiteService.benchmarkAlgorithms(),
+            results -> {
+                ButtonSpinner.setLoading(runAlgoBenchmarkBtn, false);
+                algoBenchmarkLabel.setText(results.size() + " algorithms benchmarked this session");
+                renderAlgoBenchmarks(results);
+                toastSuccess("Algorithm benchmarks complete");
+            },
+            err -> {
+                ButtonSpinner.setLoading(runAlgoBenchmarkBtn, false);
+                algoBenchmarkLabel.setText("Benchmark failed");
+                toastError("Algorithm benchmark failed: " + err.getMessage());
+            });
+    }
+
+    private void renderAlgoBenchmarks(List<TestSuiteService.AlgorithmBenchmark> results) {
+        algoBenchmarkTable.setItems(FXCollections.observableArrayList(results));
+
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        series.setName("Avg time (ms)");
+        for (TestSuiteService.AlgorithmBenchmark r : results) {
+            series.getData().add(new XYChart.Data<>(r.algorithm(), r.avgMillis()));
+        }
+        algoBenchmarkChart.getData().clear();
+        algoBenchmarkChart.getData().add(series);
+    }
+
+    private String fmtOps(double opsPerSec) {
+        if (opsPerSec >= 1_000_000_000) return String.format(Locale.ROOT, "%.2f G", opsPerSec / 1_000_000_000);
+        if (opsPerSec >= 1_000_000) return String.format(Locale.ROOT, "%.2f M", opsPerSec / 1_000_000);
+        if (opsPerSec >= 1_000) return String.format(Locale.ROOT, "%.2f K", opsPerSec / 1_000);
+        return String.format(Locale.ROOT, "%.2f", opsPerSec);
     }
 
     // ── Status cards ──────────────────────────────────────────────────────
