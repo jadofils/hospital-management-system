@@ -12,7 +12,14 @@ import hospital.management.pages.components.shared.layout.SidebarController;
 import hospital.management.pages.components.shared.feedback.ToastController;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContentDisplay;
+import javafx.stage.Stage;
+import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.function.Consumer;
 
@@ -95,5 +102,47 @@ public abstract class BasePageController {
 
     protected <T> Consumer<T> allowRead(PageRoute route, Consumer<T> action) {
         return canRead(route) ? action : null;
+    }
+
+    /**
+     * Loads another page into the current window, mirroring the sidebar's navigation.
+     * Used by the "Continue to →" guide button to move the user to the next workflow page.
+     */
+    protected void navigateToPage(PageRoute route, Node source) {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(route.getFxmlPath()));
+            Parent root = loader.load();
+            Scene scene = source.getScene();
+            Scene newScene = new Scene(root, scene.getWidth(), scene.getHeight());
+            newScene.getStylesheets().add(
+                getClass().getResource("/hospital/management/css/global.css").toExternalForm()
+            );
+            ((Stage) scene.getWindow()).setScene(newScene);
+        } catch (Exception e) {
+            System.err.println("Navigation to " + route.getFxmlPath() + " failed: " + e.getMessage());
+            toastError("Couldn't open " + route.getLabel() + ". Please try again.");
+        }
+    }
+
+    /**
+     * Wires the "Continue to →" guide button shown on the right end of every page header.
+     * The button is labelled with the next workflow page (e.g. "Continue to Appointments")
+     * and is hidden entirely when the current page has no natural next step or the user
+     * lacks permission for it.
+     */
+    protected void setupContinueButton(Button button, PageRoute currentRoute) {
+        if (button == null) return;
+        PageRoute next = currentRoute.getNextStep();
+        boolean show = next != null && PermissionGate.isAllowed(next);
+        button.setVisible(show);
+        button.setManaged(show);
+        if (!show) return;
+
+        FontIcon arrow = new FontIcon("fas-arrow-right");
+        arrow.setIconSize(12);
+        button.setGraphic(arrow);
+        button.setContentDisplay(ContentDisplay.RIGHT);
+        button.setText("Continue to " + next.getLabel());
+        button.setOnAction(e -> navigateToPage(next, button));
     }
 }
