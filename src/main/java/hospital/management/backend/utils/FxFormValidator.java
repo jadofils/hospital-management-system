@@ -4,6 +4,7 @@ import javafx.scene.control.*;
 import javafx.scene.paint.Color;
 
 import java.time.LocalDate;
+import java.util.function.Supplier;
 
 /**
  * Attaches real-time validation listeners to JavaFX form controls.
@@ -280,6 +281,79 @@ public final class FxFormValidator {
         };
         from.valueProperty().addListener((obs, old, val) -> check.run());
         to.valueProperty().addListener((obs, old, val) -> check.run());
+    }
+
+    /**
+     * Blocks every past day in the picker's calendar popup so past dates are
+     * physically unselectable (in addition to the red/green styling from
+     * {@link #attachNotPastDate}). The user must still be able to TYPE a past
+     * date, so pair with an on-submit check for a hard guarantee.
+     */
+    public static void disallowPastDates(DatePicker picker) {
+        if (picker == null) return;
+        picker.setDayCellFactory(dp -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate date, boolean empty) {
+                super.updateItem(date, empty);
+                setDisable(empty || date.isBefore(LocalDate.now()));
+            }
+        });
+    }
+
+    /**
+     * Disables every day after today in the picker's calendar popup, so future
+     * dates are physically unselectable (in addition to the red/green styling
+     * from {@link #attachNotFutureDate}). The user must still be able to TYPE a
+     * future date, so pair with an on-submit check for a hard guarantee.
+     */
+    public static void disallowFutureDates(DatePicker picker) {
+        if (picker == null) return;
+        picker.setDayCellFactory(dp -> new DateCell() {
+            @Override
+            public void updateItem(LocalDate date, boolean empty) {
+                super.updateItem(date, empty);
+                setDisable(empty || date.isAfter(LocalDate.now()));
+            }
+        });
+    }
+
+    /**
+     * Validates that the selected date is on or after a dynamically-resolved
+     * minimum date (e.g. a prescription must not be issued before its
+     * appointment date). Empty picker or null minimum = neutral.
+     */
+    public static void attachOnOrAfterDate(DatePicker picker, Supplier<LocalDate> minDateSupplier,
+                                           Label errorLabel, String displayName) {
+        if (picker == null) return;
+        picker.valueProperty().addListener((obs, old, val) -> {
+            LocalDate min = minDateSupplier == null ? null : minDateSupplier.get();
+            if (val == null || min == null) {
+                clearStyle(picker);
+                setMsg(errorLabel, "");
+                return;
+            }
+            boolean ok = !val.isBefore(min);
+            applyStyle(picker, ok);
+            setMsg(errorLabel, ok ? "" : displayName + " must not be before " + min + ".");
+        });
+    }
+
+    /**
+     * Validates that the selected date is not after today (e.g. a prescription
+     * cannot be issued in the future). Empty = neutral.
+     */
+    public static void attachNotFutureDate(DatePicker picker, Label errorLabel, String displayName) {
+        if (picker == null) return;
+        picker.valueProperty().addListener((obs, old, val) -> {
+            if (val == null) {
+                clearStyle(picker);
+                setMsg(errorLabel, "");
+                return;
+            }
+            boolean ok = !val.isAfter(LocalDate.now());
+            applyStyle(picker, ok);
+            setMsg(errorLabel, ok ? "" : displayName + " cannot be in the future.");
+        });
     }
 
     // ── ComboBox validators ───────────────────────────────────────────────────
