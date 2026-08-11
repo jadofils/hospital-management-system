@@ -43,14 +43,14 @@
 
             <!-- ── PATIENTS (collapsible) ──────────────────────────────────── -->
             <VBox fx:id="patientSection" spacing="0">
-                <Button fx:id="clinicalHeaderBtn" styleClass="sidebar-section-header"
+                <Button fx:id="patientHeaderBtn" styleClass="sidebar-section-header"
                         maxWidth="Infinity" contentDisplay="GRAPHIC_ONLY"
-                        onAction="#toggleClinicalSection">
+                        onAction="#togglePatientSection">
                     <graphic>
                         <HBox styleClass="section-header-content" alignment="CENTER_LEFT" spacing="8">
-                            <FontIcon iconLiteral="fas-stethoscope" iconSize="13" styleClass="section-header-icon"/>
-                            <Label text="CLINICAL" styleClass="sidebar-section-header-label" HBox.hgrow="ALWAYS"/>
-                            <FontIcon fx:id="clinicalChevron" iconLiteral="fas-chevron-down" iconSize="10" styleClass="section-chevron"/>
+                            <FontIcon iconLiteral="fas-user-injured" iconSize="13" styleClass="section-header-icon"/>
+                            <Label text="PATIENTS" styleClass="sidebar-section-header-label" HBox.hgrow="ALWAYS"/>
+                            <FontIcon fx:id="patientChevron" iconLiteral="fas-chevron-down" iconSize="10" styleClass="section-chevron"/>
                         </HBox>
                     </graphic>
                 </Button>
@@ -76,6 +76,35 @@
 
             <!-- ── CLINICAL (collapsible) ──────────────────────────────────── -->
             <VBox fx:id="clinicalSection" spacing="0">
+                <Button fx:id="clinicalHeaderBtn" styleClass="sidebar-section-header"
+                        maxWidth="Infinity" contentDisplay="GRAPHIC_ONLY"
+                        onAction="#toggleClinicalSection">
+                    <graphic>
+                        <HBox styleClass="section-header-content" alignment="CENTER_LEFT" spacing="8">
+                            <FontIcon iconLiteral="fas-stethoscope" iconSize="13" styleClass="section-header-icon"/>
+                            <Label text="CLINICAL" styleClass="sidebar-section-header-label" HBox.hgrow="ALWAYS"/>
+                            <FontIcon fx:id="clinicalChevron" iconLiteral="fas-chevron-down" iconSize="10" styleClass="section-chevron"/>
+                        </HBox>
+                    </graphic>
+                </Button>
+                <VBox fx:id="clinicalItems" spacing="2" styleClass="section-items">
+                    <Button fx:id="medicalRecordsBtn" text="Medical Records" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleMedicalRecords">
+                        <graphic><FontIcon iconLiteral="fas-notes-medical" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="prescriptionsBtn" text="Prescriptions" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handlePrescriptions">
+                        <graphic><FontIcon iconLiteral="fas-prescription" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="labOrdersBtn" text="Lab Orders" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleLabOrders">
+                        <graphic><FontIcon iconLiteral="fas-flask" iconSize="14"/></graphic>
+                    </Button>
+                    <Button fx:id="referralsBtn" text="Referrals" styleClass="sidebar-item"
+                            maxWidth="Infinity" contentDisplay="LEFT" onAction="#handleReferrals">
+                        <graphic><FontIcon iconLiteral="fas-exchange-alt" iconSize="14"/></graphic>
+                    </Button>
+                </VBox>
             </VBox>
 
             <!-- ── PHARMACY (collapsible) ──────────────────────────────────── -->
