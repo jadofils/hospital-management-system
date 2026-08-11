@@ -31,6 +31,11 @@ public class VitalSignTableController extends PaginatedTableController<VitalSign
         temperatureColumn.setCellValueFactory(new PropertyValueFactory<>("temperatureCelsius"));
         weightColumn.setCellValueFactory(new PropertyValueFactory<>("weightKg"));
         heightColumn.setCellValueFactory(new PropertyValueFactory<>("heightCm"));
+        addSortOption("Recorded", recordedAtColumn);
+        addSortOption("Heart Rate", heartRateColumn);
+        addSortOption("Temperature", temperatureColumn);
+        addSortOption("Weight", weightColumn);
+        addSortOption("Height", heightColumn);
         wireActionsColumn(actionsColumn);
     }
 

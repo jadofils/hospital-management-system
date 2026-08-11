@@ -23,7 +23,7 @@ public class PatientTableController extends PaginatedTableController<PatientDTO>
 
     @Override
     protected void configureColumns() {
-        idColumn.setCellValueFactory(new PropertyValueFactory<>("patientId"));
+        idColumn.setVisible(false);
         nameColumn.setCellValueFactory(cell ->
                 new SimpleStringProperty(cell.getValue().getFullName()));
         ageColumn.setCellValueFactory(cell -> {
@@ -34,6 +34,10 @@ public class PatientTableController extends PaginatedTableController<PatientDTO>
         genderColumn.setCellValueFactory(new PropertyValueFactory<>("gender"));
         phoneColumn.setCellValueFactory(new PropertyValueFactory<>("phone"));
         // status column left unbound — admission status comes from a separate domain
+        addSortOption("Name", nameColumn);
+        addSortOption("Age", ageColumn);
+        addSortOption("Gender", genderColumn);
+        addSortOption("Phone", phoneColumn);
         wireActionsColumn(actionsColumn);
     }
 

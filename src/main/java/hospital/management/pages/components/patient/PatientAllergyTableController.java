@@ -18,6 +18,9 @@ public class PatientAllergyTableController extends PaginatedTableController<Pati
         allergenColumn.setCellValueFactory(new PropertyValueFactory<>("allergen"));
         reactionColumn.setCellValueFactory(new PropertyValueFactory<>("reaction"));
         severityColumn.setCellValueFactory(new PropertyValueFactory<>("severity"));
+        addSortOption("Allergen", allergenColumn);
+        addSortOption("Reaction", reactionColumn);
+        addSortOption("Severity", severityColumn);
         wireActionsColumn(actionsColumn);
     }
 
