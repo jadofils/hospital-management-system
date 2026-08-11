@@ -119,7 +119,7 @@ ON CONFLICT (appointment_id) DO NOTHING;
 INSERT INTO patient_allergies (patient_id, allergen, reaction, severity)
 SELECT p.patient_id, v.allergen, v.reaction, v.severity
 FROM patients p
-JOIN (VALUES
+CROSS JOIN (VALUES
   ('Peanuts','Hives','severe'),
   ('Dust','Sneezing','moderate'),
   ('Penicillin','Rash','severe'),
@@ -147,7 +147,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO lab_orders (appointment_id, doctor_id, test_name, status, ordered_at)
 SELECT a.appointment_id, a.doctor_id, v.test_name, 'ordered', CURRENT_TIMESTAMP
 FROM appointments a
-JOIN (VALUES
+CROSS JOIN (VALUES
   ('Complete Blood Count'), ('Chest X-Ray'), ('Liver Function Test'), ('Renal Panel'),
   ('Blood Glucose'), ('Urinalysis'), ('Pregnancy Test'), ('Thyroid Panel'), ('Lipid Panel'), ('Malaria Rapid Test')
 ) v(test_name)
@@ -169,7 +169,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO prescription_items (prescription_id, medication_id, dosage, quantity, instructions)
 SELECT pr.prescription_id, m.medication_id, '1 tab', 7, 'Take once daily'
 FROM prescriptions pr
-CROSS JOIN LATERAL (SELECT medication_id FROM medications ORDER BY medication_id LIMIT 1 OFFSET ((CAST(substring(md5(pr.prescription_id::text),1,2) AS int) % (SELECT COUNT(*) FROM medications)))) m
+CROSS JOIN LATERAL (SELECT medication_id FROM medications ORDER BY medication_id LIMIT 1 OFFSET (abs(hashtext(pr.prescription_id::text)) % (SELECT COUNT(*) FROM medications))) m
 LIMIT 20
 ON CONFLICT DO NOTHING;
 
@@ -179,7 +179,7 @@ ON CONFLICT DO NOTHING;
 INSERT INTO doctor_schedules (doctor_id, day_of_week, start_time, end_time, is_available)
 SELECT d.doctor_id, v.day, '08:00', '16:00', TRUE
 FROM doctors d
-JOIN (VALUES ('Mon'),('Tue'),('Wed'),('Thu'),('Fri')) v(day)
+CROSS JOIN (VALUES ('Mon'),('Tue'),('Wed'),('Thu'),('Fri')) v(day)
 ON CONFLICT DO NOTHING;
 
 -- ---------------------------------------------------------------------
@@ -241,6 +241,65 @@ JOIN roles r ON (
   OR (u.username LIKE 'pharm%' AND r.role_name = 'Pharmacist')
 )
 ON CONFLICT (user_id, role_id) DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- Referrals — create at least 10 (never to self, per chk_referral_not_self)
+-- ---------------------------------------------------------------------
+INSERT INTO referrals (appointment_id, referring_doctor_id, referred_to_doctor_id, reason, status)
+SELECT a.appointment_id, a.doctor_id, d.doctor_id, 'Specialist consultation', 'pending'
+FROM appointments a
+CROSS JOIN LATERAL (
+  SELECT doctor_id FROM doctors WHERE doctor_id <> a.doctor_id ORDER BY doctor_id LIMIT 1
+) d
+LIMIT 10
+ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- Patient notes — one per recent appointment (>=10)
+-- ---------------------------------------------------------------------
+INSERT INTO patient_notes (patient_id, appointment_id, author_user_id, author_role, note_text, source)
+SELECT a.patient_id, a.appointment_id, u.user_id, 'Doctor', 'Follow-up: patient responding well, continue current plan.', 'medical_records'
+FROM appointments a
+CROSS JOIN LATERAL (SELECT user_id FROM users WHERE doctor_id IS NOT NULL ORDER BY user_id LIMIT 1) u
+LIMIT 10
+ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- Notifications — at least 10
+-- ---------------------------------------------------------------------
+INSERT INTO notifications (type, actor_user_id, recipients, payload, channels, status, priority, read_at)
+SELECT 'APPOINTMENT_REMINDER', u.user_id, jsonb_build_array(u.user_id), jsonb_build_object('appointment_id', a.appointment_id), jsonb_build_array('in_app'), jsonb_build_object('in_app', 'sent'), 'normal', NULL
+FROM users u
+JOIN appointments a ON a.patient_id IS NOT NULL
+LIMIT 10
+ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- Audit log — at least 10 entries
+-- ---------------------------------------------------------------------
+INSERT INTO audit_log (user_id, action, table_affected, record_id)
+SELECT u.user_id, 'CREATE', 'patients', NULL
+FROM users u
+LIMIT 10
+ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- User sessions — at least 10
+-- ---------------------------------------------------------------------
+INSERT INTO user_sessions (user_id, expires_at, ip_address, user_agent, is_active)
+SELECT u.user_id, NOW() + INTERVAL '8 hours', '127.0.0.1', 'Seed Data', TRUE
+FROM users u
+LIMIT 10
+ON CONFLICT DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- System logs — at least 10 (append-only)
+-- ---------------------------------------------------------------------
+INSERT INTO system_logs (log_level, source, message, user_id)
+SELECT 'INFO', 'SeedData', 'Sample system log entry generated during seed.', u.user_id
+FROM users u
+LIMIT 10
+ON CONFLICT DO NOTHING;
 
 COMMIT;
 
