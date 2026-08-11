@@ -24,6 +24,7 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.doctor.ReferralTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -42,11 +43,13 @@ public class ReferralsController extends BasePageController {
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private ReferralTableController referralTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private TextField    searchField;
     @FXML private ComboBox<String> statusFilter;
     @FXML private ComboBox<String> directionFilter;
     @FXML private Button       newReferralBtn;
+    @FXML private Button       continueBtn;
 
     private final List<ReferralDTO> referrals = new ArrayList<>();
 
@@ -63,11 +66,17 @@ public class ReferralsController extends BasePageController {
 
         applyCreateVisibility(newReferralBtn, PageRoute.REFERRALS);
         newReferralBtn.setOnAction(e -> openReferralDialog(null));
+        setupContinueButton(continueBtn, PageRoute.REFERRALS);
         referralTableController.setRowActions(
             allowUpdate(PageRoute.REFERRALS, this::openReferralDialog),
             allowDelete(PageRoute.REFERRALS, this::confirmDeleteReferral),
             allowRead(PageRoute.REFERRALS, this::viewReferralDetail));
         referralTableController.setOnChangeStatus(canUpdate(PageRoute.REFERRALS) ? this::openReferralStatusDialog : null);
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> referralTableController.applySort(field, asc));
+            sortBarController.addOptions(referralTableController.getSortOptionLabels());
+        }
 
         refreshTable();
     }
@@ -224,6 +233,32 @@ public class ReferralsController extends BasePageController {
         referredToDoctorIdField.setLoading(true);
         formDialogController.setLoading(true);
 
+        // Map each appointment to the doctor who holds it, so selecting an
+        // appointment auto-fills the referring doctor with the appointment's doctor.
+        Map<String, String> appointmentDoctorIds = new LinkedHashMap<>();
+        List<EntityIdComboBox.Option> allDoctorOptions = new ArrayList<>();
+
+        // Applies the appointment-driven doctor rules:
+        //  - referring doctor = the appointment's doctor (read-only),
+        //  - referred-to doctor list excludes the referring doctor (no self-referral).
+        Runnable applyAppointmentDoctor = () -> {
+            String selectedAppointmentId = appointmentId.getSelectedId();
+            if (selectedAppointmentId == null) return;
+            String referringDocId = appointmentDoctorIds.get(selectedAppointmentId);
+            if (referringDocId == null) return;
+
+            referringDoctorId.selectById(referringDocId);
+            referringDoctorId.setEditable(false);
+
+            List<EntityIdComboBox.Option> eligible = allDoctorOptions.stream()
+                    .filter(o -> !referringDocId.equals(o.id()))
+                    .toList();
+            referredToDoctorId.setOptions(eligible);
+            if (referringDocId.equals(referredToDoctorId.getSelectedId())) {
+                referredToDoctorId.setValue(null);
+            }
+        };
+
         AtomicInteger pending = new AtomicInteger(2);
         Runnable onOneLoaded = () -> {
             if (pending.decrementAndGet() == 0) {
@@ -235,10 +270,15 @@ public class ReferralsController extends BasePageController {
         AsyncJobRunner.submit(
             () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
             items -> {
-                appointmentId.setOptions(items.stream()
-                        .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
-                                a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))
-                        .toList());
+                List<EntityIdComboBox.Option> options = items.stream()
+                        .map(a -> {
+                            appointmentDoctorIds.put(a.getAppointmentId(), a.getDoctorId());
+                            return new EntityIdComboBox.Option(a.getAppointmentId(),
+                                    a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate());
+                        })
+                        .toList();
+                appointmentId.setOptions(options);
+                appointmentId.valueProperty().addListener((obs, oldVal, newVal) -> applyAppointmentDoctor.run());
                 if (existing != null) appointmentId.selectById(existing.getAppointmentId());
                 appointmentIdField.setLoading(false);
                 onOneLoaded.run();
@@ -252,16 +292,17 @@ public class ReferralsController extends BasePageController {
         AsyncJobRunner.submit(
             () -> doctorService.findAll(CursorPagination.firstPage(1000)).getItems(),
             items -> {
-                List<EntityIdComboBox.Option> doctorOptions = items.stream()
-                        .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName())).toList();
-                referringDoctorId.setOptions(doctorOptions);
-                referredToDoctorId.setOptions(doctorOptions);
-                if (existing != null) {
-                    referringDoctorId.selectById(existing.getReferringDoctorId());
-                    referredToDoctorId.selectById(existing.getReferredToDoctorId());
-                }
+                allDoctorOptions.clear();
+                items.stream()
+                        .map(d -> new EntityIdComboBox.Option(d.getDoctorId(), d.getFullName()))
+                        .forEach(allDoctorOptions::add);
+                referringDoctorId.setOptions(allDoctorOptions);
                 referringDoctorIdField.setLoading(false);
                 referredToDoctorIdField.setLoading(false);
+                applyAppointmentDoctor.run();
+                if (existing != null) {
+                    referredToDoctorId.selectById(existing.getReferredToDoctorId());
+                }
                 onOneLoaded.run();
             },
             ex -> {
