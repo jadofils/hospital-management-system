@@ -29,6 +29,7 @@ import hospital.management.backend.utils.pipes.AsyncJobRunner;
 import hospital.management.pages.components.doctor.DoctorTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -53,12 +54,14 @@ public class DoctorsPageController extends BasePageController {
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private DoctorTableController doctorTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private TextField searchField;
     @FXML private ComboBox<String> departmentFilter;
     @FXML private Button addDoctorBtn;
     @FXML private Button importBtn;
     @FXML private Button exportBtn;
+    @FXML private Button continueBtn;
     @FXML private Label totalLabel;
 
     private List<DoctorDTO> doctors = new ArrayList<>();
@@ -80,11 +83,17 @@ public class DoctorsPageController extends BasePageController {
         addDoctorBtn.setOnAction(e -> openDoctorDialog(null));
         importBtn.setOnAction(e -> withSpinner(importBtn, this::importDoctors));
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportDoctors));
+        setupContinueButton(continueBtn, PageRoute.DOCTORS);
         doctorTableController.setDoctorRowActions(
             allowUpdate(PageRoute.DOCTORS, this::openDoctorDialog),
             allowDelete(PageRoute.DOCTORS, this::confirmDeleteDoctor),
             allowRead(PageRoute.DOCTORS, this::viewDoctorDetail),
             allowUpdate(PageRoute.ROLES, this::openRoleAssignmentDialog));
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> doctorTableController.applySort(field, asc));
+            sortBarController.addOptions(doctorTableController.getSortOptionLabels());
+        }
 
         refreshTable();
     }
