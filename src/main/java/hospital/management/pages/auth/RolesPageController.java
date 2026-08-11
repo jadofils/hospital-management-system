@@ -17,6 +17,7 @@ import hospital.management.enums.PageRoute;
 import hospital.management.pages.BasePageController;
 import hospital.management.pages.components.auth.PermissionCardsController;
 import hospital.management.pages.components.auth.RoleTableController;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -46,8 +47,10 @@ public class RolesPageController extends BasePageController {
 
     // Roles tab
     @FXML private RoleTableController roleTableController;
+    @FXML private SortBarController roleSortBarController;
     @FXML private TextField roleSearchField;
     @FXML private Button    addRoleBtn;
+    @FXML private Button    continueBtn;
 
     // Permissions tab
     @FXML private PermissionCardsController permissionTableController;
@@ -69,6 +72,11 @@ public class RolesPageController extends BasePageController {
         roleSearchField.textProperty().addListener((obs, o, n) -> roleTableController.filter(n));
         applyCreateVisibility(addRoleBtn, PageRoute.ROLES);
         addRoleBtn.setOnAction(e -> openRoleDialog(null));
+        setupContinueButton(continueBtn, PageRoute.ROLES);
+        if (roleSortBarController != null) {
+            roleSortBarController.setOnSort((field, asc) -> roleTableController.applySort(field, asc));
+            roleSortBarController.addOptions(roleTableController.getSortOptionLabels());
+        }
 
         permissionTableController.setOnDelete(canDelete(PageRoute.ROLES) ? this::confirmDeletePermission : null);
         permissionSearchField.textProperty().addListener((obs, o, n) -> permissionTableController.filter(n));
@@ -191,11 +199,13 @@ public class RolesPageController extends BasePageController {
 
             FlowPane actionsRow = new FlowPane(12, 6);
             List<CheckBox> permissionCheckboxes = new ArrayList<>();
+            Map<String, CheckBox> actionCheckbox = new LinkedHashMap<>();
             for (PermissionDTO p : permissions) {
                 CheckBox cb = new CheckBox(p.getAction());
                 cb.setSelected(assignedIds.contains(p.getPermissionId()));
                 checkboxByPermissionId.put(p.getPermissionId(), cb);
                 permissionCheckboxes.add(cb);
+                actionCheckbox.put(p.getAction(), cb);
                 actionsRow.getChildren().add(cb);
             }
 
@@ -204,6 +214,16 @@ public class RolesPageController extends BasePageController {
             syncSelectAllState(selectAll, permissionCheckboxes);
             selectAll.setOnAction(e ->
                 permissionCheckboxes.forEach(cb -> cb.setSelected(selectAll.isSelected())));
+
+            // Creating an entity implies being able to read it — checking "create"
+            // auto-checks "read" for the same resource (unless it was already on).
+            CheckBox readCb = actionCheckbox.get("read");
+            CheckBox createCb = actionCheckbox.get("create");
+            if (readCb != null && createCb != null) {
+                createCb.selectedProperty().addListener((obs, was, is) -> {
+                    if (is && !readCb.isSelected()) readCb.setSelected(true);
+                });
+            }
 
             VBox resourceCard = new VBox(6, header, actionsRow);
             resourceCard.getStyleClass().add("permission-resource-card");
