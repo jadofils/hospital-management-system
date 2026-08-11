@@ -7,9 +7,21 @@
     -fx-padding: 4.286em 3.429em;
     -fx-spacing: 2em;
     -fx-alignment: TOP_LEFT;
-    -fx-pref-width: 38.571em;
-    -fx-min-width: 22.857em;
-    -fx-max-width: 50em;
+    -fx-pref-width: 44em;
+    -fx-min-width: 18em;
+}
+
+/* ScrollPane wrapper — keeps the page responsive at any window size */
+.home-scroll {
+    -fx-background-color: #F0F3F4;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}
+.home-scroll > .viewport {
+    -fx-background-color: #F0F3F4;
+}
+.home-scroll > .corner {
+    -fx-background-color: #F0F3F4;
 }
 
 /* Brand icon on dark panel — use primary blue accent */
