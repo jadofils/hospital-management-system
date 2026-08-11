@@ -6,6 +6,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -78,6 +79,17 @@ public class FormDialogController {
      *  Accepts any Node (not just Control) so a composite field — e.g. a dropdown
      *  paired with its own loading spinner — can be passed as a single unit. */
     public void addField(String label, String iconLiteral, Node control) {
+        addFieldRow(label, iconLiteral, control, false);
+    }
+
+    /** Same as {@link #addField} but appends a red asterisk to the label to mark
+     *  the field as mandatory *before* the user submits — no more discovering it
+     *  from an error message after the fact. */
+    public void addRequiredField(String label, String iconLiteral, Node control) {
+        addFieldRow(label, iconLiteral, control, true);
+    }
+
+    private void addFieldRow(String label, String iconLiteral, Node control, boolean required) {
         HBox labelRow = new HBox(6);
         labelRow.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         if (iconLiteral != null && !iconLiteral.isBlank()) {
@@ -89,6 +101,12 @@ public class FormDialogController {
         Label lbl = new Label(label);
         lbl.getStyleClass().add("field-label");
         labelRow.getChildren().add(lbl);
+        if (required) {
+            Label star = new Label(" *");
+            star.getStyleClass().add("field-required");
+            Tooltip.install(star, new Tooltip("Required field"));
+            labelRow.getChildren().add(star);
+        }
 
         VBox row = new VBox(4);
         row.getChildren().addAll(labelRow, control);
