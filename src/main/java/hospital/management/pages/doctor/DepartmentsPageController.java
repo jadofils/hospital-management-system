@@ -10,6 +10,7 @@ import hospital.management.backend.service.department.DepartmentServiceImpl;
 import hospital.management.backend.service.department.interfaces.DepartmentService;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.doctor.DepartmentTableController;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
@@ -23,10 +24,12 @@ public class DepartmentsPageController extends BasePageController {
     private final DepartmentService departmentService = new DepartmentServiceImpl(new DepartmentDAOImpl());
 
     @FXML private DepartmentTableController departmentTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private Label     totalLabel;
     @FXML private TextField searchField;
     @FXML private Button    addDeptBtn;
+    @FXML private Button    continueBtn;
 
     private List<DepartmentDTO> departments = new ArrayList<>();
 
@@ -37,10 +40,16 @@ public class DepartmentsPageController extends BasePageController {
 
         applyCreateVisibility(addDeptBtn, PageRoute.DEPARTMENTS);
         addDeptBtn.setOnAction(e -> openDepartmentDialog(null));
+        setupContinueButton(continueBtn, PageRoute.DEPARTMENTS);
         departmentTableController.setRowActions(
             allowUpdate(PageRoute.DEPARTMENTS, this::openDepartmentDialog),
             allowDelete(PageRoute.DEPARTMENTS, this::confirmDeleteDepartment),
             allowRead(PageRoute.DEPARTMENTS, this::viewDepartmentDetail));
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> departmentTableController.applySort(field, asc));
+            sortBarController.addOptions(departmentTableController.getSortOptionLabels());
+        }
 
         refreshTable();
     }

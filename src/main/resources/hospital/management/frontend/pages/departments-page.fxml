@@ -35,12 +35,17 @@
                     <Button fx:id="addDeptBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Department">
                         <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
                     </Button>
+                    <Button fx:id="continueBtn" styleClass="continue-button"/>
                 </HBox>
 
-                <HBox styleClass="search-input-box" alignment="CENTER_LEFT" spacing="6" maxWidth="320">
-                    <FontIcon iconLiteral="fas-search" iconSize="13" styleClass="search-icon"/>
-                    <TextField fx:id="searchField" promptText="Search departments..."
-                               styleClass="search-field" HBox.hgrow="ALWAYS"/>
+                <HBox spacing="12" alignment="CENTER_LEFT">
+                    <HBox styleClass="search-input-box" alignment="CENTER_LEFT" spacing="6" maxWidth="320">
+                        <FontIcon iconLiteral="fas-search" iconSize="13" styleClass="search-icon"/>
+                        <TextField fx:id="searchField" promptText="Search departments..."
+                                   styleClass="search-field" HBox.hgrow="ALWAYS"/>
+                    </HBox>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
                 </HBox>
 
                 <fx:include fx:id="departmentTable"
