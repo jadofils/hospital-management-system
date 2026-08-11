@@ -3,6 +3,7 @@ package hospital.management.pages.components.lab;
 import hospital.management.pages.components.PaginatedTableController;
 import hospital.management.backend.dto.lab.LabOrderDTO;
 import hospital.management.backend.model.enums.LabOrderStatus;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableColumn;
@@ -14,6 +15,8 @@ import java.util.function.Consumer;
 public class LabOrderTableController extends PaginatedTableController<LabOrderDTO> {
 
     private static final DateTimeFormatter ORDERED_AT_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    private final EntityLookupService lookupService = new EntityLookupService();
 
     @FXML private TableColumn<LabOrderDTO, String> idColumn;
     @FXML private TableColumn<LabOrderDTO, String> doctorIdColumn;
@@ -31,8 +34,10 @@ public class LabOrderTableController extends PaginatedTableController<LabOrderDT
 
     @Override
     protected void configureColumns() {
-        idColumn.setCellValueFactory(new PropertyValueFactory<>("labOrderId"));
-        doctorIdColumn.setCellValueFactory(new PropertyValueFactory<>("doctorId"));
+        idColumn.setVisible(false);
+        doctorIdColumn.setText("Doctor");
+        doctorIdColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(resolveLabel(() -> lookupService.doctorLabel(cell.getValue().getDoctorId()))));
         testNameColumn.setCellValueFactory(new PropertyValueFactory<>("testName"));
         statusColumn.setCellValueFactory(cell -> new SimpleStringProperty(statusLabel(cell.getValue().getStatus())));
         wireSingleActionColumn(changeStatusColumn, "fas-flag",
@@ -41,6 +46,10 @@ public class LabOrderTableController extends PaginatedTableController<LabOrderDT
             var orderedAt = cell.getValue().getOrderedAt();
             return new SimpleStringProperty(orderedAt == null ? "" : orderedAt.format(ORDERED_AT_FORMAT));
         });
+        addSortOption("Doctor", doctorIdColumn);
+        addSortOption("Test", testNameColumn);
+        addSortOption("Status", statusColumn);
+        addSortOption("Ordered At", orderedAtColumn);
         wireActionsColumn(actionsColumn);
     }
 
