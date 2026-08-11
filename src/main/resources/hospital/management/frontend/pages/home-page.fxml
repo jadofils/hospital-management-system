@@ -15,8 +15,9 @@
         <URL value="@../../css/tabs.css"/>
     </stylesheets>
 
-    <!-- ───── Center: two-column split ───── -->
+    <!-- ───── Center: two-column split (scrollable so it fits any device) ───── -->
     <center>
+        <ScrollPane styleClass="home-scroll" fitToWidth="true" fitToHeight="true">
         <HBox>
 
             <!-- ═══════════════ LEFT — Hero / Branding ═══════════════ -->
@@ -91,7 +92,7 @@
             </VBox>
 
             <!-- ═══════════════ RIGHT — Auth form ═══════════════ -->
-            <VBox styleClass="auth-panel" prefWidth="520" minWidth="400" spacing="24">
+            <VBox styleClass="auth-panel" prefWidth="460" minWidth="340" spacing="24">
 
                 <HBox spacing="10" alignment="CENTER_LEFT">
                     <FontIcon iconLiteral="fas-lock" iconSize="22" styleClass="auth-lock-icon"/>
@@ -179,6 +180,7 @@
                 </HBox>
             </VBox>
         </HBox>
+        </ScrollPane>
     </center>
 
     <!-- ───── Bottom footer ───── -->
