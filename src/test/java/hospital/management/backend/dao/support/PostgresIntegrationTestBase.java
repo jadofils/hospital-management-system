@@ -33,10 +33,10 @@ import java.util.concurrent.TimeUnit;
  * correct (RETURNING clauses, FK/UNIQUE constraints, updated_at triggers,
  * gen_random_uuid() defaults), which a mocked Connection cannot.
  *
- * hospital_schema.sql is loaded once at container startup. hospital_objects.sql
- * (views/DCL roles) and hospital_indexes_postgresql.sql are deliberately NOT
- * loaded — no DAOImpl queries a view or depends on an index for correctness,
- * only for production performance, so skipping them keeps setup fast.
+ * hospital_schema.sql is loaded once at container startup. Views/routines are
+ * deliberately NOT loaded — no DAOImpl queries a view or depends on an index
+ * for correctness, only for production performance, so skipping them keeps
+ * setup fast.
  *
  * Every table is truncated after each test (CASCADE, RESTART IDENTITY) so
  * tests never see another test's leftover rows, regardless of which DAO(s)

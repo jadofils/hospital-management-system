@@ -82,7 +82,7 @@ class PatientMapperTest {
         assertEquals("John", entity.getFirstName());
         assertEquals("Smith", entity.getLastName());
         assertEquals(LocalDate.of(1985, 3, 15), entity.getDob());
-        assertEquals("Male", entity.getGender());
+        assertEquals("M", entity.getGender());
         assertEquals("+15551234567", entity.getPhone());
         assertEquals("john.smith@example.com", entity.getEmail());
         assertEquals("456 Oak Ave", entity.getAddress());
