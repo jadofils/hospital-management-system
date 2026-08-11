@@ -1,0 +1,27 @@
+/* ── Shared "Sort by" control (page toolbars) ────────────────────────────── */
+
+.sort-bar-icon {
+    -fx-fill: #7F8C8D;
+    -fx-icon-color: #7F8C8D;
+}
+
+.sort-bar-toggle {
+    -fx-background-color: #E8ECF0;
+    -fx-text-fill: #2C3E50;
+    -fx-font-size: 0.857em;
+    -fx-background-radius: 4px;
+    -fx-border-color: #D5DBDB;
+    -fx-border-radius: 4px;
+    -fx-padding: 0.5em 0.857em;
+    -fx-cursor: hand;
+}
+
+.sort-bar-toggle:hover {
+    -fx-background-color: #DDE3E8;
+}
+
+.sort-bar-toggle:selected {
+    -fx-background-color: #3498DB;
+    -fx-text-fill: white;
+    -fx-border-color: #3498DB;
+}
