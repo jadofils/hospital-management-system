@@ -42,11 +42,13 @@ public class PharmacyServiceImpl implements PharmacyService {
     public MedicationDTO addMedication(CreateMedicationDTO dto) throws Exception {
         String name = ValidatorUtils.requireNonBlank(dto.getName(), "name");
         ValidatorUtils.requireMaxLength(name, 200, "name");
-        ValidatorUtils.requireNonBlank(dto.getForm(), "form");
+        if (dto.getForm() != null) {
+            ValidatorUtils.requireNonBlank(dto.getForm(), "form");
+        }
         if (dto.getGenericName() != null) {
             ValidatorUtils.requireMaxLength(dto.getGenericName(), 200, "genericName");
         }
-        if (dto.getUnitPrice() == null || dto.getUnitPrice().compareTo(BigDecimal.ZERO) <= 0) {
+        if (dto.getUnitPrice() != null && dto.getUnitPrice().compareTo(BigDecimal.ZERO) < 0) {
             throw new ValidationException("unitPrice", "Unit price must be greater than zero.");
         }
 
