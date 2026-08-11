@@ -36,6 +36,7 @@
                         </Button>
                         <FontIcon iconLiteral="fas-user-injured" iconSize="18" styleClass="page-title-icon"/>
                         <Label fx:id="patientNameLabel" text="Patient Detail" styleClass="section-title"/>
+                        <Button fx:id="continueBtn" styleClass="continue-button"/>
                     </HBox>
 
                     <!-- Patient summary card -->
