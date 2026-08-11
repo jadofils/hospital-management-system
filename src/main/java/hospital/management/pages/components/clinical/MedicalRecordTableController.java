@@ -22,7 +22,7 @@ public class MedicalRecordTableController extends PaginatedTableController<Medic
 
     @Override
     protected void configureColumns() {
-        recordIdColumn.setCellValueFactory(new PropertyValueFactory<>("recordId"));
+        recordIdColumn.setVisible(false);
         diagnosisColumn.setCellValueFactory(new PropertyValueFactory<>("diagnosis"));
         symptomsColumn.setCellValueFactory(new PropertyValueFactory<>("symptoms"));
         notesColumn.setCellValueFactory(new PropertyValueFactory<>("notes"));
@@ -30,6 +30,10 @@ public class MedicalRecordTableController extends PaginatedTableController<Medic
             var createdAt = cell.getValue().getCreatedAt();
             return new SimpleStringProperty(createdAt == null ? "" : createdAt.format(RECORDED_AT_FORMAT));
         });
+        addSortOption("Diagnosis", diagnosisColumn);
+        addSortOption("Symptoms", symptomsColumn);
+        addSortOption("Notes", notesColumn);
+        addSortOption("Date", recordDateColumn);
         wireActionsColumn(actionsColumn);
     }
 
