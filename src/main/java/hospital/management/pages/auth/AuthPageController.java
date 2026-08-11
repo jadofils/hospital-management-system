@@ -30,15 +30,14 @@ import hospital.management.backend.dto.auth.UserDTO;
 import hospital.management.backend.dao.auth.UserDAOImpl;
 import hospital.management.backend.dao.auth.UserRoleDAOImpl;
 import hospital.management.backend.dao.auth.RoleDAOImpl;
-import hospital.management.backend.model.user.UserRole;
-import hospital.management.backend.model.user.Role;
+import hospital.management.backend.utils.AlgorithmUtils;
 import hospital.management.backend.utils.FxFormValidator;
+import hospital.management.backend.utils.LoginLookupIndex;
 import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pagination.PageResult;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public class AuthPageController {
 
@@ -59,6 +58,9 @@ public class AuthPageController {
     @FXML private ComboBox<String> userDropdown;
 
     private final ObservableList<String> allUsers = FXCollections.observableArrayList();
+
+    /** Guards against the filtering listener re-running while a selection is applied programmatically. */
+    private boolean suppressFilter;
 
     // Reset tab
     @FXML private TextField resetEmail;
@@ -97,6 +99,15 @@ public class AuthPageController {
                     page = uService.findAll(CursorPagination.nextPage(page.getNextCursor(), DEMO_USERS_PAGE_SIZE));
                     all.addAll(page.getItems());
                 }
+
+                // Warm the login lookup index in the background so the first login
+                // resolves the user + role in memory (merge sort + binary search)
+                // instead of paying the DB queries on the critical path.
+                try {
+                    LoginLookupIndex.get().refresh(new UserDAOImpl(), new UserRoleDAOImpl(), new RoleDAOImpl());
+                } catch (Exception ex) {
+                    // best-effort — login falls back to direct DAO lookups
+                }
                 return all;
             }
         };
@@ -104,22 +115,14 @@ public class AuthPageController {
         t.setOnSucceeded(evt -> {
             List<UserDTO> users = t.getValue();
             List<String> entries = new ArrayList<>();
-            UserRoleDAOImpl urDao = new UserRoleDAOImpl();
-            RoleDAOImpl roleDao = new RoleDAOImpl();
-            try {
-                for (UserDTO u : users) {
-                    List<UserRole> urs = urDao.findByUserId(u.getUserId());
-                    List<String> roleNames = new ArrayList<>();
-                    for (UserRole ur : urs) {
-                        Optional<Role> r = roleDao.findById(ur.getRoleId());
-                        r.ifPresent(role -> roleNames.add(role.getRoleName()));
-                    }
-                    String label = u.getUsername() + ":" + (roleNames.isEmpty() ? "User" : String.join(",", roleNames));
-                    entries.add(label);
-                }
-            } catch (Exception ex) {
-                // ignore — best-effort demo population
+            LoginLookupIndex index = LoginLookupIndex.get();
+            for (UserDTO u : users) {
+                List<String> roleNames = index.findRoleNames(u.getUserId()).orElse(List.of());
+                String label = u.getUsername() + ":" + (roleNames.isEmpty() ? "User" : String.join(",", roleNames));
+                entries.add(label);
             }
+            // Deterministic, stable ordering for the dropdown — merge sort, O(n log n).
+            AlgorithmUtils.mergeSort(entries, String.CASE_INSENSITIVE_ORDER);
 
             Platform.runLater(() -> {
                 allUsers.setAll(entries);
@@ -146,6 +149,7 @@ public class AuthPageController {
         if (userDropdown == null) return;
         TextField editor = userDropdown.getEditor();
         editor.textProperty().addListener((obs, oldV, newV) -> {
+            if (suppressFilter) return;
             String q = newV == null ? "" : newV.toLowerCase();
             if (q.isEmpty()) {
                 userDropdown.setItems(allUsers);
@@ -157,9 +161,11 @@ public class AuthPageController {
             }
             userDropdown.setItems(filtered);
             // keep editor text and show popup so the user sees matches
-            Platform.runLater(() -> {
-                userDropdown.show();
-            });
+            if (!filtered.isEmpty()) {
+                Platform.runLater(() -> {
+                    if (!suppressFilter) userDropdown.show();
+                });
+            }
         });
     }
 
@@ -169,9 +175,21 @@ public class AuthPageController {
         if (value == null || value.isBlank()) return;
         // expected format: username:RoleName[,Role2]
         String username = value.split(":")[0];
-        loginEmail.setText(username);
-        // For quick demo, always pre-fill password with the demo password.
-        loginPassword.setText("Password@12");
+
+        suppressFilter = true;
+        try {
+            // Reset the backing list to the FULL roster so a wrong pick never
+            // strands the dropdown showing only the chosen entry — every user
+            // stays selectable without reloading the system.
+            userDropdown.setItems(allUsers);
+            TextField editor = userDropdown.getEditor();
+            if (editor != null) editor.setText(username);
+            loginEmail.setText(username);
+            // For quick demo, always pre-fill password with the demo password.
+            loginPassword.setText("Password@12");
+        } finally {
+            suppressFilter = false;
+        }
     }
 
     @FXML
@@ -194,14 +212,15 @@ public class AuthPageController {
         setLoading(true);
 
         long loginStartNanos = System.nanoTime();
-        // AlgorithmUtils (mergeSort/binarySearch) has no bearing here — login is pure
-        // indexed DB point-lookups (findByUsername, findByUserId) + bcrypt + JWT
-        // generation, never an in-memory list to sort/search. What actually bounds the
-        // UI's wait to 3 seconds is this watcher: if authService.login(...) hasn't
-        // finished by then, the user sees a timeout instead of an indefinite spinner.
-        // The background thread itself isn't force-killed (Java has no safe way to do
-        // that) — if it finishes after the timeout already fired, timedOut short-circuits
-        // both onSucceeded/onFailed below so the UI is never touched twice.
+        // Login is sped up by the in-memory LoginLookupIndex warmed in loadUsersForDemo()
+        // (merge sort + binary search over the user snapshot) — it resolves the user and
+        // primary role in O(log n) without DB round-trips, falling back to the DAO on a
+        // miss. What bounds the UI's wait to 3 seconds is this watcher: if
+        // authService.login(...) hasn't finished by then, the user sees a timeout instead
+        // of an indefinite spinner. The background thread itself isn't force-killed (Java
+        // has no safe way to do that) — if it finishes after the timeout already fired,
+        // timedOut short-circuits both onSucceeded/onFailed below so the UI is never
+        // touched twice.
         java.util.concurrent.atomic.AtomicBoolean timedOut = new java.util.concurrent.atomic.AtomicBoolean(false);
 
         Task<LoginResponseDTO> loginTask = new Task<>() {
