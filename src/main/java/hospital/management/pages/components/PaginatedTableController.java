@@ -1,9 +1,9 @@
 package hospital.management.pages.components;
 
+import hospital.management.backend.utils.AlgorithmUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Pagination;
@@ -11,13 +11,13 @@ import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
-import javafx.beans.property.SimpleStringProperty;
-import java.lang.reflect.Method;
-import java.util.Comparator;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Shared base for every entity table (patients, doctors, appointments, ...).
@@ -26,6 +26,12 @@ import java.util.function.Consumer;
  *
  * Subclasses only implement column binding and the search predicate; the
  * paging/filtering mechanics live here once instead of per-entity.
+ *
+ * <p>Sorting is delegated to {@link AlgorithmUtils#mergeSort} (O(n log n),
+ * stable) on the already-filtered dataset before each page is sliced — the
+ * same backend DSA the service layer uses, rather than JavaFX's built-in
+ * {@code SortedList}. Clicking a column header re-sorts the full filtered
+ * set via that comparator.
  */
 public abstract class PaginatedTableController<T> {
 
@@ -36,23 +42,47 @@ public abstract class PaginatedTableController<T> {
 
     protected final ObservableList<T> sourceItems = FXCollections.observableArrayList();
     protected FilteredList<T> filteredItems;
-    protected SortedList<T>   sortedItems;
 
     private Consumer<T> onEdit;
     private Consumer<T> onDelete;
     private Consumer<T> onViewDetails;
     private TableColumn<T, Void> actionsColumn;
 
+    /** Dropdown sort options registered by subclasses: label -> table column. */
+    private final java.util.Map<String, TableColumn<T, ?>> sortOptions = new java.util.LinkedHashMap<>();
+
+    /**
+     * Registers a "Sort by" dropdown option backed by {@code column}. Options are
+     * surfaced by the shared sort bar on each page; selecting one drives the same
+     * comparator/mergeSort pipeline as clicking the column header.
+     */
+    protected void addSortOption(String label, TableColumn<T, ?> column) {
+        sortOptions.put(label, column);
+    }
+
+    /** The labels of every registered sort option, for populating the page's sort-bar dropdown. */
+    public java.util.List<String> getSortOptionLabels() {
+        return List.copyOf(sortOptions.keySet());
+    }
+
+    /**
+     * Applies the sort matching {@code label} in the given direction. Passing
+     * {@code null} (or an unregistered label) restores natural insertion order.
+     */
+    public void applySort(String label, boolean ascending) {
+        TableColumn<T, ?> column = label == null ? null : sortOptions.get(label);
+        if (column == null) {
+            clearSort();
+            return;
+        }
+        sortByColumn(column, ascending ? TableColumn.SortType.ASCENDING : TableColumn.SortType.DESCENDING);
+    }
+
     public void initialize() {
         configureColumns();
-        ensureIdColumn();
         filteredItems = new FilteredList<>(sourceItems, item -> true);
-        sortedItems   = new SortedList<>(filteredItems);
-        // Bind sortedItems to the table's active comparator so clicking a column
-        // header re-sorts the *full* filtered dataset before we slice a page.
-        sortedItems.comparatorProperty().bind(table.comparatorProperty());
         // Prevent TableView from sorting its displayed page-slice in-place;
-        // our SortedList + renderPage listener already handles the correct ordering.
+        // our mergeSort + renderPage listener already handles the correct ordering.
         table.setSortPolicy(t -> true);
         // Re-render the current page whenever the sort order changes.
         table.comparatorProperty().addListener((obs, o, n) -> renderPage(pagination.getCurrentPageIndex()));
@@ -62,54 +92,8 @@ public abstract class PaginatedTableController<T> {
     }
 
     /**
-     * Adds an `ID` column at the front of the table when possible. The column
-     * attempts to extract a readable id by reflection (getId() or any getter
-     * ending with "Id"). Falls back to object's hashCode when no id accessor
-     * is found. This is a frontend-only display aid and does not modify data.
+     * Registers the row-level edit/delete callbacks used by {@link #wireActionsColumn}, with no view-details action.
      */
-    @SuppressWarnings("unchecked")
-    private void ensureIdColumn() {
-        // If a column named "ID" already exists, do nothing.
-        boolean hasId = table.getColumns().stream().anyMatch(c -> "ID".equalsIgnoreCase(c.getText()));
-        if (hasId) return;
-
-        TableColumn<T, String> idCol = new TableColumn<>("ID");
-        idCol.setMinWidth(120);
-        idCol.setCellValueFactory(cellData -> {
-            T item = cellData.getValue();
-            if (item == null) return new SimpleStringProperty("");
-            String id = extractId(item);
-            return new SimpleStringProperty(id == null ? "" : id);
-        });
-
-        // Insert ID column at the left-most position so it's visible in paginated lists
-        table.getColumns().add(0, idCol);
-    }
-
-    private String extractId(T item) {
-        try {
-            Class<?> cls = item.getClass();
-            // Prefer explicit getId()
-            try {
-                Method m = cls.getMethod("getId");
-                Object val = m.invoke(item);
-                if (val != null) return String.valueOf(val);
-            } catch (NoSuchMethodException ignored) {
-            }
-            // Fallback: any getter that ends with 'Id'
-            for (Method m : cls.getMethods()) {
-                String name = m.getName();
-                if (name.startsWith("get") && name.length() > 3 && name.toLowerCase().endsWith("id") && m.getParameterCount() == 0) {
-                    Object val = m.invoke(item);
-                    if (val != null) return String.valueOf(val);
-                }
-            }
-        } catch (Exception ignored) {
-        }
-        return String.valueOf(item.hashCode());
-    }
-
-    /** Bind columns to the entity's properties. Called once during {@link #initialize()}. */
     protected abstract void configureColumns();
 
     /** True if the item matches an already-trimmed, lower-cased search query. */
@@ -276,19 +260,67 @@ public abstract class PaginatedTableController<T> {
         });
     }
 
+    /**
+     * Renders a text-labeled action button (instead of an icon) in the given column,
+     * shown only on rows where {@code visible} evaluates to true. Used e.g. for the
+     * billing "Paid" action, where a plain word reads better than an icon.
+     */
+    protected void wireTextActionColumn(TableColumn<T, Void> column, String label,
+                                        Predicate<T> visible, Consumer<T> onClick) {
+        column.setCellFactory(col -> new TableCell<>() {
+            private final Button btn = new Button(label);
+            {
+                btn.getStyleClass().add("row-action-btn");
+                btn.setOnAction(e -> {
+                    if (onClick != null) onClick.accept(getTableView().getItems().get(getIndex()));
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                T row = empty ? null : getTableView().getItems().get(getIndex());
+                boolean show = !empty && row != null && (visible == null || visible.test(row));
+                btn.setVisible(show);
+                btn.setManaged(show);
+                setGraphic(show ? btn : null);
+            }
+        });
+    }
+
+    /** A label lookup that may fail (e.g. a DB-backed name resolution). */
+    @FunctionalInterface
+    public interface LabelResolver {
+        String resolve() throws Exception;
+    }
+
+    /** Resolves a display label for a table cell, falling back to "—" on any lookup failure. */
+    protected static String resolveLabel(LabelResolver resolver) {
+        try {
+            return resolver.resolve();
+        } catch (Exception ex) {
+            return "—";
+        }
+    }
+
     private void refreshPagination() {
-        int pageCount = Math.max(1, (int) Math.ceil(sortedItems.size() / (double) ROWS_PER_PAGE));
+        int pageCount = Math.max(1, (int) Math.ceil(filteredItems.size() / (double) ROWS_PER_PAGE));
         pagination.setPageCount(pageCount);
         pagination.setCurrentPageIndex(0);
         renderPage(0);
     }
 
     private void renderPage(int pageIndex) {
-        int total = sortedItems.size();
+        List<T> view = new ArrayList<>(filteredItems);
+        Comparator<T> comparator = table.getComparator();
+        if (comparator != null) {
+            AlgorithmUtils.mergeSort(view, comparator);
+        }
+        int total = view.size();
         int from  = Math.min(pageIndex * ROWS_PER_PAGE, total);
         int to    = Math.min(from + ROWS_PER_PAGE, total);
-        // Snapshot the sorted+filtered slice so the table's own sort policy
-        // does not try to re-sort the slice in place (handled by SortedList).
-        table.setItems(FXCollections.observableArrayList(sortedItems.subList(from, to)));
+        // Snapshot the merge-sorted + filtered slice so the table's own sort
+        // policy does not try to re-sort the slice in place.
+        table.setItems(FXCollections.observableArrayList(view.subList(from, to)));
     }
 }
