@@ -9,6 +9,7 @@ import hospital.management.backend.dao.pharmacy.MedicalInventoryDAOImpl;
 import hospital.management.backend.dao.pharmacy.MedicationDAOImpl;
 import hospital.management.backend.dao.pharmacy.PrescriptionDAOImpl;
 import hospital.management.backend.dao.pharmacy.PrescriptionItemDAOImpl;
+import hospital.management.backend.dto.clinical.AppointmentDTO;
 import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
 import hospital.management.backend.dto.pharmacy.CreateMedicalInventoryDTO;
 import hospital.management.backend.dto.pharmacy.CreateMedicationDTO;
@@ -18,6 +19,7 @@ import hospital.management.backend.dto.pharmacy.PrescriptionDTO;
 import hospital.management.backend.exceptions.AppException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.service.pharmacy.PharmacyServiceImpl;
 import hospital.management.backend.service.pharmacy.PrescriptionServiceImpl;
 import hospital.management.backend.service.pharmacy.interfaces.PrescriptionService;
@@ -29,9 +31,11 @@ import hospital.management.pages.components.pharmacy.MedicalInventoryTableContro
 import hospital.management.pages.components.pharmacy.PrescriptionTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -46,6 +50,7 @@ public class PharmacyController extends BasePageController {
             new PrescriptionServiceImpl(new PrescriptionDAOImpl(), new PrescriptionItemDAOImpl());
     private final AppointmentServiceImpl appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private TabPane pharmacyTabs;
 
@@ -53,13 +58,17 @@ public class PharmacyController extends BasePageController {
     @FXML private TextField inventorySearchField;
     @FXML private Button    newMedicationBtn;
     @FXML private Button    addMedBtn;
+    @FXML private Button    continueBtn;
     @FXML private MedicalInventoryTableController inventoryTableController;
+    @FXML private SortBarController inventorySortBarController;
 
     // Low stock tab (same underlying data, filtered)
     @FXML private MedicalInventoryTableController lowStockTableController;
+    @FXML private SortBarController lowStockSortBarController;
 
     // Pending prescriptions tab
     @FXML private PrescriptionTableController pendingPrescriptionsTableController;
+    @FXML private SortBarController pendingSortBarController;
 
     private final List<MedicalInventoryDTO> inventory = new ArrayList<>();
     private final List<PrescriptionDTO> pendingPrescriptions = new ArrayList<>();
@@ -71,6 +80,7 @@ public class PharmacyController extends BasePageController {
         applyCreateVisibility(addMedBtn, PageRoute.PHARMACY);
         newMedicationBtn.setOnAction(e -> openMedicationDialog());
         addMedBtn.setOnAction(e -> openInventoryDialog(null));
+        setupContinueButton(continueBtn, PageRoute.PHARMACY);
         inventorySearchField.textProperty().addListener((obs, o, n) -> applyFilter());
 
         inventoryTableController.setRowActions(
@@ -83,6 +93,19 @@ public class PharmacyController extends BasePageController {
             allowRead(PageRoute.PHARMACY, this::viewInventoryDetail));
         pendingPrescriptionsTableController.setRowActions(
             null, null, allowRead(PageRoute.PHARMACY, this::viewPrescriptionDetail));
+
+        if (inventorySortBarController != null) {
+            inventorySortBarController.setOnSort((field, asc) -> inventoryTableController.applySort(field, asc));
+            inventorySortBarController.addOptions(inventoryTableController.getSortOptionLabels());
+        }
+        if (lowStockSortBarController != null) {
+            lowStockSortBarController.setOnSort((field, asc) -> lowStockTableController.applySort(field, asc));
+            lowStockSortBarController.addOptions(lowStockTableController.getSortOptionLabels());
+        }
+        if (pendingSortBarController != null) {
+            pendingSortBarController.setOnSort((field, asc) -> pendingPrescriptionsTableController.applySort(field, asc));
+            pendingSortBarController.addOptions(pendingPrescriptionsTableController.getSortOptionLabels());
+        }
 
         refreshInventoryTables();
         refreshPendingPrescriptions();
@@ -137,8 +160,15 @@ public class PharmacyController extends BasePageController {
 
     private void viewPrescriptionDetail(PrescriptionDTO p) {
         Map<String, String> fields = new LinkedHashMap<>();
-        fields.put("Prescription ID", p.getPrescriptionId());
-        fields.put("Appointment ID", p.getAppointmentId());
+        try {
+            AppointmentDTO appointment = appointmentService.findById(p.getAppointmentId());
+            fields.put("Patient", entityLookupService.patientLabel(appointment.getPatientId()));
+            fields.put("Doctor", entityLookupService.doctorLabel(appointment.getDoctorId()));
+            fields.put("Appointment Date", appointment.getAppointmentDate() == null
+                    ? null : appointment.getAppointmentDate().toLocalDate().toString());
+        } catch (Exception ex) {
+            fields.put("Appointment", "Unknown");
+        }
         fields.put("Date Issued", p.getDateIssued() == null ? null : p.getDateIssued().toString());
         fields.put("Status", p.getStatus());
         if (p.getItems() != null) fields.put("Items", String.valueOf(p.getItems().size()));
@@ -274,6 +304,7 @@ public class PharmacyController extends BasePageController {
 
         FxFormValidator.attachRequired(batchNumber,     null, "Batch number");
         FxFormValidator.attachNotPastDate(expiryDate,   null, "Expiry date");
+        FxFormValidator.disallowPastDates(expiryDate);
         FxFormValidator.attachMaxLength(supplier,       null, 255, "Supplier");
         quantityInStock.textProperty().addListener((obs, old, val) -> {
             if (val == null || val.isBlank()) { FxFormValidator.clearStyle(quantityInStock); return; }
@@ -284,6 +315,10 @@ public class PharmacyController extends BasePageController {
             if (val == null || val.isBlank()) { FxFormValidator.clearStyle(reorderLevel); return; }
             try { int r = Integer.parseInt(val.trim()); FxFormValidator.applyStyle(reorderLevel, r >= 0); }
             catch (NumberFormatException e) { FxFormValidator.applyStyle(reorderLevel, false); }
+        });
+        supplier.textProperty().addListener((obs, old, val) -> {
+            if (val == null || val.isBlank()) { FxFormValidator.clearStyle(supplier); return; }
+            FxFormValidator.applyStyle(supplier, !val.trim().matches("\\d+"));
         });
 
         List<Control> otherFields = List.of(batchNumber, expiryDate, quantityInStock, reorderLevel, supplier);
@@ -319,6 +354,12 @@ public class PharmacyController extends BasePageController {
                 formDialogController.setLoading(false);
                 return;
             }
+            if (expiryDate.getValue().isBefore(LocalDate.now())) {
+                formDialogController.setError("Expiry date cannot be in the past.");
+                FxFormValidator.applyStyle(expiryDate, false);
+                formDialogController.setLoading(false);
+                return;
+            }
 
             int qty;
             int reorder;
@@ -341,8 +382,16 @@ public class PharmacyController extends BasePageController {
                 return;
             }
 
+            String supplierText = supplier.getText() == null ? "" : supplier.getText().trim();
+            if (!supplierText.isEmpty() && supplierText.matches("\\d+")) {
+                formDialogController.setError("Supplier must be a name, not a number.");
+                FxFormValidator.applyStyle(supplier, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+
             CreateMedicalInventoryDTO dto = new CreateMedicalInventoryDTO(
-                    medId, batch, expiryDate.getValue(), qty, reorder, supplier.getText());
+                    medId, batch, expiryDate.getValue(), qty, reorder, supplierText);
 
             try {
                 if (addMode) {

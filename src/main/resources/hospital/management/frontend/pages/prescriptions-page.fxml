@@ -40,6 +40,7 @@
                     <Button fx:id="newPrescriptionBtn" styleClass="primary-button" contentDisplay="LEFT" text="New Prescription">
                         <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
                     </Button>
+                    <Button fx:id="continueBtn" styleClass="continue-button"/>
                 </HBox>
 
                 <HBox spacing="12" alignment="CENTER_LEFT">
@@ -50,6 +51,8 @@
                     </HBox>
                     <DatePicker fx:id="fromDatePicker" promptText="From" prefWidth="150" styleClass="filter-date-picker"/>
                     <DatePicker fx:id="toDatePicker"   promptText="To"   prefWidth="150" styleClass="filter-date-picker"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
                 </HBox>
 
                 <fx:include fx:id="prescriptionTable"

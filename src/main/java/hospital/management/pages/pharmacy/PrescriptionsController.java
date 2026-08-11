@@ -27,6 +27,7 @@ import hospital.management.backend.service.pharmacy.PharmacyServiceImpl;
 import hospital.management.pages.components.pharmacy.PrescriptionTableController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.utils.CsvUiIO;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -35,6 +36,7 @@ import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,7 @@ public class PrescriptionsController extends BasePageController {
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private PrescriptionTableController prescriptionTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private TextField  searchField;
     @FXML private DatePicker fromDatePicker;
@@ -57,8 +60,13 @@ public class PrescriptionsController extends BasePageController {
     @FXML private Button     newPrescriptionBtn;
     @FXML private Button     importBtn;
     @FXML private Button     exportBtn;
+    @FXML private Button     continueBtn;
 
     private final List<PrescriptionDTO> prescriptions = new ArrayList<>();
+
+    /** Appointment id → appointment date, used to stop prescriptions being backdated
+     *  before the appointment they belong to. Populated by the dialog's async load. */
+    private final Map<String, LocalDate> appointmentDatesById = new HashMap<>();
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PRESCRIPTIONS);
@@ -82,10 +90,16 @@ public class PrescriptionsController extends BasePageController {
         newPrescriptionBtn.setOnAction(e -> openPrescriptionDialog());
         importBtn.setOnAction(e -> withSpinner(importBtn, this::importPrescriptions));
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportPrescriptions));
+        setupContinueButton(continueBtn, PageRoute.PRESCRIPTIONS);
         prescriptionTableController.setRowActions(
             canUpdate(PageRoute.PRESCRIPTIONS) ? p -> toast("Prescriptions can't be edited once issued.", NotificationType.INFO) : null,
             allowDelete(PageRoute.PRESCRIPTIONS, this::confirmDeletePrescription),
             allowRead(PageRoute.PRESCRIPTIONS, this::viewPrescriptionDetail));
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> prescriptionTableController.applySort(field, asc));
+            sortBarController.addOptions(prescriptionTableController.getSortOptionLabels());
+        }
 
         refreshTable();
     }
@@ -282,9 +296,19 @@ public class PrescriptionsController extends BasePageController {
         addItemBtn.getStyleClass().add("secondary-button");
         removeItemBtn.getStyleClass().add("secondary-button");
 
-        // Real-time validation: date issued must be provided
+        // Real-time validation: date issued must be provided, must not be in the
+        // future, and must not predate the selected appointment.
         FxFormValidator.attachDateRequired(dateIssued, null, "Date issued");
+        FxFormValidator.attachNotFutureDate(dateIssued, null, "Date issued");
+        FxFormValidator.attachOnOrAfterDate(dateIssued,
+            () -> {
+                String apptId = appointmentId.getSelectedId();
+                return apptId == null ? null : appointmentDatesById.get(apptId);
+            },
+            null, "Date issued");
         FxFormValidator.attachRequired(dosage, null, "Dosage");
+        FxFormValidator.disallowPastDates(dateIssued);
+        FxFormValidator.disallowFutureDates(dateIssued);
 
         List<Control> otherFields = List.of(dateIssued);
         otherFields.forEach(f -> f.setDisable(true));
@@ -342,6 +366,18 @@ public class PrescriptionsController extends BasePageController {
                 formDialogController.setLoading(false);
                 return;
             }
+            LocalDate appointmentDate = appointmentDatesById.get(apptId);
+            if (appointmentDate != null && dateIssued.getValue().isBefore(appointmentDate)) {
+                formDialogController.setError("Date issued cannot be before the appointment date (" + appointmentDate + ").");
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (!dateIssued.getValue().equals(LocalDate.now())) {
+                formDialogController.setError("Date issued must be today's date.");
+                FxFormValidator.applyStyle(dateIssued, false);
+                formDialogController.setLoading(false);
+                return;
+            }
             if (draftItems.isEmpty()) {
                 formDialogController.setError("A prescription must include at least one medication item.");
                 formDialogController.setLoading(false);
@@ -362,8 +398,8 @@ public class PrescriptionsController extends BasePageController {
             }
         });
 
-        formDialogController.addField("Appointment", "fas-calendar-check", appointmentIdField);
-        formDialogController.addField("Date Issued", "fas-calendar", dateIssued);
+        formDialogController.addRequiredField("Appointment", "fas-calendar-check", appointmentIdField);
+        formDialogController.addRequiredField("Date Issued", "fas-calendar", dateIssued);
         formDialogController.addField("Medication", "fas-pills", medicationField);
         formDialogController.addRow(itemsBox);
 
@@ -394,6 +430,9 @@ public class PrescriptionsController extends BasePageController {
         AsyncJobRunner.submit(
             () -> appointmentService.findAll(CursorPagination.firstPage(1000)).getItems(),
             items -> {
+                appointmentDatesById.clear();
+                items.forEach(a -> appointmentDatesById.put(a.getAppointmentId(),
+                        a.getAppointmentDate() == null ? null : a.getAppointmentDate().toLocalDate()));
                 appointmentId.setOptions(items.stream()
                         .map(a -> new EntityIdComboBox.Option(a.getAppointmentId(),
                                 a.getPatientName() + " with " + a.getDoctorName() + " — " + a.getAppointmentDate()))

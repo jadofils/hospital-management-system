@@ -32,6 +32,8 @@
                 <HBox spacing="12" alignment="CENTER_LEFT">
                     <FontIcon iconLiteral="fas-pills" iconSize="18" styleClass="page-title-icon"/>
                     <Label text="Pharmacy" styleClass="section-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="continueBtn" styleClass="continue-button"/>
                 </HBox>
 
                 <TabPane fx:id="pharmacyTabs" styleClass="detail-tabs" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS">
@@ -51,6 +53,8 @@
                                 <Button fx:id="addMedBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Inventory Batch">
                                     <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
                                 </Button>
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <fx:include fx:id="inventorySortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
                             </HBox>
                             <fx:include fx:id="inventoryTable"
                                         source="/hospital/management/frontend/components/table/medical-inventory-table.fxml"
@@ -61,7 +65,10 @@
                     <!-- Pending prescriptions tab -->
                     <Tab text="Pending Prescriptions">
                         <VBox spacing="12" styleClass="tab-content">
-                            <Label text="Prescriptions awaiting dispensing" styleClass="label-tag"/>
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Label text="Prescriptions awaiting dispensing" styleClass="label-tag" HBox.hgrow="ALWAYS"/>
+                                <fx:include fx:id="pendingSortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
+                            </HBox>
                             <fx:include fx:id="pendingPrescriptionsTable"
                                         source="/hospital/management/frontend/components/table/prescription-table.fxml"
                                         VBox.vgrow="ALWAYS"/>
@@ -73,7 +80,8 @@
                         <VBox spacing="12" styleClass="tab-content">
                             <HBox spacing="8" alignment="CENTER_LEFT">
                                 <FontIcon iconLiteral="fas-exclamation-triangle" iconSize="14" styleClass="text-warning"/>
-                                <Label text="Items at or below reorder level" styleClass="label-tag"/>
+                                <Label text="Items at or below reorder level" styleClass="label-tag" HBox.hgrow="ALWAYS"/>
+                                <fx:include fx:id="lowStockSortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
                             </HBox>
                             <fx:include fx:id="lowStockTable"
                                         source="/hospital/management/frontend/components/table/medical-inventory-table.fxml"
