@@ -12,6 +12,9 @@ public class AppointmentDTO {
     private String        reason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    /** Payment status of the appointment's invoice, or null when none exists yet.
+     *  UI-only (populated by the page from InvoiceService) — never persisted on this DTO. */
+    private String        billingStatus;
 
     public AppointmentDTO() {}
 
@@ -51,6 +54,9 @@ public class AppointmentDTO {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getBillingStatus() { return billingStatus; }
+    public void setBillingStatus(String billingStatus) { this.billingStatus = billingStatus; }
 
     @Override
     public String toString() {
