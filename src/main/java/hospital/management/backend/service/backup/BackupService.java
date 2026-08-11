@@ -35,9 +35,8 @@ import java.util.function.Consumer;
 /**
  * Data-only backup/restore-source generator, pure Java/JDBC (no {@code pg_dump}
  * / {@code mongodump} dependency). Schema stays version-controlled in
- * {@code hospital_schema.sql} / {@code hospital_objects.sql} /
- * {@code hospital_indexes_postgresql.sql}, which {@link
- * hospital.management.backend.service.analytics.DatabaseInspectionService}
+ * {@code hospital_schema.sql} (tables, constraints, indexes, trigger functions),
+ * which {@link hospital.management.backend.service.analytics.DatabaseInspectionService}
  * already knows how to replay — this class only carries data that would
  * otherwise be lost.
  *

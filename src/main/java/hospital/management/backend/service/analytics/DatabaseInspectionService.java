@@ -24,6 +24,15 @@ public class DatabaseInspectionService {
 
     private static final AppLogger logger = AppLogger.getLogger(DatabaseInspectionService.class);
 
+    /**
+     * The single consolidated DDL script. After the SQL-script cleanup, the old
+     * {@code hospital_objects.sql} / {@code hospital_indexes_postgresql.sql} split
+     * no longer exists — indexes, the {@code set_updated_at()} trigger function,
+     * and (if any are ever added) views all live inline in the schema file, so the
+     * regenerate actions extract their statements from here.
+     */
+    private static final String SCHEMA_SQL_PATH = "/hospital/management/sql/hospital_schema.sql";
+
     // ── Public records ─────────────────────────────────────────────────────
 
     /**
@@ -182,16 +191,21 @@ public class DatabaseInspectionService {
     }
 
     /**
-     * Re-creates all indexes by reading and executing
-     * {@code hospital_indexes_postgresql.sql} from the classpath.
+     * Re-creates all indexes by extracting the {@code CREATE INDEX} statements
+     * from {@code hospital_schema.sql} and executing them. Each statement is
+     * normalized to {@code CREATE INDEX IF NOT EXISTS …} so re-running after a
+     * bulk drop (or a no-op refresh) is safe.
      *
      * @throws Exception if the SQL file cannot be read or any statement fails
      */
     public void regenerateIndexes() throws Exception {
-        logger.info("Regenerating all indexes from hospital_indexes_postgresql.sql");
-        String sql = readSqlFile("/hospital/management/sql/hospital_indexes_postgresql.sql");
-        List<String> stmts = splitSqlStatements(sql);
-        executeStatements(stmts);
+        logger.info("Regenerating all indexes from hospital_schema.sql");
+        String schemaSql = readSqlFile(SCHEMA_SQL_PATH);
+        List<String> stmts = statementsStartingWith(schemaSql,
+                "CREATE UNIQUE INDEX", "CREATE INDEX");
+        List<String> idempotent = new ArrayList<>();
+        for (String stmt : stmts) idempotent.add(withIndexIfNotExists(stmt));
+        executeStatements(idempotent);
         logger.info("Indexes regenerated (" + stmts.size() + " statements executed).");
     }
 
@@ -266,16 +280,17 @@ public class DatabaseInspectionService {
     }
 
     /**
-     * Re-creates all views by reading and executing the view portion of
-     * {@code hospital_objects.sql} (everything before "PART 2").
+     * Re-creates all views by extracting the {@code CREATE VIEW} statements from
+     * {@code hospital_schema.sql} and executing them. The schema currently defines
+     * no views, so this is a safe no-op until one is added — it never errors out.
      *
-     * @throws Exception if the file cannot be read or any statement fails
+     * @throws Exception if the SQL file cannot be read or any statement fails
      */
     public void regenerateViews() throws Exception {
-        logger.info("Regenerating all views from hospital_objects.sql (Part 1).");
-        String fullSql = readSqlFile("/hospital/management/sql/hospital_objects.sql");
-        String viewsSql = extractPart(fullSql, null, "PART 2");
-        List<String> stmts = splitSqlStatements(viewsSql);
+        logger.info("Regenerating all views from hospital_schema.sql.");
+        String schemaSql = readSqlFile(SCHEMA_SQL_PATH);
+        List<String> stmts = statementsStartingWith(schemaSql,
+                "CREATE OR REPLACE VIEW", "CREATE VIEW");
         executeStatements(stmts);
         logger.info("Views regenerated (" + stmts.size() + " statements executed).");
     }
@@ -363,18 +378,20 @@ public class DatabaseInspectionService {
     }
 
     /**
-     * Re-creates all stored procedures and functions by reading and executing
-     * the routines portion of {@code hospital_objects.sql} (from "PART 2" up to
-     * but not including any "PART 3" trigger section).
+     * Re-creates all stored functions and procedures by extracting the
+     * {@code CREATE [OR REPLACE] FUNCTION/PROCEDURE} statements from
+     * {@code hospital_schema.sql} and executing them. The only routine today is the
+     * {@code set_updated_at()} trigger function; its {@code CREATE OR REPLACE} form
+     * makes this idempotent.
      *
      * @throws Exception if the file cannot be read or any statement fails
      */
     public void regenerateRoutines() throws Exception {
-        logger.info("Regenerating all routines from hospital_objects.sql (Part 2).");
-        String fullSql = readSqlFile("/hospital/management/sql/hospital_objects.sql");
-        // Extract from PART 2 up to PART 3 (triggers) — exclude triggers.
-        String routinesSql = extractPart(fullSql, "PART 2", "PART 3");
-        List<String> stmts = splitSqlStatements(routinesSql);
+        logger.info("Regenerating all routines from hospital_schema.sql.");
+        String schemaSql = readSqlFile(SCHEMA_SQL_PATH);
+        List<String> stmts = statementsStartingWith(schemaSql,
+                "CREATE OR REPLACE FUNCTION", "CREATE FUNCTION",
+                "CREATE OR REPLACE PROCEDURE", "CREATE PROCEDURE");
         executeStatements(stmts);
         logger.info("Routines regenerated (" + stmts.size() + " statements executed).");
     }
@@ -479,6 +496,45 @@ public class DatabaseInspectionService {
     }
 
     /**
+     * Returns the statements from {@code sql} whose trimmed, upper-cased text
+     * starts with any of the given prefixes (e.g. {@code "CREATE INDEX"}). Used
+     * by the regenerate actions to replay just one object kind from the
+     * consolidated schema file without executing table/trigger/transaction
+     * statements that would conflict with the live schema.
+     */
+    private List<String> statementsStartingWith(String sql, String... prefixes) {
+        List<String> result = new ArrayList<>();
+        for (String stmt : splitSqlStatements(sql)) {
+            String upper = stmt.trim().toUpperCase();
+            for (String prefix : prefixes) {
+                if (upper.startsWith(prefix)) {
+                    result.add(stmt);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Injects {@code IF NOT EXISTS} into a {@code CREATE INDEX} statement (e.g.
+     * {@code CREATE INDEX idx_x …} → {@code CREATE INDEX IF NOT EXISTS idx_x …})
+     * so re-running regeneration over already-present indexes is a no-op rather
+     * than a "relation already exists" failure.
+     */
+    private static String withIndexIfNotExists(String stmt) {
+        String upper = stmt.trim().toUpperCase();
+        for (String prefix : List.of("CREATE UNIQUE INDEX ", "CREATE INDEX ")) {
+            if (upper.startsWith(prefix)) {
+                return stmt.trim().substring(0, prefix.length())
+                        + "IF NOT EXISTS "
+                        + stmt.trim().substring(prefix.length());
+            }
+        }
+        return stmt.trim();
+    }
+
+    /**
      * Executes each statement in a single database transaction via
      * {@link TransactionManager}.
      *
@@ -501,7 +557,7 @@ public class DatabaseInspectionService {
      * Reads a classpath resource as a UTF-8 string.
      *
      * @param classpathPath the absolute classpath path (e.g.
-     *                      {@code "/hospital/management/sql/hospital_indexes_postgresql.sql"})
+     *                      {@code "/hospital/management/sql/hospital_schema.sql"})
      * @return the file contents
      * @throws Exception if the resource cannot be found or read
      */
@@ -513,42 +569,6 @@ public class DatabaseInspectionService {
             }
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
         }
-    }
-
-    /**
-     * Extracts the portion of {@code sql} between the markers {@code fromMarker}
-     * and {@code toMarker}.
-     *
-     * <ul>
-     *   <li>If {@code fromMarker} is {@code null}, extraction starts from the
-     *       beginning of the string.</li>
-     *   <li>If {@code toMarker} is {@code null}, extraction continues to the end
-     *       of the string.</li>
-     *   <li>Marker matching is case-insensitive and uses
-     *       {@link String#indexOf}.</li>
-     * </ul>
-     *
-     * @param sql        the full SQL text
-     * @param fromMarker the substring marking the start (exclusive if not null)
-     * @param toMarker   the substring marking the end (exclusive if not null)
-     * @return the extracted SQL segment
-     */
-    private String extractPart(String sql, String fromMarker, String toMarker) {
-        String upper = sql.toUpperCase();
-        int start = 0;
-        int end   = sql.length();
-
-        if (fromMarker != null) {
-            int idx = upper.indexOf(fromMarker.toUpperCase());
-            if (idx >= 0) start = idx;
-        }
-
-        if (toMarker != null) {
-            int idx = upper.indexOf(toMarker.toUpperCase(), start);
-            if (idx >= 0) end = idx;
-        }
-
-        return sql.substring(start, end);
     }
 
     /**
