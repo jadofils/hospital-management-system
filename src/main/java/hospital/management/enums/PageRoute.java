@@ -28,7 +28,7 @@ public enum PageRoute {
     // ── Patient domain ────────────────────────────────────────────────────
     PATIENTS("patients", "Patients",
              "/hospital/management/frontend/pages/patients-page.fxml",
-             RoleName.ADMIN, RoleName.DOCTOR, RoleName.RECEPTIONIST, RoleName.ANALYST),
+             RoleName.ADMIN, RoleName.DOCTOR, RoleName.RECEPTIONIST),
 
     PATIENT_DETAIL("patient-detail", "Patient Detail",
                    "/hospital/management/frontend/pages/patient-detail-page.fxml",
@@ -149,6 +149,37 @@ public enum PageRoute {
             if (r.key.equalsIgnoreCase(key)) return r;
         }
         throw new IllegalArgumentException("Unknown PageRoute key: " + key);
+    }
+
+    /**
+     * The page a user is most likely to need next, following the data-dependency
+     * workflow (e.g. after creating a patient, book their appointment; after an
+     * appointment, process its billing). Drives the "Continue to →" guide button
+     * shown on the right end of each page. Returns {@code null} for terminal pages
+     * that have no sensible next step.
+     */
+    public PageRoute getNextStep() {
+        return switch (this) {
+            case DASHBOARD                      -> PATIENTS;
+            case PATIENTS, PATIENT_DETAIL       -> APPOINTMENTS;
+            case APPOINTMENTS                   -> BILLING;
+            case DEPARTMENTS                    -> DOCTORS;
+            case DOCTORS, MY_SCHEDULE           -> APPOINTMENTS;
+            case REFERRALS                      -> APPOINTMENTS;
+            case MEDICAL_RECORDS                -> PRESCRIPTIONS;
+            case LAB_ORDERS                     -> MEDICAL_RECORDS;
+            case PRESCRIPTIONS                  -> PHARMACY;
+            case PHARMACY                       -> PRESCRIPTIONS;
+            case BILLING                        -> DASHBOARD;
+            case FEEDBACK, ANALYTICS            -> DASHBOARD;
+            case USERS                          -> ROLES;
+            case ROLES                          -> USERS;
+            case SYSTEM_LOGS                    -> AUDIT_LOGS;
+            case AUDIT_LOGS                     -> RETENTION;
+            case RETENTION                      -> SYSTEM_LOGS;
+            case DEVELOPER_DASHBOARD, PROFILE   -> DASHBOARD;
+            case HOME, SYSTEM_STATUS            -> null;
+        };
     }
 
     @Override public String toString() { return key; }
