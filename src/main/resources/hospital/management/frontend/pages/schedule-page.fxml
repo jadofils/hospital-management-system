@@ -33,6 +33,7 @@
                     <Button fx:id="addSlotBtn" styleClass="primary-button" contentDisplay="LEFT" text="Add Availability">
                         <graphic><FontIcon iconLiteral="fas-plus" iconSize="13"/></graphic>
                     </Button>
+                    <Button fx:id="continueBtn" styleClass="continue-button"/>
                 </HBox>
 
                 <HBox fx:id="doctorSelectorBox" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
@@ -63,6 +64,12 @@
                     <VBox fx:id="sunCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
                         <Label text="SUN" styleClass="schedule-day-header"/>
                     </VBox>
+                </HBox>
+
+                <!-- Sort toolbar -->
+                <HBox spacing="10" alignment="CENTER_LEFT">
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
                 </HBox>
 
                 <!-- Schedule table -->

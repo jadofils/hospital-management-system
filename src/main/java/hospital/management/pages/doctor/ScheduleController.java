@@ -20,6 +20,7 @@ import hospital.management.backend.service.department.interfaces.DoctorService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.doctor.DoctorScheduleTableController;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.components.shared.widgets.TimeField;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -48,11 +49,13 @@ public class ScheduleController extends BasePageController {
             "Thu", "Thursday", "Fri", "Friday", "Sat", "Saturday", "Sun", "Sunday");
 
     @FXML private DoctorScheduleTableController scheduleTableController;
+    @FXML private SortBarController sortBarController;
 
     @FXML private Label pageTitleLabel;
     @FXML private HBox doctorSelectorBox;
     @FXML private ComboBox<String> doctorSelector;
     @FXML private Button addSlotBtn;
+    @FXML private Button continueBtn;
 
     private static final String ALL_DOCTORS_LABEL = "All Doctors";
 
@@ -77,6 +80,7 @@ public class ScheduleController extends BasePageController {
 
         applyCreateVisibility(addSlotBtn, PageRoute.MY_SCHEDULE);
         addSlotBtn.setOnAction(e -> openScheduleDialog(null));
+        setupContinueButton(continueBtn, PageRoute.MY_SCHEDULE);
         scheduleTableController.setRowActions(
             allowUpdate(PageRoute.MY_SCHEDULE, this::openScheduleDialog),
             allowDelete(PageRoute.MY_SCHEDULE, this::confirmDeleteSchedule),
@@ -98,6 +102,12 @@ public class ScheduleController extends BasePageController {
             loadDoctorSelector();
             doctorSelector.setOnAction(e -> refreshTable());
         }
+
+        if (sortBarController != null) {
+            sortBarController.setOnSort((field, asc) -> scheduleTableController.applySort(field, asc));
+            sortBarController.addOptions(scheduleTableController.getSortOptionLabels());
+        }
+
         refreshTable();
     }
 
