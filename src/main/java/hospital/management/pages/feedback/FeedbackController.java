@@ -15,6 +15,7 @@ import hospital.management.backend.service.patient.FeedbackServiceImpl;
 import hospital.management.backend.service.patient.interfaces.FeedbackService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.backend.service.patient.interfaces.PatientService;
+import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.BasePageController;
@@ -41,6 +42,7 @@ public class FeedbackController extends BasePageController {
     private final FeedbackService feedbackService = new FeedbackServiceImpl(new PatientFeedbackDAOImpl());
     private final UserServiceImpl userService = new UserServiceImpl(new UserDAOImpl());
     private final PatientService patientService = new PatientServiceImpl(new PatientDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private TextField searchField;
     @FXML private Button submitFeedbackBtn;
@@ -63,9 +65,27 @@ public class FeedbackController extends BasePageController {
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.FEEDBACK);
 
-        feedbackIdColumn.setCellValueFactory(new PropertyValueFactory<>("feedbackId"));
-        patientIdColumn.setCellValueFactory(new PropertyValueFactory<>("patientId"));
-        appointmentIdColumn.setCellValueFactory(new PropertyValueFactory<>("appointmentId"));
+        feedbackIdColumn.setVisible(false);
+        patientIdColumn.setText("Patient");
+        patientIdColumn.setCellValueFactory(cell -> {
+            PatientFeedbackDTO feedback = cell.getValue();
+            try {
+                return new javafx.beans.property.SimpleStringProperty(
+                        entityLookupService.patientLabel(feedback.getPatientId()));
+            } catch (Exception ex) {
+                return new javafx.beans.property.SimpleStringProperty("—");
+            }
+        });
+        appointmentIdColumn.setText("Appointment");
+        appointmentIdColumn.setCellValueFactory(cell -> {
+            PatientFeedbackDTO feedback = cell.getValue();
+            try {
+                return new javafx.beans.property.SimpleStringProperty(
+                        entityLookupService.appointmentLabel(feedback.getAppointmentId()));
+            } catch (Exception ex) {
+                return new javafx.beans.property.SimpleStringProperty("—");
+            }
+        });
         ratingColumn.setCellValueFactory(new PropertyValueFactory<>("rating"));
         commentsColumn.setCellValueFactory(new PropertyValueFactory<>("comments"));
         dateSubmittedColumn.setCellValueFactory(new PropertyValueFactory<>("dateSubmitted"));
