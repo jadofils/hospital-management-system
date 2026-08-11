@@ -31,9 +31,11 @@ public class PermissionTableController extends PaginatedTableController<Permissi
 
     @Override
     protected void configureColumns() {
-        permissionIdColumn.setCellValueFactory(new PropertyValueFactory<>("permissionId"));
+        permissionIdColumn.setVisible(false);
         resourceColumn.setCellValueFactory(new PropertyValueFactory<>("resource"));
         actionColumn.setCellValueFactory(new PropertyValueFactory<>("action"));
+        addSortOption("Resource", resourceColumn);
+        addSortOption("Action", actionColumn);
         wireDeleteColumn(actionsColumn);
     }
 

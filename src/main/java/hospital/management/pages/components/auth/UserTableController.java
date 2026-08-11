@@ -35,12 +35,16 @@ public class UserTableController extends PaginatedTableController<UserDTO> {
 
     @Override
     protected void configureColumns() {
-        idColumn.setCellValueFactory(new PropertyValueFactory<>("userId"));
+        idColumn.setVisible(false);
         usernameColumn.setCellValueFactory(new PropertyValueFactory<>("username"));
         emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
         roleColumn.setCellValueFactory(cell -> new SimpleStringProperty(roleNameResolver.apply(cell.getValue())));
         statusColumn.setCellValueFactory(cell ->
                 new SimpleStringProperty(Boolean.TRUE.equals(cell.getValue().getIsActive()) ? "Active" : "Inactive"));
+        addSortOption("Username", usernameColumn);
+        addSortOption("Email", emailColumn);
+        addSortOption("Role", roleColumn);
+        addSortOption("Status", statusColumn);
         wireSingleActionColumn(changeStatusColumn, "fas-power-off",
                 item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         wireActionsColumn(actionsColumn);

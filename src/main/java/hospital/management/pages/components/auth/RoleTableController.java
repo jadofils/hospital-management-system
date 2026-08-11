@@ -4,7 +4,9 @@ import hospital.management.pages.components.PaginatedTableController;
 import hospital.management.backend.dto.auth.RoleDTO;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 
 import java.util.function.Function;
@@ -25,10 +27,16 @@ public class RoleTableController extends PaginatedTableController<RoleDTO> {
 
     @Override
     protected void configureColumns() {
-        roleIdColumn.setCellValueFactory(new PropertyValueFactory<>("roleId"));
+        roleIdColumn.setVisible(false);
         roleNameColumn.setCellValueFactory(new PropertyValueFactory<>("roleName"));
         permissionCountColumn.setCellValueFactory(cell ->
                 new SimpleStringProperty(permissionCountResolver.apply(cell.getValue())));
+        Label permissionHeader = new Label("Permissions Count");
+        Tooltip.install(permissionHeader, new Tooltip("Number of permissions granted to this role"));
+        permissionCountColumn.setGraphic(permissionHeader);
+        permissionCountColumn.setText("");
+        addSortOption("Role Name", roleNameColumn);
+        addSortOption("Permissions", permissionCountColumn);
         wireActionsColumn(actionsColumn);
     }
 

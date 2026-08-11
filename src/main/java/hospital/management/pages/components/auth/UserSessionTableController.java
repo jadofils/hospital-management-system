@@ -37,6 +37,10 @@ public class UserSessionTableController extends PaginatedTableController<UserSes
         sessionExpiryCol.setCellValueFactory(cell -> new SimpleStringProperty(formatDateTime(cell.getValue().getExpiresAt())));
         sessionIpCol.setCellValueFactory(new PropertyValueFactory<>("ipAddress"));
         sessionAgentCol.setCellValueFactory(new PropertyValueFactory<>("userAgent"));
+        addSortOption("Login", sessionLoginCol);
+        addSortOption("Expiry", sessionExpiryCol);
+        addSortOption("IP", sessionIpCol);
+        addSortOption("User Agent", sessionAgentCol);
         wireRevokeColumn(sessionActionCol);
     }
 
