@@ -29,6 +29,7 @@ import hospital.management.pages.components.auth.RoleTableController;
 import hospital.management.pages.components.auth.PermissionCardsController;
 import hospital.management.pages.components.shared.search.EntityIdComboBox;
 import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.sort.SortBarController;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -54,9 +55,11 @@ public class UsersPageController extends BasePageController {
     private final PermissionService permissionService = new PermissionServiceImpl(new PermissionDAOImpl());
 
     @FXML private UserTableController userTableController;
+    @FXML private SortBarController userSortBarController;
 
     // Roles & Permissions tab
     @FXML private RoleTableController roleTableController;
+    @FXML private SortBarController roleSortBarController;
     @FXML private TextField roleSearchField;
     @FXML private Button    addRoleBtn;
     @FXML private PermissionCardsController permissionTableController;
@@ -67,6 +70,7 @@ public class UsersPageController extends BasePageController {
     @FXML private ComboBox<String> roleFilter;
     @FXML private ComboBox<String> statusFilter;
     @FXML private Button   addUserBtn;
+    @FXML private Button   continueBtn;
 
     private List<UserDTO> users = new ArrayList<>();
     private final Map<String, String> roleNameByUserId = new HashMap<>();
@@ -87,11 +91,17 @@ public class UsersPageController extends BasePageController {
         userTableController.setRoleNameResolver(u -> roleNameByUserId.getOrDefault(u.getUserId(), "—"));
         applyCreateVisibility(addUserBtn, PageRoute.USERS);
         addUserBtn.setOnAction(e -> openUserDialog(null));
+        setupContinueButton(continueBtn, PageRoute.USERS);
         userTableController.setRowActions(
             allowUpdate(PageRoute.USERS, this::openUserDialog),
             allowDelete(PageRoute.USERS, this::confirmDeleteUser),
             allowRead(PageRoute.USERS, this::viewUserDetail));
         userTableController.setOnChangeStatus(canUpdate(PageRoute.USERS) ? this::confirmToggleActive : null);
+
+        if (userSortBarController != null) {
+            userSortBarController.setOnSort((field, asc) -> userTableController.applySort(field, asc));
+            userSortBarController.addOptions(userTableController.getSortOptionLabels());
+        }
 
         loadRolesAndUsers();
         // Roles & permissions tab setup
@@ -104,6 +114,10 @@ public class UsersPageController extends BasePageController {
         roleSearchField.textProperty().addListener((obs, o, n) -> roleTableController.filter(n));
         applyCreateVisibility(addRoleBtn, PageRoute.ROLES);
         addRoleBtn.setOnAction(e -> openRoleDialog(null));
+        if (roleSortBarController != null) {
+            roleSortBarController.setOnSort((field, asc) -> roleTableController.applySort(field, asc));
+            roleSortBarController.addOptions(roleTableController.getSortOptionLabels());
+        }
 
         permissionTableController.setOnDelete(this::confirmDeletePermission);
         permissionSearchField.textProperty().addListener((obs, o, n) -> permissionTableController.filter(n));
