@@ -49,8 +49,23 @@ public class Main extends Application {
         scene.getRoot().setStyle("-fx-font-size: " + baseFontSize + "px;");
         stage.setTitle(AppConfig.APP_NAME);
         stage.setScene(scene);
-        stage.setMinWidth(900);
-        stage.setMinHeight(600);
+        stage.setResizable(true);
+
+        // Let the window shrink down to phone/tablet-ish sizes.
+        stage.setMinWidth(640);
+        stage.setMinHeight(480);
+
+        // Fit the window inside the visible screen area. Opening larger than the
+        // display pushes the native title bar (close/minimize/maximize) off-screen,
+        // which makes the window look undecorated and impossible to drag or resize.
+        Rectangle2D workArea = Screen.getPrimary().getVisualBounds();
+        double initialW = Math.min(AppConfig.WINDOW_WIDTH,
+            Math.max(workArea.getWidth() - 32, stage.getMinWidth()));
+        double initialH = Math.min(AppConfig.WINDOW_HEIGHT,
+            Math.max(workArea.getHeight() - 32, stage.getMinHeight()));
+        stage.setWidth(initialW);
+        stage.setHeight(initialH);
+        stage.centerOnScreen();
         stage.show();
     }
 
