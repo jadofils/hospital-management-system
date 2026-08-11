@@ -86,6 +86,7 @@ public class DashboardController extends BasePageController {
     @FXML private Button newAppointmentBtn;
     @FXML private Button generateReportBtn;
     @FXML private Button processBillingBtn;
+    @FXML private Button continueBtn;
 
     @FXML private VBox teamDirectoryBox;
     @FXML private TableView<UserDTO> usersTable;
@@ -140,6 +141,7 @@ public class DashboardController extends BasePageController {
             toastError("You don't have permission to view the dashboard.");
         }
 
+        setupContinueButton(continueBtn, PageRoute.DASHBOARD);
         applyQuickActionPermissions();
 
         setupAdmissionsChart();
@@ -292,7 +294,7 @@ public class DashboardController extends BasePageController {
     }
 
     private void setupRecentTable() {
-        recentIdCol.setCellValueFactory(new PropertyValueFactory<>("patientId"));
+        recentIdCol.setVisible(false);
         recentNameCol.setCellValueFactory(cell ->
                 new SimpleStringProperty(cell.getValue().getFullName()));
         recentAgeCol.setCellValueFactory(cell -> {

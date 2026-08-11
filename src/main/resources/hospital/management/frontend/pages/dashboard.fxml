@@ -89,6 +89,8 @@
                             onAction="#handleProcessBilling">
                         <graphic><FontIcon iconLiteral="fas-file-invoice-dollar" iconSize="13"/></graphic>
                     </Button>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button fx:id="continueBtn" styleClass="continue-button"/>
                 </HBox>
 
                 <!-- Recent patients table -->
