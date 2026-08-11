@@ -23,6 +23,7 @@ import hospital.management.backend.model.user.User;
 import hospital.management.backend.model.user.UserRole;
 import hospital.management.backend.model.user.UserSession;
 import hospital.management.backend.service.auth.interfaces.AuthService;
+import hospital.management.backend.utils.LoginLookupIndex;
 import hospital.management.backend.utils.ValidatorUtils;
 import hospital.management.backend.utils.listeners.AppEventType;
 import hospital.management.backend.utils.listeners.EventBus;
@@ -59,28 +60,41 @@ public class AuthServiceImpl implements AuthService {
         String username = ValidatorUtils.requireNonBlank(request.getUsername(), "username");
         String password = ValidatorUtils.requireNonBlank(request.getPassword(), "password");
 
-        User user = userDAO.findByUsername(username)
-                .orElseThrow(() -> new AuthException("Invalid username or password."));
+        // Fast path: the login screen warms an in-memory index (sorted by username,
+        // searched via binary search) so login skips the DB lookup entirely. The
+        // index is only a cache — any miss falls through to the DAO, which remains
+        // the source of truth, so a stale/empty index can never block a login.
+        LoginLookupIndex index = LoginLookupIndex.get();
+        User user = index.findUser(username).orElse(null);
+        if (user == null) {
+            user = userDAO.findByUsername(username)
+                    .orElseThrow(() -> new AuthException("Invalid username or password."));
+        }
+        final User account = user; // effectively-final snapshot for the transaction lambda below
 
-        if (!Boolean.TRUE.equals(user.getIsActive())) {
+        if (!Boolean.TRUE.equals(account.getIsActive())) {
             throw new AuthException("This account has been deactivated.");
         }
-        if (!PasswordConfig.verify(password, user.getPasswordHash())) {
+        if (!PasswordConfig.verify(password, account.getPasswordHash())) {
             throw new AuthException("Invalid username or password.");
         }
 
         // RBAC model supports multiple roles per user, but the token carries a
         // single "primary" role claim — use the first active assignment.
-        List<UserRole> assignments = userRoleDAO.findByUserId(user.getUserId());
-        if (assignments.isEmpty()) {
-            throw new AuthException("This account has no assigned role. Contact an administrator.");
+        String primaryRoleName = index.findPrimaryRoleName(account.getUserId()).orElse(null);
+        if (primaryRoleName == null) {
+            List<UserRole> assignments = userRoleDAO.findByUserId(account.getUserId());
+            if (assignments.isEmpty()) {
+                throw new AuthException("This account has no assigned role. Contact an administrator.");
+            }
+            Role role = roleDAO.findById(assignments.get(0).getRoleId())
+                    .orElseThrow(() -> new AuthException("Assigned role no longer exists."));
+            primaryRoleName = role.getRoleName();
         }
-        Role role = roleDAO.findById(assignments.get(0).getRoleId())
-                .orElseThrow(() -> new AuthException("Assigned role no longer exists."));
 
-        String token = JwtConfig.generateToken(user.getUserId(), user.getUsername(), role.getRoleName());
+        String token = JwtConfig.generateToken(account.getUserId(), account.getUsername(), primaryRoleName);
         UserSession session = new UserSession();
-        session.setUserId(user.getUserId());
+        session.setUserId(account.getUserId());
         session.setExpiresAt(LocalDateTime.now().plusHours(EnvConfig.getJwtExpiryHours()));
         session.setIsActive(true);
 
@@ -89,15 +103,15 @@ public class AuthServiceImpl implements AuthService {
             userSessionDAO.save(session, conn);
 
             AuditLog log = new AuditLog();
-            log.setUserId(user.getUserId());
+            log.setUserId(account.getUserId());
             log.setAction("LOGIN");
             log.setTableAffected("users");
-            log.setRecordId(user.getUserId());
+            log.setRecordId(account.getUserId());
             auditLogDAO.save(log, conn);
         });
 
-        EventBus.publish(AppEventType.USER_LOGGED_IN, user.getUserId());
-        return new LoginResponseDTO(token, session.getSessionId(), user.getUserId(), user.getUsername(), role.getRoleName());
+        EventBus.publish(AppEventType.USER_LOGGED_IN, account.getUserId());
+        return new LoginResponseDTO(token, session.getSessionId(), account.getUserId(), account.getUsername(), primaryRoleName);
     }
 
     @Override
@@ -159,6 +173,7 @@ public class AuthServiceImpl implements AuthService {
 
         String newHash = PasswordConfig.hash(newPassword);
         CacheService.evict(CacheKey.user(userId));
+        LoginLookupIndex.get().invalidate();
         TransactionManager.executeInTransaction(conn -> {
             userDAO.updatePasswordHash(userId, newHash, conn);
 
@@ -181,6 +196,7 @@ public class AuthServiceImpl implements AuthService {
         String newHash = PasswordConfig.hash(temp);
 
         CacheService.evict(CacheKey.user(user.getUserId()));
+        LoginLookupIndex.get().invalidate();
         TransactionManager.executeInTransaction(conn -> {
             userDAO.updatePasswordHash(user.getUserId(), newHash, conn);
 
