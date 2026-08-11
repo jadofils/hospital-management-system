@@ -2,6 +2,8 @@ package hospital.management.pages.components.pharmacy;
 
 import hospital.management.pages.components.PaginatedTableController;
 import hospital.management.backend.dto.pharmacy.MedicalInventoryDTO;
+import hospital.management.backend.service.lookup.EntityLookupService;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
@@ -15,6 +17,8 @@ import javafx.scene.control.cell.PropertyValueFactory;
  */
 public class MedicalInventoryTableController extends PaginatedTableController<MedicalInventoryDTO> {
 
+    private final EntityLookupService lookupService = new EntityLookupService();
+
     @FXML private TableColumn<MedicalInventoryDTO, String>    inventoryIdColumn;
     @FXML private TableColumn<MedicalInventoryDTO, String>    medicationIdColumn;
     @FXML private TableColumn<MedicalInventoryDTO, String>    batchNumberColumn;
@@ -27,8 +31,10 @@ public class MedicalInventoryTableController extends PaginatedTableController<Me
 
     @Override
     protected void configureColumns() {
-        inventoryIdColumn.setCellValueFactory(new PropertyValueFactory<>("inventoryId"));
-        medicationIdColumn.setCellValueFactory(new PropertyValueFactory<>("medicationId"));
+        inventoryIdColumn.setVisible(false);
+        medicationIdColumn.setText("Medication");
+        medicationIdColumn.setCellValueFactory(cell ->
+                new SimpleStringProperty(resolveLabel(() -> lookupService.medicationLabel(cell.getValue().getMedicationId()))));
         batchNumberColumn.setCellValueFactory(new PropertyValueFactory<>("batchNumber"));
         expiryDateColumn.setCellValueFactory(new PropertyValueFactory<>("expiryDate"));
         quantityInStockColumn.setCellValueFactory(new PropertyValueFactory<>("quantityInStock"));
@@ -50,6 +56,13 @@ public class MedicalInventoryTableController extends PaginatedTableController<Me
                 setGraphic(badge);
             }
         });
+        addSortOption("Medication", medicationIdColumn);
+        addSortOption("Batch", batchNumberColumn);
+        addSortOption("Expiry", expiryDateColumn);
+        addSortOption("In Stock", quantityInStockColumn);
+        addSortOption("Reorder Level", reorderLevelColumn);
+        addSortOption("Supplier", supplierColumn);
+        addSortOption("Stock Alert", stockAlertColumn);
         wireActionsColumn(actionsColumn);
     }
 
