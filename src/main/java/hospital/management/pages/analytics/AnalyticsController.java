@@ -20,6 +20,7 @@ import hospital.management.backend.service.patient.FeedbackServiceImpl;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.pages.BasePageController;
 import hospital.management.enums.PageRoute;
+import hospital.management.pages.utils.ChartSnapshotUtil;
 import hospital.management.pages.utils.CsvUiIO;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.backend.utils.pipes.AsyncJobRunner;
@@ -28,7 +29,11 @@ import javafx.scene.chart.*;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
+import javafx.stage.FileChooser;
 
+import java.awt.Desktop;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -54,6 +59,7 @@ public class AnalyticsController extends BasePageController {
 
     @FXML private ComboBox<String> periodFilter;
     @FXML private Button exportBtn;
+    @FXML private Button downloadReportBtn;
 
     @FXML private BarChart<String, Number>  admissionsChart;
     @FXML private CategoryAxis admXAxis;
@@ -84,6 +90,7 @@ public class AnalyticsController extends BasePageController {
 
         periodFilter.setOnAction(e -> reloadData());
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportCsv));
+        downloadReportBtn.setOnAction(e -> downloadReport());
     }
 
     private void setupCharts() {
@@ -208,6 +215,51 @@ public class AnalyticsController extends BasePageController {
         }
     }
 
+    /** Builds and saves the professional PDF report (title page + one section per chart).
+     *  Chart snapshots must be captured here, on the FX thread, before the actual PDF
+     *  writing is handed off to a background thread via AsyncJobRunner. */
+    private void downloadReport() {
+        if (currentSnapshot == null) {
+            toastError("No analytics data loaded yet.");
+            return;
+        }
+
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Save Analytics Report");
+        String suffix = periodFilter.getValue() == null ? "analytics" : periodFilter.getValue().toLowerCase().replace(' ', '-');
+        chooser.setInitialFileName(suffix + "-analytics-report.pdf");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF (*.pdf)", "*.pdf"));
+        File dest = chooser.showSaveDialog(downloadReportBtn.getScene().getWindow());
+        if (dest == null) return;
+
+        BufferedImage admissionsImg = ChartSnapshotUtil.capture(admissionsChart);
+        BufferedImage revenueImg = ChartSnapshotUtil.capture(revenueChart);
+        BufferedImage apptStatusImg = ChartSnapshotUtil.capture(apptStatusChart);
+        BufferedImage feedbackImg = ChartSnapshotUtil.capture(feedbackChart);
+        BufferedImage labStatusImg = ChartSnapshotUtil.capture(labStatusChart);
+
+        AnalyticsSnapshot snapshotForReport = currentSnapshot;
+        String period = periodFilter.getValue();
+
+        AsyncJobRunner.submit(
+            () -> {
+                AnalyticsReportBuilder.build(dest.toPath(), period, snapshotForReport,
+                        admissionsImg, revenueImg, apptStatusImg, feedbackImg, labStatusImg);
+                return dest;
+            },
+            savedFile -> {
+                toastSuccess("Report saved: " + savedFile.getName());
+                if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.OPEN)) {
+                    AsyncJobRunner.submit(
+                        () -> { Desktop.getDesktop().open(savedFile); return null; },
+                        v -> {}, ex -> {}
+                    );
+                }
+            },
+            ex -> toastError("Failed to save report: " + ex.getMessage())
+        );
+    }
+
     private String chooseAnalyticsSection() {
         ChoiceDialog<String> dialog = new ChoiceDialog<>(
                 "All sections",
@@ -291,7 +343,8 @@ public class AnalyticsController extends BasePageController {
 
     private record TimeWindow(LocalDateTime start, LocalDateTime end) {}
 
-    private record AnalyticsSnapshot(
+    /** Package-visible (not private) so {@link AnalyticsReportBuilder} can accept it directly. */
+    record AnalyticsSnapshot(
             Map<String, Long> admissionsByMonth,
             Map<String, BigDecimal> revenueByMonth,
             Map<String, Long> appointmentStatus,

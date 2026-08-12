@@ -109,7 +109,20 @@ public class RightSidebarController {
 
     private boolean expanded = false;   // starts collapsed — expand on demand
 
+    /** The right sidebar of whichever page is currently displayed — navigation fully
+     *  replaces the Scene (see NavbarController.navigate()), so exactly one instance
+     *  is ever live at a time. Lets the navbar's notification bell (a sibling include
+     *  with no other way to reach this component) expand the sidebar directly instead
+     *  of showing its own separate popup. */
+    private static RightSidebarController active;
+
+    public static RightSidebarController getActive() {
+        return active;
+    }
+
     public void initialize() {
+        active = this;
+
         // Start collapsed; content hidden — strip toggle is always visible
         collapse();
 

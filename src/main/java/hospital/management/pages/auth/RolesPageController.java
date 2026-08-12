@@ -80,7 +80,6 @@ public class RolesPageController extends BasePageController {
             roleSortBarController.addOptions(roleTableController.getSortOptionLabels());
         }
 
-        permissionTableController.setOnDelete(canDelete(PageRoute.ROLES) ? this::confirmDeletePermission : null);
         permissionSearchField.textProperty().addListener((obs, o, n) -> permissionTableController.filter(n));
 
         refreshPermissions();
@@ -113,15 +112,19 @@ public class RolesPageController extends BasePageController {
     private void viewRoleDetail(RoleDTO role) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Role Name", role.getRoleName());
-        fields.put("Permission Count", permissionCountByRoleId.getOrDefault(role.getRoleId(), "0"));
+        String count = permissionCountByRoleId.getOrDefault(role.getRoleId(), "0");
+        fields.put("Total Permissions", "1".equals(count) ? "1 permission" : count + " permissions (see breakdown below)");
+        fields.put("Created At", role.getCreatedAt() == null ? null : role.getCreatedAt().toString());
+
+        VBox permissionCards;
         try {
-            fields.put("Permissions", PermissionDisplayFormatter.groupedByResource(
-                    roleService.findPermissionsForRole(role.getRoleId())));
+            permissionCards = PermissionDisplayFormatter.buildCards(
+                    roleService.findPermissionsForRole(role.getRoleId()));
         } catch (Exception ex) {
             toastError("Failed to load permissions: " + ex.getMessage());
+            permissionCards = null;
         }
-        fields.put("Created At", role.getCreatedAt() == null ? null : role.getCreatedAt().toString());
-        detailViewController.show("Role Details", "fas-user-shield", fields);
+        detailViewController.show("Role Details", "fas-user-shield", fields, permissionCards);
     }
 
     private void confirmDeleteRole(RoleDTO role) {
@@ -136,22 +139,6 @@ public class RolesPageController extends BasePageController {
                         toastSuccess("Role deleted.");
                     } catch (Exception e) {
                         toastError("Failed to delete role: " + e.getMessage());
-                    }
-                });
-    }
-
-    private void confirmDeletePermission(PermissionDTO permission) {
-        confirm("Delete Permission",
-                "Are you sure you want to delete \"" + permission.getAction() + "\" on \""
-                        + permission.getResource() + "\"? Any role granting it will lose it. This cannot be undone.",
-                () -> {
-                    try {
-                        permissionService.delete(permission.getPermissionId());
-                        refreshPermissions();
-                        refreshRoles();
-                        toastSuccess("Permission deleted.");
-                    } catch (Exception e) {
-                        toastError("Failed to delete permission: " + e.getMessage());
                     }
                 });
     }

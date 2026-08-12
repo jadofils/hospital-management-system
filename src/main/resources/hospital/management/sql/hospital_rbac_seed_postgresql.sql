@@ -165,12 +165,16 @@ JOIN   permissions p ON (p.resource, p.action) IN (
 WHERE  r.role_name = 'Receptionist'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
--- Analyst: read-only on every table (reporting/oversight) — excluding developer_tools,
---          which stays Admin-only regardless of the blanket "every read permission" grant below
+-- Analyst: read-only on every business table (reporting/oversight) — excluding
+--          developer_tools (Admin-only regardless) and the RBAC-management tables
+--          (users/roles/permissions/user_roles/role_permissions), which are an
+--          administrative concern, not a reporting one — an analyst should never
+--          be able to read who has which access, only the hospital's operational data.
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.role_id, p.permission_id
 FROM   roles r
-JOIN   permissions p ON p.action = 'read' AND p.resource <> 'developer_tools'
+JOIN   permissions p ON p.action = 'read'
+    AND p.resource NOT IN ('developer_tools', 'users', 'roles', 'permissions', 'user_roles', 'role_permissions')
 WHERE  r.role_name = 'Analyst'
 ON CONFLICT (role_id, permission_id) DO NOTHING;
 
@@ -261,7 +265,9 @@ ORDER  BY u.user_id;
 --   admin@hms.com        role_count=1  permission_count=112
 --   doctor@hms.com       role_count=1  permission_count=30
 --   receptionist@hms.com role_count=1  permission_count=15
---   analyst@hms.com      role_count=1  permission_count=27  (every read except developer_tools)
+--   analyst@hms.com      role_count=1  permission_count=22  (every business-table read;
+--                                                             excludes developer_tools and
+--                                                             the RBAC-management tables)
 --   pharmacist@hms.com   role_count=1  permission_count=8
 -- Note: developer_tools (Developer Dashboard: bulk drop/regenerate DB objects,
 -- backups) is intentionally Admin-only — no other role's grant references it.

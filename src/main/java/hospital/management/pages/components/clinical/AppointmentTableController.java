@@ -51,8 +51,8 @@ public class AppointmentTableController extends PaginatedTableController<Appoint
             return new SimpleStringProperty(date != null ? date.format(DISPLAY_FMT) : "");
         });
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
-        wireSingleActionColumn(changeStatusColumn, "fas-flag", "Change appointment status",
-                item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
+        wireTextActionColumn(changeStatusColumn, "Change Status", "Change appointment status",
+                item -> true, item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         wireBillingColumn();
         reasonColumn.setCellValueFactory(new PropertyValueFactory<>("reason"));
         addSortOption("Patient", patientIdColumn);

@@ -51,6 +51,11 @@ public class UsersPageController extends BasePageController {
      *  than wiring cursor-by-cursor server paging into the table widget. */
     private static final int FETCH_SIZE = 500;
 
+    /** Every new account is created with this password — the field is locked in the
+     *  Add User dialog so no one sets or sees a custom value there; the new user is
+     *  expected to change it after first login. */
+    private static final String DEFAULT_PASSWORD = "Password@12";
+
     private final UserService userService = new UserServiceImpl(new UserDAOImpl());
     private final RoleService roleService = new RoleServiceImpl(
         new RoleDAOImpl(), new UserRoleDAOImpl(), new RolePermissionDAOImpl(), new PermissionDAOImpl());
@@ -124,7 +129,6 @@ public class UsersPageController extends BasePageController {
             roleSortBarController.addOptions(roleTableController.getSortOptionLabels());
         }
 
-        permissionTableController.setOnDelete(this::confirmDeletePermission);
         permissionSearchField.textProperty().addListener((obs, o, n) -> permissionTableController.filter(n));
 
         refreshPermissions();
@@ -229,9 +233,18 @@ public class UsersPageController extends BasePageController {
         // Placeholders
         username.setPromptText("e.g. johndoe");
         email.setPromptText("e.g. john.doe@hospital.com");
-        password.setPromptText("Min 8 chars, upper, lower, digit, symbol");
 
         List.of(username, email, password).forEach(f -> f.getStyleClass().add("form-input"));
+
+        // Every new account gets the same default password — masked, fixed, and never
+        // editable here, so nobody (including the admin creating the account) can set or
+        // see a custom value through this dialog. The user is expected to change it after
+        // first login.
+        if (addMode) {
+            password.setText(DEFAULT_PASSWORD);
+            password.setEditable(false);
+            password.setDisable(true);
+        }
 
         // Real-time validators
         if (addMode) {
@@ -240,9 +253,8 @@ public class UsersPageController extends BasePageController {
             FxFormValidator.attachMaxLength(username, null, 50, "Username");
         }
         FxFormValidator.attachEmail(email, null);
-        if (addMode) FxFormValidator.attachPasswordStrength(password, null);
 
-        List<Control> otherFields = List.of(username, email, password);
+        List<Control> otherFields = List.of(username, email);
         otherFields.forEach(f -> f.setDisable(true));
 
         if (!addMode) {
@@ -273,19 +285,6 @@ public class UsersPageController extends BasePageController {
                 formDialogController.setLoading(false);
                 return;
             }
-            if (addMode && (password.getText() == null || password.getText().length() < 8)) {
-                formDialogController.setError("Password must be at least 8 characters.");
-                FxFormValidator.applyStyle(password, false);
-                formDialogController.setLoading(false);
-                return;
-            }
-            if (addMode && !ValidatorUtils.isPasswordStrong(password.getText())) {
-                formDialogController.setError("Password must contain uppercase, lowercase, digit, and special character.");
-                FxFormValidator.applyStyle(password, false);
-                formDialogController.setLoading(false);
-                return;
-            }
-
             try {
                 Set<String> selectedRoleIds = roleField.getCheckList().getSelectedIds();
                 UserDTO saved;
@@ -408,15 +407,19 @@ public class UsersPageController extends BasePageController {
     private void viewRoleDetail(RoleDTO role) {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Role Name", role.getRoleName());
-        fields.put("Permission Count", permissionCountByRoleId.getOrDefault(role.getRoleId(), "0"));
+        String count = permissionCountByRoleId.getOrDefault(role.getRoleId(), "0");
+        fields.put("Total Permissions", "1".equals(count) ? "1 permission" : count + " permissions (see breakdown below)");
+        fields.put("Created At", role.getCreatedAt() == null ? null : role.getCreatedAt().toString());
+
+        VBox permissionCards;
         try {
-            fields.put("Permissions", PermissionDisplayFormatter.groupedByResource(
-                    roleService.findPermissionsForRole(role.getRoleId())));
+            permissionCards = PermissionDisplayFormatter.buildCards(
+                    roleService.findPermissionsForRole(role.getRoleId()));
         } catch (Exception ex) {
             toastError("Failed to load permissions: " + ex.getMessage());
+            permissionCards = null;
         }
-        fields.put("Created At", role.getCreatedAt() == null ? null : role.getCreatedAt().toString());
-        detailViewController.show("Role Details", "fas-user-shield", fields);
+        detailViewController.show("Role Details", "fas-user-shield", fields, permissionCards);
     }
 
     private void confirmDeleteRole(RoleDTO role) {
@@ -435,21 +438,6 @@ public class UsersPageController extends BasePageController {
                 });
     }
 
-    private void confirmDeletePermission(PermissionDTO permission) {
-        confirm("Delete Permission",
-                "Are you sure you want to delete \"" + permission.getAction() + "\" on \""
-                        + permission.getResource() + "\"? Any role granting it will lose it. This cannot be undone.",
-                () -> {
-                    try {
-                        permissionService.delete(permission.getPermissionId());
-                        refreshPermissions();
-                        refreshRoles();
-                        toastSuccess("Permission deleted.");
-                    } catch (Exception e) {
-                        toastError("Failed to delete permission: " + e.getMessage());
-                    }
-                });
-    }
 
     private void openRoleDialog(RoleDTO role) {
         boolean addMode = role == null;
@@ -494,11 +482,13 @@ public class UsersPageController extends BasePageController {
 
             FlowPane actionsRow = new FlowPane(12, 6);
             List<CheckBox> permissionCheckboxes = new ArrayList<>();
+            Map<String, CheckBox> actionCheckbox = new LinkedHashMap<>();
             for (PermissionDTO p : permissions) {
                 CheckBox cb = new CheckBox(p.getAction());
                 cb.setSelected(assignedIds.contains(p.getPermissionId()));
                 checkboxByPermissionId.put(p.getPermissionId(), cb);
                 permissionCheckboxes.add(cb);
+                actionCheckbox.put(p.getAction(), cb);
                 actionsRow.getChildren().add(cb);
             }
 
@@ -507,6 +497,17 @@ public class UsersPageController extends BasePageController {
             syncSelectAllState(selectAll, permissionCheckboxes);
             selectAll.setOnAction(e ->
                 permissionCheckboxes.forEach(cb -> cb.setSelected(selectAll.isSelected())));
+
+            // Creating an entity implies being able to read it — checking "create"
+            // auto-checks "read" for the same resource (unless it was already on).
+            // Scoped to this one resource only: no other action, and no other resource, is touched.
+            CheckBox readCb = actionCheckbox.get("read");
+            CheckBox createCb = actionCheckbox.get("create");
+            if (readCb != null && createCb != null) {
+                createCb.selectedProperty().addListener((obs, was, is) -> {
+                    if (is && !readCb.isSelected()) readCb.setSelected(true);
+                });
+            }
 
             VBox resourceCard = new VBox(6, header, actionsRow);
             resourceCard.getStyleClass().add("permission-resource-card");

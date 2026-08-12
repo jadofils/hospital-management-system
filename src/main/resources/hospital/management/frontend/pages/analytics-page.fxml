@@ -34,6 +34,9 @@
                     <Button fx:id="exportBtn" styleClass="secondary-button" contentDisplay="LEFT" text="Export">
                         <graphic><FontIcon iconLiteral="fas-file-export" iconSize="13"/></graphic>
                     </Button>
+                    <Button fx:id="downloadReportBtn" styleClass="primary-button" contentDisplay="LEFT" text="Download Report">
+                        <graphic><FontIcon iconLiteral="fas-file-pdf" iconSize="13"/></graphic>
+                    </Button>
                 </HBox>
 
                 <!-- Row 1: Admissions + Revenue -->

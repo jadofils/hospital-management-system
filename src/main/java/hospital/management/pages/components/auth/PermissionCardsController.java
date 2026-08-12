@@ -1,23 +1,16 @@
 package hospital.management.pages.components.auth;
 
 import hospital.management.backend.dto.auth.PermissionDTO;
-import hospital.management.pages.BasePageController;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
-import javafx.scene.control.Tooltip;
-import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
-import org.kordamp.ikonli.javafx.FontIcon;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class PermissionCardsController {
@@ -25,11 +18,6 @@ public class PermissionCardsController {
     @FXML private VBox cardsBox;
 
     private List<PermissionDTO> all = new ArrayList<>();
-    private Consumer<PermissionDTO> onDelete;
-
-    public void setOnDelete(Consumer<PermissionDTO> onDelete) {
-        this.onDelete = onDelete;
-    }
 
     public void setItems(List<PermissionDTO> items) {
         this.all = items == null ? new ArrayList<>() : new ArrayList<>(items);
@@ -59,13 +47,7 @@ public class PermissionCardsController {
                 chip.getStyleClass().add("permission-chip");
                 Label action = new Label(p.getAction());
                 action.getStyleClass().add("permission-chip-label");
-                Button del = new Button("", new FontIcon("fas-trash"));
-                del.getStyleClass().addAll("row-action-btn", "danger", "tiny");
-                Tooltip.install(del, new Tooltip("Delete permission"));
-                del.setOnAction(e -> { if (onDelete != null) onDelete.accept(p); });
-                Region spacer = new Region();
-                HBox.setHgrow(spacer, Priority.ALWAYS);
-                chip.getChildren().addAll(action, spacer, del);
+                chip.getChildren().add(action);
                 actionsRow.getChildren().add(chip);
             }
 

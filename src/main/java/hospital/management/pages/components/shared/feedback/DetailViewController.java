@@ -1,6 +1,7 @@
 package hospital.management.pages.components.shared.feedback;
 
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -29,6 +30,13 @@ public class DetailViewController {
 
     /** Opens the popup with an ordered field label -> value map (use a LinkedHashMap to control order). */
     public void show(String title, String iconLiteral, Map<String, String> fields) {
+        show(title, iconLiteral, fields, null);
+    }
+
+    /** Same as {@link #show(String, String, Map)}, but appends an arbitrary extra node
+     *  (e.g. a resource-grouped permission-card grid) after the plain label/value fields —
+     *  used by View Role, where permissions are shown as cards instead of a text field. */
+    public void show(String title, String iconLiteral, Map<String, String> fields, Node extraContent) {
         detailTitle.setText(title);
         if (iconLiteral == null || iconLiteral.isBlank()) {
             detailIcon.setVisible(false);
@@ -48,6 +56,9 @@ public class DetailViewController {
             val.setWrapText(true);
             detailFieldsBox.getChildren().add(new VBox(2, lbl, val));
         });
+        if (extraContent != null) {
+            detailFieldsBox.getChildren().add(extraContent);
+        }
 
         detailOverlay.setVisible(true);
         detailOverlay.setManaged(true);

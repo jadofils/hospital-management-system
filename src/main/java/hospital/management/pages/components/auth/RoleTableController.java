@@ -30,14 +30,23 @@ public class RoleTableController extends PaginatedTableController<RoleDTO> {
         roleIdColumn.setVisible(false);
         roleNameColumn.setCellValueFactory(new PropertyValueFactory<>("roleName"));
         permissionCountColumn.setCellValueFactory(cell ->
-                new SimpleStringProperty(permissionCountResolver.apply(cell.getValue())));
-        Label permissionHeader = new Label("Permissions Count");
-        Tooltip.install(permissionHeader, new Tooltip("Number of permissions granted to this role"));
+                new SimpleStringProperty(formatPermissionCount(permissionCountResolver.apply(cell.getValue()))));
+        Label permissionHeader = new Label("Permissions");
+        Tooltip.install(permissionHeader, new Tooltip(
+                "Total permission grants for this role (every checked action, across every resource, on "
+                        + "the Update Role dialog). Click “View” on a role to see the full breakdown "
+                        + "by resource."));
         permissionCountColumn.setGraphic(permissionHeader);
         permissionCountColumn.setText("");
         addSortOption("Role Name", roleNameColumn);
         addSortOption("Permissions", permissionCountColumn);
         wireActionsColumn(actionsColumn);
+    }
+
+    /** Spells the count out ("12 permissions") instead of a bare number, so the column is
+     *  self-explanatory without needing to hover the header tooltip first. */
+    private static String formatPermissionCount(String rawCount) {
+        return "1".equals(rawCount) ? "1 permission" : rawCount + " permissions";
     }
 
     @Override

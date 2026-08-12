@@ -12,18 +12,24 @@ import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.dao.patient.PatientFeedbackDAOImpl;
 import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
 import hospital.management.backend.dao.department.DepartmentDAOImpl;
+import hospital.management.backend.dao.finance.InvoiceDAOImpl;
+import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
+import hospital.management.backend.dto.finance.InvoiceSummaryDTO;
+import hospital.management.backend.model.enums.PatientStatus;
+import hospital.management.backend.model.enums.PaymentStatus;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.backend.service.patient.PatientFeedbackServiceImpl;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.finance.InvoiceServiceImpl;
 import hospital.management.backend.service.patient.interfaces.PatientService;
 import hospital.management.backend.service.patient.interfaces.PatientFeedbackService;
 import hospital.management.backend.service.clinical.interfaces.AppointmentService;
+import hospital.management.backend.service.finance.interfaces.InvoiceService;
 import hospital.management.backend.dao.auth.PermissionDAOImpl;
 import hospital.management.backend.dao.auth.RoleDAOImpl;
 import hospital.management.backend.dao.auth.RolePermissionDAOImpl;
 import hospital.management.backend.dao.auth.UserDAOImpl;
 import hospital.management.backend.dao.auth.UserRoleDAOImpl;
-import hospital.management.backend.dao.department.DepartmentDAOImpl;
 import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dto.auth.RoleDTO;
 import hospital.management.backend.dto.auth.UserDTO;
@@ -55,11 +61,16 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.Period;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class DashboardController extends BasePageController {
@@ -128,6 +139,8 @@ public class DashboardController extends BasePageController {
     private final PatientFeedbackService feedbackService = new PatientFeedbackServiceImpl(new PatientFeedbackDAOImpl());
     private final AppointmentService appointmentService = new AppointmentServiceImpl(
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
+    private final InvoiceService invoiceService = new InvoiceServiceImpl(
+        new InvoiceDAOImpl(), new PatientDAOImpl(), new AppointmentDAOImpl());
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.DASHBOARD);
@@ -148,6 +161,7 @@ public class DashboardController extends BasePageController {
         setupStatusChart();
         setupRecentTable();
         setupTeamDirectory();
+        loadDashboardStats();
     }
 
     private void applyQuickActionPermissions() {
@@ -285,12 +299,115 @@ public class DashboardController extends BasePageController {
     private void setupAdmissionsChart() {
         admissionsChart.setTitle("");
         admissionsChart.setLegendVisible(false);
-        admissionsChart.getData().add(new XYChart.Series<>());
     }
 
     private void setupStatusChart() {
         statusChart.setLegendVisible(true);
         statusChart.setLabelsVisible(true);
+    }
+
+    /** Loads the real KPI numbers, admissions chart, and patient-status chart —
+     *  everything on this page used to be hardcoded placeholders. */
+    private void loadDashboardStats() {
+        try {
+            List<PatientDTO> patients = patientService.findAll(CursorPagination.firstPage(1000)).getItems();
+            List<AppointmentSummaryDTO> appointments = appointmentService.findAll(CursorPagination.firstPage(1000)).getItems();
+            List<InvoiceSummaryDTO> invoices = invoiceService.findAll(CursorPagination.firstPage(1000)).getItems();
+
+            LocalDate today = LocalDate.now();
+            YearMonth thisMonth = YearMonth.from(today);
+            YearMonth lastMonth = thisMonth.minusMonths(1);
+
+            int totalPatients = patients.size();
+            long newPatientsThisMonth = patients.stream()
+                    .filter(p -> p.getCreatedAt() != null && YearMonth.from(p.getCreatedAt()).equals(thisMonth))
+                    .count();
+            String patientsTrend = newPatientsThisMonth > 0
+                    ? "+" + newPatientsThisMonth + " this month" : "No new patients this month";
+
+            long todayCount = appointments.stream()
+                    .filter(a -> a.getAppointmentDate() != null && a.getAppointmentDate().toLocalDate().equals(today))
+                    .count();
+            long yesterdayCount = appointments.stream()
+                    .filter(a -> a.getAppointmentDate() != null
+                            && a.getAppointmentDate().toLocalDate().equals(today.minusDays(1)))
+                    .count();
+            String appointmentsTrend = todayCount == yesterdayCount ? "Same as yesterday"
+                    : todayCount > yesterdayCount ? "+" + (todayCount - yesterdayCount) + " vs yesterday"
+                    : "-" + (yesterdayCount - todayCount) + " vs yesterday";
+
+            BigDecimal revenueThisMonth = sumRevenueForMonth(invoices, thisMonth);
+            BigDecimal revenueLastMonth = sumRevenueForMonth(invoices, lastMonth);
+            String revenueTrend;
+            if (revenueLastMonth.compareTo(BigDecimal.ZERO) == 0) {
+                revenueTrend = revenueThisMonth.compareTo(BigDecimal.ZERO) > 0 ? "New this month" : "No revenue yet";
+            } else {
+                BigDecimal changePct = revenueThisMonth.subtract(revenueLastMonth)
+                        .divide(revenueLastMonth, 4, RoundingMode.HALF_UP)
+                        .multiply(BigDecimal.valueOf(100));
+                revenueTrend = (changePct.signum() >= 0 ? "+" : "")
+                        + changePct.setScale(0, RoundingMode.HALF_UP) + "% vs last month";
+            }
+
+            long pendingBills = invoices.stream()
+                    .filter(i -> !PaymentStatus.PAID.getDbValue().equalsIgnoreCase(i.getPaymentStatus()))
+                    .count();
+            String pendingTrend = pendingBills > 0 ? "Needs follow-up" : "All clear";
+
+            statsWidgetController.setStats(
+                    totalPatients, patientsTrend,
+                    (int) todayCount, appointmentsTrend,
+                    revenueThisMonth.doubleValue(), revenueTrend,
+                    (int) pendingBills, pendingTrend);
+
+            populateAdmissionsChart(appointments);
+            populateStatusChart(patients);
+        } catch (Exception e) {
+            toastError("Failed to load dashboard statistics: " + e.getMessage());
+        }
+    }
+
+    private BigDecimal sumRevenueForMonth(List<InvoiceSummaryDTO> invoices, YearMonth month) {
+        return invoices.stream()
+                .filter(i -> i.getIssuedAt() != null && YearMonth.from(i.getIssuedAt()).equals(month))
+                .map(InvoiceSummaryDTO::getTotalAmount)
+                .filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /** Monthly appointment counts for the last 6 months — a compact glance chart
+     *  (Analytics has the same data over a longer, user-selectable window). */
+    private void populateAdmissionsChart(List<AppointmentSummaryDTO> appointments) {
+        YearMonth end = YearMonth.now();
+        YearMonth start = end.minusMonths(5);
+        DateTimeFormatter monthFmt = DateTimeFormatter.ofPattern("MMM");
+
+        Map<String, Long> buckets = new LinkedHashMap<>();
+        for (YearMonth cursor = start; !cursor.isAfter(end); cursor = cursor.plusMonths(1)) {
+            buckets.put(cursor.format(monthFmt), 0L);
+        }
+        for (AppointmentSummaryDTO a : appointments) {
+            if (a.getAppointmentDate() == null) continue;
+            YearMonth ym = YearMonth.from(a.getAppointmentDate());
+            if (ym.isBefore(start) || ym.isAfter(end)) continue;
+            buckets.merge(ym.format(monthFmt), 1L, Long::sum);
+        }
+
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        buckets.forEach((month, count) -> series.getData().add(new XYChart.Data<>(month, count)));
+        admissionsChart.getData().setAll(series);
+    }
+
+    /** Active vs. inactive patient counts — distinct from Analytics' appointment-status
+     *  chart, giving "Patient Status" its own real meaning. */
+    private void populateStatusChart(List<PatientDTO> patients) {
+        long active = patients.stream()
+                .filter(p -> PatientStatus.ACTIVE.getDbValue().equalsIgnoreCase(p.getStatus()))
+                .count();
+        long inactive = patients.size() - active;
+        statusChart.getData().setAll(
+                new PieChart.Data(PatientStatus.ACTIVE.getLabel(), active),
+                new PieChart.Data(PatientStatus.INACTIVE.getLabel(), inactive));
     }
 
     private void setupRecentTable() {
@@ -302,7 +419,16 @@ public class DashboardController extends BasePageController {
             int age = (dob != null) ? Period.between(dob, LocalDate.now()).getYears() : 0;
             return new SimpleIntegerProperty(age).asObject();
         });
-        recentStatusCol.setCellValueFactory(cell -> new SimpleStringProperty("—"));
+        recentStatusCol.setCellValueFactory(cell -> {
+            String status = cell.getValue().getStatus();
+            String label;
+            try {
+                label = PatientStatus.fromDbValue(status).getLabel();
+            } catch (Exception e) {
+                label = "—";
+            }
+            return new SimpleStringProperty(label);
+        });
         try {
             var patients = patientService.findAll(CursorPagination.firstPage(10)).getItems();
             recentTable.setItems(FXCollections.observableArrayList(patients));

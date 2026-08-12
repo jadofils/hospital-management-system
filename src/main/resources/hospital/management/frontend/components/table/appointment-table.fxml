@@ -18,7 +18,7 @@
             <TableColumn fx:id="doctorIdColumn"  text="Doctor ID"  prefWidth="110"/>
             <TableColumn fx:id="dateColumn"      text="Date/Time"  prefWidth="140"/>
             <TableColumn fx:id="statusColumn"    text="Status"     prefWidth="100"/>
-            <TableColumn fx:id="changeStatusColumn" text=""       prefWidth="40"/>
+            <TableColumn fx:id="changeStatusColumn" text=""       prefWidth="120"/>
             <TableColumn fx:id="billingColumn"      text="Billing" prefWidth="70"/>
             <TableColumn fx:id="reasonColumn"    text="Reason"     prefWidth="160"/>
             <TableColumn fx:id="actionsColumn"   text="Actions"    prefWidth="90"/>

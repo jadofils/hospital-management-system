@@ -76,6 +76,8 @@ public class AppointmentsPageController extends BasePageController implements Qu
         new InvoiceServiceImpl(new InvoiceDAOImpl(), new PatientDAOImpl(), new AppointmentDAOImpl());
 
     @FXML private CalendarController calendarController;
+    @FXML private Node calendar;
+    @FXML private Button toggleCalendarBtn;
     @FXML private AppointmentTableController appointmentTableController;
     @FXML private SortBarController sortBarController;
 
@@ -134,6 +136,14 @@ public class AppointmentsPageController extends BasePageController implements Qu
 
         if (calendarController != null) {
             calendarController.setOnDateSelected(this::loadAppointmentsForDate);
+        }
+
+        if (toggleCalendarBtn != null && calendar != null) {
+            toggleCalendarBtn.setOnAction(e -> {
+                boolean nowVisible = !calendar.isVisible();
+                calendar.setVisible(nowVisible);
+                calendar.setManaged(nowVisible);
+            });
         }
 
         refreshTable();

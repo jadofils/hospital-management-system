@@ -49,6 +49,7 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -78,6 +79,17 @@ public class DeveloperDashboardController extends BasePageController {
     private static final DateTimeFormatter BACKUP_TS_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private List<PerformanceBenchmarkService.BenchmarkResult> lastResults;
+
+    /** Every non-benchmark action taken on this page this session (regenerate/drop
+     *  indexes-views-routines, backups, test runs, etc.), most-recent-first — so the
+     *  downloadable report reflects whichever button was actually clicked, not just
+     *  a benchmark run. */
+    private final List<String> activityLog = new ArrayList<>();
+
+    private void logActivity(String description) {
+        activityLog.add(0, LocalDateTime.now().format(BACKUP_TS_FMT) + " — " + description);
+        downloadReportBtn.setDisable(false);
+    }
 
     // ── Status cards ──────────────────────────────────────────────────────
     @FXML private Label pgStatusValue;
@@ -597,6 +609,7 @@ public class DeveloperDashboardController extends BasePageController {
     /** Fires a self-notifying admin-audit notification for any index/view/routine change. */
     private void notifyDbObjectChange(String description) {
         EventBus.publish(AppEventType.DB_OBJECT_CHANGED, description);
+        logActivity(description);
     }
 
     // ── Backups tab ────────────────────────────────────────────────────────
@@ -701,9 +714,11 @@ public class DeveloperDashboardController extends BasePageController {
                 if ("SUCCESS".equals(manifest.status)) {
                     toastSuccess("Backup complete — see path below.");
                     EventBus.publish(AppEventType.BACKUP_COMPLETED, manifest);
+                    logActivity("Backup completed (" + manifest.type + ") — " + manifest.postgresTables.size() + " table(s)");
                 } else {
                     toastError("Backup finished with issues — see details below.");
                     EventBus.publish(AppEventType.BACKUP_FAILED, summary);
+                    logActivity("Backup finished with issues (" + manifest.type + ")");
                 }
                 refreshBackupHistory();
             },
@@ -728,6 +743,8 @@ public class DeveloperDashboardController extends BasePageController {
             BackupDaemon.restart();
             refreshBackupCountdownLabel();
             toastSuccess("Backup settings saved.");
+            logActivity("Backup settings saved (type=" + policy.getBackupType()
+                + ", every " + policy.getBackupIntervalHours() + "h, scheduled=" + policy.isScheduledBackupsEnabled() + ")");
         } catch (IllegalArgumentException ex) {
             toastError(ex.getMessage());
         }
@@ -804,6 +821,7 @@ public class DeveloperDashboardController extends BasePageController {
         toastSuccess("Maintenance settings saved.");
         EventBus.publish(AppEventType.MAINTENANCE_ACCESS_CHANGED, "Maintenance settings updated — enabled="
             + mode.isEnabled() + ", page=" + mode.getStatusPage());
+        logActivity("Maintenance settings saved (enabled=" + mode.isEnabled() + ", page=" + mode.getStatusPage() + ")");
         loadMaintenanceForm();
     }
 
@@ -827,6 +845,7 @@ public class DeveloperDashboardController extends BasePageController {
         String usernames = selected.stream().map(UserDTO::getUsername).collect(Collectors.joining(", "));
         EventBus.publish(AppEventType.MAINTENANCE_ACCESS_CHANGED,
             (revoke ? "Revoked access for: " : "Granted access for: ") + usernames);
+        logActivity((revoke ? "Revoked access for: " : "Granted access for: ") + usernames);
     }
 
     // ── Index impact benchmark ────────────────────────────────────────────
@@ -845,6 +864,7 @@ public class DeveloperDashboardController extends BasePageController {
                 indexBenchmarkLabel.setText(text);
                 refreshIndexComparisonChart(result);
                 toastSuccess("Index benchmark complete.");
+                logActivity("Index impact benchmark complete — " + text);
                 loadDbObjects();
             },
             ex -> {
@@ -927,7 +947,7 @@ public class DeveloperDashboardController extends BasePageController {
 
                 benchmarkStatusLabel.setText("Completed at " + LocalDateTime.now().format(TIME_FMT));
                 benchmarkRunsValue.setText(String.valueOf(sessionBenchmarkRuns));
-                downloadReportBtn.setDisable(false);
+                logActivity("Performance benchmark run complete — " + results.size() + " operation(s) measured");
             },
             ex -> {
                 benchmarkStatusLabel.setText("Failed: " + ex.getMessage());
@@ -987,7 +1007,8 @@ public class DeveloperDashboardController extends BasePageController {
     // ── Download report ───────────────────────────────────────────────────
 
     private void downloadReport() {
-        if (lastResults == null || lastResults.isEmpty()) return;
+        boolean hasBenchmark = lastResults != null && !lastResults.isEmpty();
+        if (!hasBenchmark && activityLog.isEmpty()) return;
 
         ChoiceDialog<String> formatDialog = new ChoiceDialog<>("Markdown (.md)", "Markdown (.md)", "CSV (.csv)", "PDF (.pdf)");
         formatDialog.setTitle("Export Report");
@@ -1014,9 +1035,11 @@ public class DeveloperDashboardController extends BasePageController {
         if (dest == null) return;
 
         final PerformanceBenchmarkService.ReportFormat finalFormat = format;
+        final List<PerformanceBenchmarkService.BenchmarkResult> resultsForReport = hasBenchmark ? lastResults : List.of();
+        final List<String> activityLogForReport = List.copyOf(activityLog);
         AsyncJobRunner.submit(
             () -> {
-                Path tmp = benchmarkService.generateReportFromResults(lastResults, finalFormat);
+                Path tmp = benchmarkService.generateReportFromResults(resultsForReport, activityLogForReport, finalFormat);
                 Files.copy(tmp, dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 return dest;
             },
@@ -1076,9 +1099,11 @@ public class DeveloperDashboardController extends BasePageController {
                     if (summary.success()) {
                         toastSuccess("Test suite passed: " + summary.tests() + " tests, "
                             + summary.classes().size() + " classes");
+                        logActivity("Test suite passed: " + summary.tests() + " tests, " + summary.classes().size() + " classes");
                     } else {
                         toastError("Test suite failed: " + summary.failures() + " failure(s), "
                             + summary.errors() + " error(s)");
+                        logActivity("Test suite failed: " + summary.failures() + " failure(s), " + summary.errors() + " error(s)");
                     }
                 }
             },
@@ -1168,6 +1193,7 @@ public class DeveloperDashboardController extends BasePageController {
                 algoBenchmarkLabel.setText(results.size() + " algorithms benchmarked this session");
                 renderAlgoBenchmarks(results);
                 toastSuccess("Algorithm benchmarks complete");
+                logActivity("Algorithm benchmarks complete — " + results.size() + " algorithm(s)");
             },
             err -> {
                 ButtonSpinner.setLoading(runAlgoBenchmarkBtn, false);
