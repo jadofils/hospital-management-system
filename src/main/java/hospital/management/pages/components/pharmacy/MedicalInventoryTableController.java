@@ -51,7 +51,7 @@ public class MedicalInventoryTableController extends PaginatedTableController<Me
                 badge.getStyleClass().add(switch (alert) {
                     case "Out of Stock", "Critical" -> "status-cancelled";
                     case "Low"                      -> "status-pending";
-                    default                         -> "status-discharged";
+                    default                         -> "status-normal";
                 });
                 setGraphic(badge);
             }

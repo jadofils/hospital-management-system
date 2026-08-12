@@ -309,6 +309,11 @@ public class PrescriptionsController extends BasePageController {
         FxFormValidator.attachRequired(dosage, null, "Dosage");
         FxFormValidator.disallowPastDates(dateIssued);
         FxFormValidator.disallowFutureDates(dateIssued);
+        quantity.textProperty().addListener((obs, old, val) -> {
+            if (val == null || val.isBlank()) { FxFormValidator.clearStyle(quantity); return; }
+            try { FxFormValidator.applyStyle(quantity, Integer.parseInt(val.trim()) > 0); }
+            catch (NumberFormatException ex) { FxFormValidator.applyStyle(quantity, false); }
+        });
 
         List<Control> otherFields = List.of(dateIssued);
         otherFields.forEach(f -> f.setDisable(true));

@@ -3,6 +3,7 @@ package hospital.management.backend.utils;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /**
@@ -41,6 +42,18 @@ public final class ValidatorUtils {
             throw new IllegalArgumentException(fieldName + " must not be blank.");
         }
         return value.strip();
+    }
+
+    /**
+     * Runs {@code validator} on {@code value} only when it's non-null and non-blank —
+     * the "optional field, but if provided it must be valid" pattern repeated across
+     * create/update methods for fields like phone, gender, and email. Skips validation
+     * (and treats the field as absent) when {@code value} is null or blank.
+     */
+    public static void ifPresent(String value, Consumer<String> validator) {
+        if (value != null && !value.isBlank()) {
+            validator.accept(value.trim());
+        }
     }
 
     // ── Length ────────────────────────────────────────────────────────────────
@@ -244,6 +257,18 @@ public final class ValidatorUtils {
         if (!name.matches("[\\p{L}\\s'\\-]+")) {
             throw new IllegalArgumentException(
                 fieldName + " may only contain letters, spaces, hyphens, and apostrophes.");
+        }
+    }
+
+    /**
+     * Throws {@link IllegalArgumentException} if {@code value} is entirely digits — for
+     * mixed-alphanumeric "name-ish" fields (medication name, specialization, test name)
+     * that legitimately contain digits (e.g. "Vitamin B12") but shouldn't be pure numbers.
+     * Server-side mirror of {@code FxFormValidator.attachNotPureNumeric}.
+     */
+    public static void requireNotPureNumeric(String value, String fieldName) {
+        if (value != null && value.trim().matches("\\d+")) {
+            throw new IllegalArgumentException(fieldName + " must be a name, not a number.");
         }
     }
 

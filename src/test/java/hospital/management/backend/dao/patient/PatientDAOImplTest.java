@@ -119,6 +119,35 @@ class PatientDAOImplTest extends PostgresIntegrationTestBase {
     }
 
     @Test
+    @DisplayName("save defaults status to 'active' when not explicitly set")
+    void save_defaultsStatusToActive() throws Exception {
+        Patient saved = dao.save(samplePatient("jane.doe@example.com"));
+
+        Optional<Patient> found = dao.findById(saved.getPatientId());
+
+        assertEquals("active", found.get().getStatus());
+    }
+
+    @Test
+    @DisplayName("updateStatus persists the new status and returns the refreshed row")
+    void updateStatus_persistsNewStatus() throws Exception {
+        Patient saved = dao.save(samplePatient("jane.doe@example.com"));
+
+        Patient updated = dao.updateStatus(saved.getPatientId(), "inactive");
+
+        assertEquals("inactive", updated.getStatus());
+        Optional<Patient> reloaded = dao.findById(saved.getPatientId());
+        assertEquals("inactive", reloaded.get().getStatus());
+    }
+
+    @Test
+    @DisplayName("updateStatus throws ResourceNotFoundException for a patient id that doesn't exist")
+    void updateStatus_throwsResourceNotFoundException_whenMissing() {
+        assertThrows(ResourceNotFoundException.class,
+                () -> dao.updateStatus(java.util.UUID.randomUUID().toString(), "inactive"));
+    }
+
+    @Test
     @DisplayName("update throws ResourceNotFoundException for a patient id that doesn't exist")
     void update_throwsResourceNotFoundException_whenMissing() {
         Patient ghost = samplePatient("ghost@example.com");

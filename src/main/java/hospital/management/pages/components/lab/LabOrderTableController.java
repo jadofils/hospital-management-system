@@ -40,7 +40,7 @@ public class LabOrderTableController extends PaginatedTableController<LabOrderDT
                 new SimpleStringProperty(resolveLabel(() -> lookupService.doctorLabel(cell.getValue().getDoctorId()))));
         testNameColumn.setCellValueFactory(new PropertyValueFactory<>("testName"));
         statusColumn.setCellValueFactory(cell -> new SimpleStringProperty(statusLabel(cell.getValue().getStatus())));
-        wireSingleActionColumn(changeStatusColumn, "fas-flag",
+        wireSingleActionColumn(changeStatusColumn, "fas-flag", "Change lab order status",
                 item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         orderedAtColumn.setCellValueFactory(cell -> {
             var orderedAt = cell.getValue().getOrderedAt();

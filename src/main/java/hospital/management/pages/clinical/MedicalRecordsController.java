@@ -52,6 +52,7 @@ public class MedicalRecordsController extends BasePageController {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.MEDICAL_RECORDS);
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
+        FxFormValidator.attachDateRange(fromDatePicker, toDatePicker, null);
 
         applyCreateVisibility(addRecordBtn, PageRoute.MEDICAL_RECORDS);
         addRecordBtn.setOnAction(e -> openRecordDialog(null));
@@ -138,10 +139,13 @@ public class MedicalRecordsController extends BasePageController {
         appointmentId.getStyleClass().add("form-combo");
         notes.getStyleClass().add("form-input");
 
-        // Real-time validators
+        // Real-time validators — symptoms/notes are optional per their prompt text
+        // and the medical_records schema (both nullable TEXT columns), so only
+        // diagnosis gets attachRequired.
         FxFormValidator.attachRequired(diagnosis, null, "Diagnosis");
         FxFormValidator.attachMaxLength(diagnosis, null, 500, "Diagnosis");
-        FxFormValidator.attachRequired(notes, null, "Notes");
+        FxFormValidator.attachMaxLength(symptoms, null, 500, "Symptoms");
+        FxFormValidator.attachMaxLength(notes, null, 2000, "Notes");
 
         List<Control> otherFields = List.of(diagnosis, symptoms, notes);
         otherFields.forEach(f -> f.setDisable(true));

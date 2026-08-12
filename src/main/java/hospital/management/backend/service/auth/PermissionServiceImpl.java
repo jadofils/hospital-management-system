@@ -30,7 +30,9 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public PermissionDTO create(CreatePermissionDTO dto) throws Exception {
         String resource = ValidatorUtils.requireNonBlank(dto.getResource(), "resource");
+        ValidatorUtils.requireMaxLength(resource, 50, "resource");
         String action   = ValidatorUtils.requireNonBlank(dto.getAction(), "action");
+        ValidatorUtils.requireMaxLength(action, 50, "action");
 
         if (permissionDAO.findByResourceAndAction(resource, action).isPresent()) {
             throw new ValidationException("action",

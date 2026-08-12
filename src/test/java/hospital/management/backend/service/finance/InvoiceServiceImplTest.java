@@ -185,6 +185,24 @@ class InvoiceServiceImplTest {
         assertEquals(patientId, result.getPatientId());
     }
 
+    @Test
+    @DisplayName("generate translates a unique_violation (SQLSTATE 23505) into a friendly ValidationException "
+            + "instead of letting the raw DatabaseException surface — the race the pre-check alone can't close")
+    void generate_translatesUniqueViolation_toValidationException() throws Exception {
+        String appointmentId = UUID.randomUUID().toString();
+        String patientId = UUID.randomUUID().toString();
+        when(appointmentDAO.findById(appointmentId)).thenReturn(Optional.of(sampleAppointment(appointmentId, patientId)));
+        when(invoiceDAO.findByAppointmentId(appointmentId)).thenReturn(Optional.empty());
+        java.sql.SQLException uniqueViolation =
+                new java.sql.SQLException("duplicate key value violates unique constraint", "23505");
+        when(invoiceDAO.save(any(Invoice.class)))
+                .thenThrow(new hospital.management.backend.exceptions.DatabaseException("Failed to save invoice", uniqueViolation));
+        CreateInvoiceDTO dto = new CreateInvoiceDTO(appointmentId, patientId, new BigDecimal("150.00"));
+
+        ValidationException ex = assertThrows(ValidationException.class, () -> service.generate(dto));
+        assertTrue(ex.getMessage().toLowerCase().contains("already exists"));
+    }
+
     // ── findById ──────────────────────────────────────────────────────────
 
     @Test

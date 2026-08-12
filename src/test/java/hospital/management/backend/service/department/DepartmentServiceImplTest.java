@@ -74,6 +74,15 @@ class DepartmentServiceImplTest {
     }
 
     @Test
+    @DisplayName("create throws IllegalArgumentException when name is entirely digits")
+    void create_throwsIllegalArgumentException_whenNamePureNumeric() {
+        CreateDepartmentDTO dto = sampleCreateDto("12345");
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(dto));
+        verifyNoInteractions(departmentDAO);
+    }
+
+    @Test
     @DisplayName("create throws ValidationException when a department with the same name already exists")
     void create_throwsValidationException_whenNameAlreadyExists() throws Exception {
         CreateDepartmentDTO dto = sampleCreateDto("Cardiology");

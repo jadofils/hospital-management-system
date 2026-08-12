@@ -9,6 +9,7 @@ public interface ReferralService {
     ReferralDTO create(CreateReferralDTO dto) throws Exception;
     ReferralDTO findById(String referralId) throws Exception;
     List<ReferralDTO> findByAppointment(String appointmentId) throws Exception;
+    List<ReferralDTO> findByReferredToDoctor(String doctorId) throws Exception;
     ReferralDTO updateStatus(String referralId, String status) throws Exception;
     void delete(String referralId) throws Exception;
 }

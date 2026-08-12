@@ -8,6 +8,7 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -60,6 +61,7 @@ public class PermissionCardsController {
                 action.getStyleClass().add("permission-chip-label");
                 Button del = new Button("", new FontIcon("fas-trash"));
                 del.getStyleClass().addAll("row-action-btn", "danger", "tiny");
+                Tooltip.install(del, new Tooltip("Delete permission"));
                 del.setOnAction(e -> { if (onDelete != null) onDelete.accept(p); });
                 Region spacer = new Region();
                 HBox.setHgrow(spacer, Priority.ALWAYS);

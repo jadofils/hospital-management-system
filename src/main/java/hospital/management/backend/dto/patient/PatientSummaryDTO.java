@@ -7,16 +7,18 @@ public class PatientSummaryDTO {
     private String gender;
     private String phone;
     private String email;
+    private String status;
 
     public PatientSummaryDTO() {}
 
     public PatientSummaryDTO(String patientId, String fullName, String gender,
-                             String phone, String email) {
+                             String phone, String email, String status) {
         this.patientId = patientId;
         this.fullName  = fullName;
         this.gender    = gender;
         this.phone     = phone;
         this.email     = email;
+        this.status    = status;
     }
 
     public String getPatientId() { return patientId; }
@@ -33,6 +35,9 @@ public class PatientSummaryDTO {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     @Override
     public String toString() {

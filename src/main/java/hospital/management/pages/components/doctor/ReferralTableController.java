@@ -43,7 +43,7 @@ public class ReferralTableController extends PaginatedTableController<ReferralDT
                 new SimpleStringProperty(resolveLabel(() -> lookupService.doctorLabel(cell.getValue().getReferredToDoctorId()))));
         reasonCol.setCellValueFactory(new PropertyValueFactory<>("reason"));
         statusCol.setCellValueFactory(new PropertyValueFactory<>("status"));
-        wireSingleActionColumn(changeStatusCol, "fas-flag",
+        wireSingleActionColumn(changeStatusCol, "fas-flag", "Change referral status",
                 item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         dateCol.setCellValueFactory(cell -> {
             var createdAt = cell.getValue().getCreatedAt();

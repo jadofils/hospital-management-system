@@ -2,17 +2,22 @@ package hospital.management.pages.doctor;
 
 import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.pages.BasePageController;
+import hospital.management.backend.config.security.SessionManager;
+import hospital.management.backend.dao.auth.UserDAOImpl;
 import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
 import hospital.management.backend.dao.department.DepartmentDAOImpl;
 import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dao.department.ReferralDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
+import hospital.management.backend.dto.auth.UserDTO;
 import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
 import hospital.management.backend.dto.doctor.CreateReferralDTO;
 import hospital.management.backend.dto.doctor.ReferralDTO;
 import hospital.management.backend.exceptions.AppException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.model.enums.ReferralStatus;
+import hospital.management.backend.service.auth.UserServiceImpl;
+import hospital.management.backend.service.auth.interfaces.UserService;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.department.DoctorServiceImpl;
 import hospital.management.backend.service.department.ReferralServiceImpl;
@@ -40,6 +45,7 @@ public class ReferralsController extends BasePageController {
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
     private final DoctorServiceImpl doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
     private final ReferralService referralService = new ReferralServiceImpl(new ReferralDAOImpl());
+    private final UserService userService = new UserServiceImpl(new UserDAOImpl());
     private final EntityLookupService entityLookupService = new EntityLookupService();
 
     @FXML private ReferralTableController referralTableController;
@@ -53,16 +59,30 @@ public class ReferralsController extends BasePageController {
 
     private final List<ReferralDTO> referrals = new ArrayList<>();
 
+    /** Non-null only when the logged-in account is linked to a doctor profile — "Sent"/"Received"
+     *  only has meaning relative to a specific doctor, so the filter is hidden for admin viewers. */
+    private String ownDoctorId;
+
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.REFERRALS);
+
+        try {
+            UserDTO user = userService.findById(SessionManager.getCurrentUserId());
+            ownDoctorId = (user.getDoctorId() == null || user.getDoctorId().isBlank()) ? null : user.getDoctorId();
+        } catch (Exception e) {
+            ownDoctorId = null;
+        }
 
         statusFilter.getItems().addAll("All", "PENDING", "SCHEDULED", "COMPLETED");
         statusFilter.setValue("All");
         directionFilter.getItems().addAll("All", "Sent", "Received");
         directionFilter.setValue("All");
+        directionFilter.setVisible(ownDoctorId != null);
+        directionFilter.setManaged(ownDoctorId != null);
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         statusFilter.setOnAction(e -> applyFilter());
+        directionFilter.setOnAction(e -> applyFilter());
 
         applyCreateVisibility(newReferralBtn, PageRoute.REFERRALS);
         newReferralBtn.setOnAction(e -> openReferralDialog(null));
@@ -81,7 +101,24 @@ public class ReferralsController extends BasePageController {
         refreshTable();
     }
 
+    /** Combines the free-text search with the status and (doctor-only) direction dropdowns —
+     *  status/direction narrow the underlying item set, then the shared search box further
+     *  filters whatever's currently visible. */
     private void applyFilter() {
+        String status = statusFilter.getValue();
+        boolean statusAll = status == null || "All".equals(status);
+
+        String direction = directionFilter.getValue();
+        boolean directionAll = ownDoctorId == null || direction == null || "All".equals(direction);
+
+        List<ReferralDTO> visible = referrals.stream()
+                .filter(r -> statusAll || status.equalsIgnoreCase(r.getStatus()))
+                .filter(r -> directionAll
+                        || ("Sent".equals(direction) && ownDoctorId.equals(r.getReferringDoctorId()))
+                        || ("Received".equals(direction) && ownDoctorId.equals(r.getReferredToDoctorId())))
+                .toList();
+
+        referralTableController.setItems(visible);
         referralTableController.filter(searchField.getText());
     }
 
@@ -96,7 +133,7 @@ public class ReferralsController extends BasePageController {
                 } catch (ResourceNotFoundException ignored) {
                 }
             }
-            referralTableController.setItems(referrals);
+            applyFilter();
         } catch (Exception e) {
             toastError("Failed to load referrals: " + e.getMessage());
         }

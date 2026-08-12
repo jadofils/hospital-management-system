@@ -54,10 +54,17 @@ class AppointmentDAOImplTest extends PostgresIntegrationTestBase {
     }
 
     private Appointment sampleAppointment(String patientId, String doctorId) {
+        return sampleAppointment(patientId, doctorId, LocalDateTime.of(2026, 3, 15, 9, 30));
+    }
+
+    /** Use this overload whenever the same doctor appears in more than one appointment
+     *  within a test — uq_appointments_doctor_slot_active forbids two active rows for the
+     *  same (doctor_id, appointment_date). */
+    private Appointment sampleAppointment(String patientId, String doctorId, LocalDateTime date) {
         Appointment a = new Appointment();
         a.setPatientId(patientId);
         a.setDoctorId(doctorId);
-        a.setAppointmentDate(LocalDateTime.of(2026, 3, 15, 9, 30));
+        a.setAppointmentDate(date);
         a.setReason("Annual checkup");
         return a;
     }
@@ -120,6 +127,30 @@ class AppointmentDAOImplTest extends PostgresIntegrationTestBase {
     }
 
     @Test
+    @DisplayName("save rejects a second active appointment for the same doctor at the same exact date/time")
+    void save_throwsDatabaseException_whenDoctorSlotAlreadyBooked() throws Exception {
+        Patient patient = savedPatient();
+        Doctor doctor = savedDoctor();
+        LocalDateTime slot = LocalDateTime.of(2026, 3, 15, 9, 30);
+        dao.save(sampleAppointment(patient.getPatientId(), doctor.getDoctorId(), slot));
+
+        Appointment secondBooking = sampleAppointment(patient.getPatientId(), doctor.getDoctorId(), slot);
+        assertThrows(DatabaseException.class, () -> dao.save(secondBooking));
+    }
+
+    @Test
+    @DisplayName("save allows a second appointment for the same doctor once the first is soft-deleted")
+    void save_allowsRebooking_afterFirstAppointmentSoftDeleted() throws Exception {
+        Patient patient = savedPatient();
+        Doctor doctor = savedDoctor();
+        LocalDateTime slot = LocalDateTime.of(2026, 3, 15, 9, 30);
+        Appointment first = dao.save(sampleAppointment(patient.getPatientId(), doctor.getDoctorId(), slot));
+        dao.softDelete(first.getAppointmentId());
+
+        assertDoesNotThrow(() -> dao.save(sampleAppointment(patient.getPatientId(), doctor.getDoctorId(), slot)));
+    }
+
+    @Test
     @DisplayName("findById returns the saved appointment with every field intact")
     void findById_returnsSavedAppointment() throws Exception {
         Patient patient = savedPatient();
@@ -159,8 +190,10 @@ class AppointmentDAOImplTest extends PostgresIntegrationTestBase {
         Patient patientA = savedPatient();
         Patient patientB = savedPatient();
         Doctor doctor = savedDoctor();
-        dao.save(sampleAppointment(patientA.getPatientId(), doctor.getDoctorId()));
-        dao.save(sampleAppointment(patientB.getPatientId(), doctor.getDoctorId()));
+        dao.save(sampleAppointment(patientA.getPatientId(), doctor.getDoctorId(),
+                LocalDateTime.of(2026, 3, 15, 9, 30)));
+        dao.save(sampleAppointment(patientB.getPatientId(), doctor.getDoctorId(),
+                LocalDateTime.of(2026, 3, 15, 10, 30)));
 
         List<Appointment> found = dao.findByPatientId(patientA.getPatientId());
 
@@ -230,8 +263,10 @@ class AppointmentDAOImplTest extends PostgresIntegrationTestBase {
     void findAll_returnsNonDeletedAppointments() throws Exception {
         Patient patient = savedPatient();
         Doctor doctor = savedDoctor();
-        dao.save(sampleAppointment(patient.getPatientId(), doctor.getDoctorId()));
-        Appointment toDelete = dao.save(sampleAppointment(patient.getPatientId(), doctor.getDoctorId()));
+        dao.save(sampleAppointment(patient.getPatientId(), doctor.getDoctorId(),
+                LocalDateTime.of(2026, 3, 15, 9, 30)));
+        Appointment toDelete = dao.save(sampleAppointment(patient.getPatientId(), doctor.getDoctorId(),
+                LocalDateTime.of(2026, 3, 15, 10, 30)));
         dao.softDelete(toDelete.getAppointmentId());
 
         PageResult<Appointment> page = dao.findAll(CursorPagination.firstPage());

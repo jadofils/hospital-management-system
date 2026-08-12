@@ -79,20 +79,28 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException("Invalid username or password.");
         }
 
-        // RBAC model supports multiple roles per user, but the token carries a
-        // single "primary" role claim — use the first active assignment.
-        String primaryRoleName = index.findPrimaryRoleName(account.getUserId()).orElse(null);
-        if (primaryRoleName == null) {
+        // RBAC model supports multiple roles per user — the token carries every
+        // active role name plus a "primary" one (the first active assignment) for
+        // code that only needs a single display/audit role.
+        List<String> roleNames = index.findRoleNames(account.getUserId()).orElse(null);
+        if (roleNames == null) {
             List<UserRole> assignments = userRoleDAO.findByUserId(account.getUserId());
             if (assignments.isEmpty()) {
                 throw new AuthException("This account has no assigned role. Contact an administrator.");
             }
-            Role role = roleDAO.findById(assignments.get(0).getRoleId())
-                    .orElseThrow(() -> new AuthException("Assigned role no longer exists."));
-            primaryRoleName = role.getRoleName();
+            roleNames = new ArrayList<>();
+            for (UserRole assignment : assignments) {
+                Role role = roleDAO.findById(assignment.getRoleId())
+                        .orElseThrow(() -> new AuthException("Assigned role no longer exists."));
+                roleNames.add(role.getRoleName());
+            }
         }
+        if (roleNames.isEmpty()) {
+            throw new AuthException("This account has no assigned role. Contact an administrator.");
+        }
+        String primaryRoleName = roleNames.get(0);
 
-        String token = JwtConfig.generateToken(account.getUserId(), account.getUsername(), primaryRoleName);
+        String token = JwtConfig.generateToken(account.getUserId(), account.getUsername(), primaryRoleName, roleNames);
         UserSession session = new UserSession();
         session.setUserId(account.getUserId());
         session.setExpiresAt(LocalDateTime.now().plusHours(EnvConfig.getJwtExpiryHours()));
@@ -111,7 +119,7 @@ public class AuthServiceImpl implements AuthService {
         });
 
         EventBus.publish(AppEventType.USER_LOGGED_IN, account.getUserId());
-        return new LoginResponseDTO(token, session.getSessionId(), account.getUserId(), account.getUsername(), primaryRoleName);
+        return new LoginResponseDTO(token, session.getSessionId(), account.getUserId(), account.getUsername(), primaryRoleName, roleNames);
     }
 
     @Override

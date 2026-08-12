@@ -135,6 +135,21 @@ public final class FxFormValidator {
         });
     }
 
+    /** Same as {@link #attachMinLength(TextField, Label, int, String)} but for TextArea. */
+    public static void attachMinLength(TextArea area, Label errorLabel, int min, String displayName) {
+        if (area == null) return;
+        area.textProperty().addListener((obs, old, val) -> {
+            if (val == null || val.isBlank()) {
+                clearStyle(area);
+                setMsg(errorLabel, "");
+                return;
+            }
+            boolean ok = val.trim().length() >= min;
+            applyStyle(area, ok);
+            setMsg(errorLabel, ok ? "" : displayName + " must be at least " + min + " characters.");
+        });
+    }
+
     /** Validates max length on every keystroke. */
     public static void attachMaxLength(TextField field, Label errorLabel, int max, String displayName) {
         if (field == null) return;
@@ -147,6 +162,60 @@ public final class FxFormValidator {
             boolean ok = val.trim().length() <= max;
             applyStyle(field, ok);
             setMsg(errorLabel, ok ? "" : displayName + " must not exceed " + max + " characters.");
+        });
+    }
+
+    /** Same as {@link #attachMaxLength(TextField, Label, int, String)} but for TextArea. */
+    public static void attachMaxLength(TextArea area, Label errorLabel, int max, String displayName) {
+        if (area == null) return;
+        area.textProperty().addListener((obs, old, val) -> {
+            if (val == null || val.isBlank()) {
+                clearStyle(area);
+                setMsg(errorLabel, "");
+                return;
+            }
+            boolean ok = val.trim().length() <= max;
+            applyStyle(area, ok);
+            setMsg(errorLabel, ok ? "" : displayName + " must not exceed " + max + " characters.");
+        });
+    }
+
+    /**
+     * Validates that the value looks like a proper name (letters, spaces, hyphens,
+     * apostrophes only) on every keystroke — mirrors {@code ValidatorUtils.requireValidName}'s
+     * format rule so genuine proper-noun fields (person/department names) get the same
+     * real-time feedback the server already enforces. Empty value = neutral.
+     */
+    public static void attachName(TextField field, Label errorLabel, String displayName) {
+        if (field == null) return;
+        field.textProperty().addListener((obs, old, val) -> {
+            if (val == null || val.isBlank()) {
+                clearStyle(field);
+                setMsg(errorLabel, "");
+                return;
+            }
+            boolean ok = val.trim().matches("[\\p{L}\\s'\\-]+");
+            applyStyle(field, ok);
+            setMsg(errorLabel, ok ? "" : displayName + " may only contain letters, spaces, hyphens, and apostrophes.");
+        });
+    }
+
+    /**
+     * Rejects a value that is entirely digits — for mixed-alphanumeric "name-ish" fields
+     * (medication name, doctor specialization, lab test name) that legitimately contain
+     * digits (e.g. "Vitamin B12") but shouldn't be pure numbers. Empty value = neutral.
+     */
+    public static void attachNotPureNumeric(TextField field, Label errorLabel, String displayName) {
+        if (field == null) return;
+        field.textProperty().addListener((obs, old, val) -> {
+            if (val == null || val.isBlank()) {
+                clearStyle(field);
+                setMsg(errorLabel, "");
+                return;
+            }
+            boolean ok = !val.trim().matches("\\d+");
+            applyStyle(field, ok);
+            setMsg(errorLabel, ok ? "" : displayName + " must be a name, not a number.");
         });
     }
 

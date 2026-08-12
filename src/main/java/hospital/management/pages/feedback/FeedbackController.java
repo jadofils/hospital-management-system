@@ -181,6 +181,7 @@ public class FeedbackController extends BasePageController {
             FxFormValidator.attachRequired(patientIdField, null, "Patient ID");
         }
         FxFormValidator.attachRequired(commentsField, null, "Comments");
+        FxFormValidator.attachMinLength(commentsField, null, 5, "Comments");
         FxFormValidator.attachRequired(ratingField,   null, "Rating");
 
         grid.add(new Label("Patient ID"), 0, 0);
@@ -213,6 +214,11 @@ public class FeedbackController extends BasePageController {
                 }
                 if (comments.isBlank()) {
                     toastError("Comments are required.");
+                    FxFormValidator.applyStyle(commentsField, false);
+                    return null;
+                }
+                if (comments.length() < 5) {
+                    toastError("Comments must be at least 5 characters.");
                     FxFormValidator.applyStyle(commentsField, false);
                     return null;
                 }
@@ -260,7 +266,7 @@ public class FeedbackController extends BasePageController {
 
     private boolean isPatientRole() {
         try {
-            return "patient".equalsIgnoreCase(SessionManager.getCurrentRole());
+            return SessionManager.getCurrentRoles().stream().anyMatch("patient"::equalsIgnoreCase);
         } catch (Exception ignored) {
             return false;
         }

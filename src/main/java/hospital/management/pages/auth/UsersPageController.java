@@ -11,6 +11,7 @@ import hospital.management.backend.dto.auth.RoleDTO;
 import hospital.management.backend.dto.auth.PermissionDTO;
 import hospital.management.backend.dto.auth.UpdateUserDTO;
 import hospital.management.backend.dto.auth.UserDTO;
+import hospital.management.backend.config.security.OwnershipGuard;
 import hospital.management.backend.exceptions.AppException;
 import hospital.management.backend.service.auth.RoleServiceImpl;
 import hospital.management.backend.service.auth.PermissionServiceImpl;
@@ -27,9 +28,9 @@ import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.auth.UserTableController;
 import hospital.management.pages.components.auth.RoleTableController;
 import hospital.management.pages.components.auth.PermissionCardsController;
-import hospital.management.pages.components.shared.search.EntityIdComboBox;
-import hospital.management.pages.components.shared.search.LoadingIdComboBox;
+import hospital.management.pages.components.shared.search.LoadingRoleCheckList;
 import hospital.management.pages.components.shared.sort.SortBarController;
+import hospital.management.pages.utils.PermissionDisplayFormatter;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -41,6 +42,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class UsersPageController extends BasePageController {
 
@@ -73,7 +75,7 @@ public class UsersPageController extends BasePageController {
     @FXML private Button   continueBtn;
 
     private List<UserDTO> users = new ArrayList<>();
-    private final Map<String, String> roleNameByUserId = new HashMap<>();
+    private final Map<String, List<String>> roleNamesByUserId = new HashMap<>();
     private List<RoleDTO> allRoles = new ArrayList<>();
     private List<PermissionDTO> allPermissions = new ArrayList<>();
     private final Map<String, String> permissionCountByRoleId = new HashMap<>();
@@ -88,7 +90,10 @@ public class UsersPageController extends BasePageController {
         roleFilter.setOnAction(e -> applyFilter());
         statusFilter.setOnAction(e -> applyFilter());
 
-        userTableController.setRoleNameResolver(u -> roleNameByUserId.getOrDefault(u.getUserId(), "—"));
+        userTableController.setRoleNameResolver(u -> {
+            List<String> names = roleNamesByUserId.get(u.getUserId());
+            return names == null || names.isEmpty() ? "—" : String.join(", ", names);
+        });
         applyCreateVisibility(addUserBtn, PageRoute.USERS);
         addUserBtn.setOnAction(e -> openUserDialog(null));
         setupContinueButton(continueBtn, PageRoute.USERS);
@@ -141,10 +146,10 @@ public class UsersPageController extends BasePageController {
     private void refreshTable() {
         try {
             users = userService.findAll(CursorPagination.firstPage(FETCH_SIZE)).getItems();
-            roleNameByUserId.clear();
+            roleNamesByUserId.clear();
             for (UserDTO user : users) {
                 List<RoleDTO> roles = roleService.findRolesForUser(user.getUserId());
-                roleNameByUserId.put(user.getUserId(), roles.isEmpty() ? "—" : roles.get(0).getRoleName());
+                roleNamesByUserId.put(user.getUserId(), roles.stream().map(RoleDTO::getRoleName).toList());
             }
             applyFilter();
             totalLabel.setText("Total: " + users.size() + " users");
@@ -163,7 +168,7 @@ public class UsersPageController extends BasePageController {
 
         List<UserDTO> visible = users.stream()
                 .filter(u -> statusAll || Boolean.TRUE.equals(u.getIsActive()) == wantActive)
-                .filter(u -> roleAll || role.equals(roleNameByUserId.get(u.getUserId())))
+                .filter(u -> roleAll || roleNamesByUserId.getOrDefault(u.getUserId(), List.of()).contains(role))
                 .toList();
 
         userTableController.setItems(visible);
@@ -174,7 +179,8 @@ public class UsersPageController extends BasePageController {
         Map<String, String> fields = new LinkedHashMap<>();
         fields.put("Username", user.getUsername());
         fields.put("Email", user.getEmail());
-        fields.put("Role", roleNameByUserId.getOrDefault(user.getUserId(), "—"));
+        List<String> roleNames = roleNamesByUserId.get(user.getUserId());
+        fields.put("Roles", roleNames == null || roleNames.isEmpty() ? "—" : String.join(", ", roleNames));
         fields.put("Status", Boolean.TRUE.equals(user.getIsActive()) ? "Active" : "Inactive");
         fields.put("Created At", user.getCreatedAt() == null ? null : user.getCreatedAt().toString());
         detailViewController.show("User Details", "fas-user", fields);
@@ -218,8 +224,7 @@ public class UsersPageController extends BasePageController {
         TextField username = new TextField();
         TextField email    = new TextField();
         PasswordField password = new PasswordField();
-        LoadingIdComboBox roleField = new LoadingIdComboBox();
-        EntityIdComboBox role = roleField.getComboBox();
+        LoadingRoleCheckList roleField = new LoadingRoleCheckList();
 
         // Placeholders
         username.setPromptText("e.g. johndoe");
@@ -227,10 +232,13 @@ public class UsersPageController extends BasePageController {
         password.setPromptText("Min 8 chars, upper, lower, digit, symbol");
 
         List.of(username, email, password).forEach(f -> f.getStyleClass().add("form-input"));
-        role.getStyleClass().add("form-combo");
 
         // Real-time validators
-        if (addMode) FxFormValidator.attachRequired(username, null, "Username");
+        if (addMode) {
+            FxFormValidator.attachRequired(username, null, "Username");
+            FxFormValidator.attachMinLength(username, null, 3, "Username");
+            FxFormValidator.attachMaxLength(username, null, 50, "Username");
+        }
         FxFormValidator.attachEmail(email, null);
         if (addMode) FxFormValidator.attachPasswordStrength(password, null);
 
@@ -279,13 +287,14 @@ public class UsersPageController extends BasePageController {
             }
 
             try {
-                String selectedRoleId = role.getSelectedId();
+                Set<String> selectedRoleIds = roleField.getCheckList().getSelectedIds();
                 UserDTO saved;
 
                 if (addMode) {
-                    String selectedRoleName = role.getValue() == null ? "" : role.getValue().label();
+                    boolean isDoctorRole = allRoles.stream().anyMatch(r ->
+                            selectedRoleIds.contains(r.getRoleId()) && "doctor".equalsIgnoreCase(r.getRoleName()));
                     String doctorId = null;
-                    if ("doctor".equalsIgnoreCase(selectedRoleName.trim())) {
+                    if (isDoctorRole) {
                         doctorId = resolveDoctorIdByEmail(em);
                         if (doctorId == null) {
                             formDialogController.setError("No doctor profile found for this email. Create doctor first, or use the doctor's email.");
@@ -298,14 +307,15 @@ public class UsersPageController extends BasePageController {
                     saved = userService.update(new UpdateUserDTO(user.getUserId(), em, user.getIsActive()));
                 }
 
-                if (selectedRoleId != null) {
-                    List<RoleDTO> currentRoles = roleService.findRolesForUser(saved.getUserId());
-                    boolean alreadyAssigned = currentRoles.stream().anyMatch(r -> r.getRoleId().equals(selectedRoleId));
-                    if (!alreadyAssigned) {
-                        for (RoleDTO oldRole : currentRoles) {
-                            roleService.revokeFromUser(saved.getUserId(), oldRole.getRoleId());
-                        }
-                        roleService.assignToUser(saved.getUserId(), selectedRoleId);
+                List<RoleDTO> currentRoles = roleService.findRolesForUser(saved.getUserId());
+                Set<String> currentRoleIds = currentRoles.stream().map(RoleDTO::getRoleId).collect(Collectors.toSet());
+                if (!selectedRoleIds.equals(currentRoleIds)) {
+                    OwnershipGuard.requireAdminForRoleAssignment();
+                    for (String oldId : currentRoleIds) {
+                        if (!selectedRoleIds.contains(oldId)) roleService.revokeFromUser(saved.getUserId(), oldId);
+                    }
+                    for (String newId : selectedRoleIds) {
+                        if (!currentRoleIds.contains(newId)) roleService.assignToUser(saved.getUserId(), newId);
                     }
                 }
 
@@ -324,9 +334,9 @@ public class UsersPageController extends BasePageController {
         formDialogController.addField("Username", "fas-user", username);
         if (addMode) formDialogController.addField("Password", "fas-lock", password);
         formDialogController.addField("Email", "fas-envelope", email);
-        formDialogController.addField("Role", "fas-user-tag", roleField);
+        formDialogController.addField("Roles", "fas-user-tag", roleField);
 
-        loadRoleDropdown(roleField, otherFields, addMode ? null : user.getUserId());
+        loadRoleCheckList(roleField, otherFields, addMode ? null : user.getUserId());
     }
 
     private String resolveDoctorIdByEmail(String email) throws Exception {
@@ -337,27 +347,29 @@ public class UsersPageController extends BasePageController {
                 .orElse(null);
     }
 
-    /** Loads the role dropdown fresh from the DB every time the dialog opens — not from the
+    /** Result of the combined "every role" + "this user's current roles" fetch used to
+     *  populate the role checklist in one async round-trip. */
+    private record RoleLoadResult(List<RoleDTO> allRoles, Set<String> currentRoleIds) {}
+
+    /** Loads the role checklist fresh from the DB every time the dialog opens — not from the
      *  page-level allRoles cache — so a custom role just created on the Roles page is
      *  immediately assignable here without needing to reload the Users page. */
-    private void loadRoleDropdown(LoadingIdComboBox roleField, List<Control> otherFields, String userIdForCurrentRole) {
-        EntityIdComboBox role = roleField.getComboBox();
-
+    private void loadRoleCheckList(LoadingRoleCheckList roleField, List<Control> otherFields, String userIdForCurrentRoles) {
         roleField.setLoading(true);
         formDialogController.setLoading(true);
 
         AsyncJobRunner.submit(
-            roleService::findAll,
-            roles -> {
-                role.setOptions(roles.stream()
-                        .map(r -> new EntityIdComboBox.Option(r.getRoleId(), r.getRoleName())).toList());
-                if (userIdForCurrentRole != null) {
-                    String currentRoleName = roleNameByUserId.get(userIdForCurrentRole);
-                    roles.stream()
-                            .filter(r -> r.getRoleName().equals(currentRoleName))
-                            .findFirst()
-                            .ifPresent(r -> role.selectById(r.getRoleId()));
-                }
+            () -> {
+                List<RoleDTO> roles = roleService.findAll();
+                Set<String> currentIds = userIdForCurrentRoles == null
+                        ? Set.of()
+                        : roleService.findRolesForUser(userIdForCurrentRoles).stream()
+                                .map(RoleDTO::getRoleId).collect(Collectors.toSet());
+                return new RoleLoadResult(roles, currentIds);
+            },
+            result -> {
+                roleField.getCheckList().setOptions(result.allRoles());
+                roleField.getCheckList().setSelectedIds(result.currentRoleIds());
                 roleField.setLoading(false);
                 otherFields.forEach(f -> f.setDisable(false));
                 formDialogController.setLoading(false);
@@ -398,11 +410,8 @@ public class UsersPageController extends BasePageController {
         fields.put("Role Name", role.getRoleName());
         fields.put("Permission Count", permissionCountByRoleId.getOrDefault(role.getRoleId(), "0"));
         try {
-            String assigned = roleService.findPermissionsForRole(role.getRoleId()).stream()
-                    .map(p -> p.getResource() + ":" + p.getAction())
-                    .reduce((a, b) -> a + ", " + b)
-                    .orElse("None");
-            fields.put("Permissions", assigned);
+            fields.put("Permissions", PermissionDisplayFormatter.groupedByResource(
+                    roleService.findPermissionsForRole(role.getRoleId())));
         } catch (Exception ex) {
             toastError("Failed to load permissions: " + ex.getMessage());
         }
@@ -416,6 +425,7 @@ public class UsersPageController extends BasePageController {
                         + "Any user currently assigned this role will lose it. This cannot be undone.",
                 () -> {
                     try {
+                        OwnershipGuard.requireNotOwnRole(roleService, role.getRoleId());
                         roleService.delete(role.getRoleId());
                         refreshRoles();
                         toastSuccess("Role deleted.");
@@ -512,6 +522,12 @@ public class UsersPageController extends BasePageController {
             }
             try {
                 RoleDTO saved = addMode ? roleService.create(new hospital.management.backend.dto.auth.CreateRoleDTO(roleName)) : role;
+                boolean permissionsChanged = checkboxByPermissionId.entrySet().stream().anyMatch(entry ->
+                        entry.getValue().isSelected() != assignedIds.contains(entry.getKey()));
+                if (permissionsChanged) {
+                    OwnershipGuard.requireAdminForRoleAssignment();
+                    if (!addMode) OwnershipGuard.requireNotOwnRole(roleService, role.getRoleId());
+                }
                 for (Map.Entry<String, CheckBox> entry : checkboxByPermissionId.entrySet()) {
                     boolean checked = entry.getValue().isSelected();
                     boolean wasAssigned = assignedIds.contains(entry.getKey());
@@ -558,6 +574,11 @@ public class UsersPageController extends BasePageController {
         TextField action   = new TextField();
         resource.getStyleClass().add("form-input");
         action.getStyleClass().add("form-input");
+
+        FxFormValidator.attachRequired(resource, null, "Resource");
+        FxFormValidator.attachMaxLength(resource, null, 50, "Resource");
+        FxFormValidator.attachRequired(action, null, "Action");
+        FxFormValidator.attachMaxLength(action, null, 50, "Action");
 
         formDialogController.open("Add Permission", "fas-key", true, v -> {
             String res = resource.getText() == null ? "" : resource.getText().trim();

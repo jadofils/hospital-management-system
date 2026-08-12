@@ -3,6 +3,7 @@ package hospital.management.pages.components.clinical;
 import hospital.management.pages.components.PaginatedTableController;
 import hospital.management.backend.dto.clinical.AppointmentDTO;
 import hospital.management.backend.model.enums.AppointmentStatus;
+import hospital.management.backend.model.enums.PaymentStatus;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
@@ -50,7 +51,7 @@ public class AppointmentTableController extends PaginatedTableController<Appoint
             return new SimpleStringProperty(date != null ? date.format(DISPLAY_FMT) : "");
         });
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
-        wireSingleActionColumn(changeStatusColumn, "fas-flag",
+        wireSingleActionColumn(changeStatusColumn, "fas-flag", "Change appointment status",
                 item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         wireBillingColumn();
         reasonColumn.setCellValueFactory(new PropertyValueFactory<>("reason"));
@@ -63,9 +64,11 @@ public class AppointmentTableController extends PaginatedTableController<Appoint
     }
 
     /**
-     * Billing column: a plain "Paid"/"Unpaid" text badge on completed appointments
-     * whose invoice is missing or unpaid — the same "needs billing" definition the
-     * page's filter dropdown uses. Paid (or never-completed) rows render blank.
+     * Billing column: a "Paid"/"Partially Paid"/"Unpaid" text badge on completed
+     * appointments — the same "needs billing" definition the page's filter dropdown
+     * uses treats anything short of fully paid as needing billing. Paid rows always
+     * render their badge regardless of appointment status; never-completed,
+     * not-yet-billed rows render blank.
      */
     private void wireBillingColumn() {
         billingColumn.setCellFactory(col -> new TableCell<>() {
@@ -78,23 +81,34 @@ public class AppointmentTableController extends PaginatedTableController<Appoint
                 }
                 AppointmentDTO appointment = getTableView().getItems().get(getIndex());
                 boolean completed = AppointmentStatus.COMPLETED.getDbValue().equalsIgnoreCase(appointment.getStatus());
-                boolean paid = "paid".equalsIgnoreCase(appointment.getBillingStatus());
-                if (completed && !paid) {
-                    Label badge = new Label("Unpaid");
-                    badge.getStyleClass().add("status-badge");
-                    badge.getStyleClass().add("status-cancelled");
-                    Tooltip.install(badge, new Tooltip("No paid invoice for this completed appointment"));
-                    setGraphic(badge);
-                } else if (paid) {
-                    Label badge = new Label("Paid");
-                    badge.getStyleClass().add("status-badge");
-                    Tooltip.install(badge, new Tooltip("Invoice paid"));
-                    setGraphic(badge);
+                PaymentStatus billing = parseBillingStatus(appointment.getBillingStatus());
+                if (billing == PaymentStatus.PAID) {
+                    setGraphic(badge("Paid", "status-paid", "Invoice paid"));
+                } else if (completed && billing == PaymentStatus.PARTIALLY_PAID) {
+                    setGraphic(badge("Partially Paid", "status-partially-paid", "Invoice partially paid"));
+                } else if (completed) {
+                    setGraphic(badge("Unpaid", "status-cancelled", "No paid invoice for this completed appointment"));
                 } else {
                     setGraphic(null);
                 }
             }
         });
+    }
+
+    private static PaymentStatus parseBillingStatus(String dbValue) {
+        if (dbValue == null || dbValue.isBlank()) return PaymentStatus.UNPAID;
+        try {
+            return PaymentStatus.fromDbValue(dbValue);
+        } catch (IllegalArgumentException e) {
+            return PaymentStatus.UNPAID;
+        }
+    }
+
+    private static Label badge(String text, String styleClass, String tooltip) {
+        Label badge = new Label(text);
+        badge.getStyleClass().addAll("status-badge", styleClass);
+        Tooltip.install(badge, new Tooltip(tooltip));
+        return badge;
     }
 
     @Override

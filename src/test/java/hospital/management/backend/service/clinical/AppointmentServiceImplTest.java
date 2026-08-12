@@ -7,6 +7,7 @@ import hospital.management.backend.dto.clinical.AppointmentDTO;
 import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
 import hospital.management.backend.dto.clinical.CreateAppointmentDTO;
 import hospital.management.backend.dto.clinical.UpdateAppointmentDTO;
+import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.exceptions.ValidationException;
 import hospital.management.backend.model.doctor.Doctor;
@@ -23,6 +24,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -103,11 +105,22 @@ class AppointmentServiceImplTest {
     }
 
     @Test
+    @DisplayName("book throws ValidationException when appointmentDate is in the past")
+    void book_throwsValidationException_whenAppointmentDateInPast() {
+        CreateAppointmentDTO dto = new CreateAppointmentDTO(UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), LocalDateTime.now().minusDays(1), "Checkup");
+
+        ValidationException ex = assertThrows(ValidationException.class, () -> service.book(dto));
+        assertTrue(ex.getMessage().toLowerCase().contains("past"));
+        verifyNoInteractions(appointmentDAO);
+    }
+
+    @Test
     @DisplayName("book saves a new appointment defaulted to 'scheduled' status when everything is valid")
     void book_savesAppointment_whenValid() throws Exception {
         String patientId = UUID.randomUUID().toString();
         String doctorId = UUID.randomUUID().toString();
-        LocalDateTime date = LocalDateTime.of(2026, 6, 1, 10, 0);
+        LocalDateTime date = LocalDateTime.now().plusDays(30);
         CreateAppointmentDTO dto = new CreateAppointmentDTO(patientId, doctorId, date, "Checkup");
         when(appointmentDAO.save(any(Appointment.class))).thenAnswer(inv -> {
             Appointment a = inv.getArgument(0);
@@ -124,6 +137,31 @@ class AppointmentServiceImplTest {
         assertEquals(doctorId, saved.getDoctorId());
         assertEquals("scheduled", saved.getStatus());
         assertEquals("scheduled", result.getStatus());
+    }
+
+    @Test
+    @DisplayName("book translates a unique_violation (SQLSTATE 23505) into a friendly ValidationException "
+            + "instead of letting the raw DatabaseException surface")
+    void book_translatesUniqueViolation_toValidationException() throws Exception {
+        CreateAppointmentDTO dto = new CreateAppointmentDTO(UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), LocalDateTime.now().plusDays(30), "Checkup");
+        SQLException uniqueViolation = new SQLException("duplicate key value violates unique constraint", "23505");
+        when(appointmentDAO.save(any(Appointment.class)))
+                .thenThrow(new DatabaseException("Failed to save appointment", uniqueViolation));
+
+        ValidationException ex = assertThrows(ValidationException.class, () -> service.book(dto));
+        assertTrue(ex.getMessage().toLowerCase().contains("already has an appointment"));
+    }
+
+    @Test
+    @DisplayName("book lets a non-constraint DatabaseException surface unchanged")
+    void book_rethrowsNonUniqueViolationDatabaseException() throws Exception {
+        CreateAppointmentDTO dto = new CreateAppointmentDTO(UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), LocalDateTime.now().plusDays(30), "Checkup");
+        DatabaseException connectionFailure = new DatabaseException("Could not obtain a database connection");
+        when(appointmentDAO.save(any(Appointment.class))).thenThrow(connectionFailure);
+
+        assertThrows(DatabaseException.class, () -> service.book(dto));
     }
 
     // ── findById ──────────────────────────────────────────────────────────

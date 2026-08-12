@@ -69,15 +69,6 @@
     -fx-text-fill: #E74C3C;
     -fx-font-weight: bold;
 }
-/* Billing flag on appointment rows — red = completed but unpaid */
-.row-action-btn.unpaid {
-    -fx-text-fill: #E74C3C;
-    -fx-icon-color: #E74C3C;
-}
-.row-action-btn.paid {
-    -fx-text-fill: #27AE60;
-    -fx-icon-color: #27AE60;
-}
 /* Search icons */
 .search-icon {
     -fx-fill: #7F8C8D;

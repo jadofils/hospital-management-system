@@ -18,7 +18,7 @@ class PatientMapperTest {
         return new Patient(
                 "patient-1", "Jane", "Doe",
                 LocalDate.of(1990, 5, 20), "Female", "+15558675309",
-                "jane.doe@example.com", "123 Main St",
+                "jane.doe@example.com", "123 Main St", "active",
                 LocalDateTime.of(2026, 1, 1, 9, 0), LocalDateTime.of(2026, 1, 2, 9, 0), null);
     }
 
@@ -37,6 +37,7 @@ class PatientMapperTest {
         assertEquals("+15558675309", dto.getPhone());
         assertEquals("jane.doe@example.com", dto.getEmail());
         assertEquals("123 Main St", dto.getAddress());
+        assertEquals("active", dto.getStatus());
         assertEquals(LocalDateTime.of(2026, 1, 1, 9, 0), dto.getCreatedAt());
         assertEquals(LocalDateTime.of(2026, 1, 2, 9, 0), dto.getUpdatedAt());
     }
@@ -59,6 +60,7 @@ class PatientMapperTest {
         assertEquals("Female", summary.getGender());
         assertEquals("+15558675309", summary.getPhone());
         assertEquals("jane.doe@example.com", summary.getEmail());
+        assertEquals("active", summary.getStatus());
     }
 
     @Test

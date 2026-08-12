@@ -36,46 +36,78 @@
                     <Button fx:id="continueBtn" styleClass="continue-button"/>
                 </HBox>
 
-                <HBox fx:id="doctorSelectorBox" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
-                    <Label text="Doctor:" styleClass="form-label"/>
-                    <ComboBox fx:id="doctorSelector" promptText="Select a doctor" prefWidth="240" styleClass="form-combo"/>
-                </HBox>
+                <TabPane fx:id="scheduleTabPane" tabClosingPolicy="UNAVAILABLE" styleClass="page-tab-pane">
+                    <Tab fx:id="scheduleTab" text="Schedule">
+                        <VBox spacing="16">
 
-                <!-- Weekly schedule grid -->
-                <HBox spacing="8" styleClass="card">
-                    <VBox fx:id="monCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
-                        <Label text="MON" styleClass="schedule-day-header"/>
-                    </VBox>
-                    <VBox fx:id="tueCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
-                        <Label text="TUE" styleClass="schedule-day-header"/>
-                    </VBox>
-                    <VBox fx:id="wedCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
-                        <Label text="WED" styleClass="schedule-day-header"/>
-                    </VBox>
-                    <VBox fx:id="thuCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
-                        <Label text="THU" styleClass="schedule-day-header"/>
-                    </VBox>
-                    <VBox fx:id="friCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
-                        <Label text="FRI" styleClass="schedule-day-header"/>
-                    </VBox>
-                    <VBox fx:id="satCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
-                        <Label text="SAT" styleClass="schedule-day-header"/>
-                    </VBox>
-                    <VBox fx:id="sunCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
-                        <Label text="SUN" styleClass="schedule-day-header"/>
-                    </VBox>
-                </HBox>
+                            <HBox fx:id="doctorSelectorBox" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
+                                <Label text="Doctor:" styleClass="form-label"/>
+                                <ComboBox fx:id="doctorSelector" promptText="Select a doctor" prefWidth="240" styleClass="form-combo"/>
+                            </HBox>
 
-                <!-- Sort toolbar -->
-                <HBox spacing="10" alignment="CENTER_LEFT">
-                    <Region HBox.hgrow="ALWAYS"/>
-                    <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
-                </HBox>
+                            <!-- Weekly schedule grid -->
+                            <HBox spacing="8" styleClass="card">
+                                <VBox fx:id="monCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                                    <Label text="MON" styleClass="schedule-day-header"/>
+                                </VBox>
+                                <VBox fx:id="tueCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                                    <Label text="TUE" styleClass="schedule-day-header"/>
+                                </VBox>
+                                <VBox fx:id="wedCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                                    <Label text="WED" styleClass="schedule-day-header"/>
+                                </VBox>
+                                <VBox fx:id="thuCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                                    <Label text="THU" styleClass="schedule-day-header"/>
+                                </VBox>
+                                <VBox fx:id="friCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                                    <Label text="FRI" styleClass="schedule-day-header"/>
+                                </VBox>
+                                <VBox fx:id="satCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                                    <Label text="SAT" styleClass="schedule-day-header"/>
+                                </VBox>
+                                <VBox fx:id="sunCol" spacing="4" HBox.hgrow="ALWAYS" styleClass="schedule-day-col">
+                                    <Label text="SUN" styleClass="schedule-day-header"/>
+                                </VBox>
+                            </HBox>
 
-                <!-- Schedule table -->
-                <fx:include fx:id="scheduleTable"
-                            source="/hospital/management/frontend/components/table/doctor-schedule-table.fxml"
-                            VBox.vgrow="ALWAYS"/>
+                            <!-- Sort toolbar -->
+                            <HBox spacing="10" alignment="CENTER_LEFT">
+                                <Region HBox.hgrow="ALWAYS"/>
+                                <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
+                            </HBox>
+
+                            <!-- Schedule table -->
+                            <fx:include fx:id="scheduleTable"
+                                        source="/hospital/management/frontend/components/table/doctor-schedule-table.fxml"
+                                        VBox.vgrow="ALWAYS"/>
+
+                        </VBox>
+                    </Tab>
+                    <Tab fx:id="incomingReferralsTab" text="Incoming Referrals">
+                        <fx:include fx:id="incomingReferralsTable"
+                                    source="/hospital/management/frontend/components/table/referral-table.fxml"/>
+                    </Tab>
+                    <Tab fx:id="myPatientsTab" text="My Patients">
+                        <fx:include fx:id="myPatientsTable"
+                                    source="/hospital/management/frontend/components/table/patient-table.fxml"/>
+                    </Tab>
+                    <Tab fx:id="myDepartmentTab" text="My Department">
+                        <VBox spacing="16">
+                            <Label fx:id="departmentNameLabel" styleClass="section-title"/>
+                            <Label text="Colleagues" styleClass="form-label"/>
+                            <TableView fx:id="colleagueTable" VBox.vgrow="NEVER" prefHeight="220">
+                                <columns>
+                                    <TableColumn fx:id="colleagueNameColumn" text="Name" prefWidth="220"/>
+                                    <TableColumn fx:id="colleagueSpecializationColumn" text="Specialization" prefWidth="200"/>
+                                    <TableColumn fx:id="colleagueDepartmentColumn" text="Department" prefWidth="200"/>
+                                </columns>
+                            </TableView>
+                            <Label text="Department Patients" styleClass="form-label"/>
+                            <fx:include fx:id="departmentPatientsTable"
+                                        source="/hospital/management/frontend/components/table/patient-table.fxml"/>
+                        </VBox>
+                    </Tab>
+                </TabPane>
 
             </VBox>
         </ScrollPane>

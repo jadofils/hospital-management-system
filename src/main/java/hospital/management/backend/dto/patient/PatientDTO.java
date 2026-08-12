@@ -13,6 +13,7 @@ public class PatientDTO {
     private String        phone;
     private String        email;
     private String        address;
+    private String        status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -20,7 +21,7 @@ public class PatientDTO {
 
     public PatientDTO(String patientId, String firstName, String lastName,
                       LocalDate dob, String gender, String phone, String email,
-                      String address, LocalDateTime createdAt, LocalDateTime updatedAt) {
+                      String address, String status, LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.patientId = patientId;
         this.firstName = firstName;
         this.lastName  = lastName;
@@ -29,6 +30,7 @@ public class PatientDTO {
         this.phone     = phone;
         this.email     = email;
         this.address   = address;
+        this.status    = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -58,6 +60,9 @@ public class PatientDTO {
 
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

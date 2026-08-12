@@ -73,7 +73,7 @@ public class SystemStatusController {
     private void retry() {
         try {
             boolean stillBlocked = MaintenanceGate.isBlocked(
-                SessionManager.getCurrentUserId(), SessionManager.getCurrentRole());
+                SessionManager.getCurrentUserId(), SessionManager.getCurrentRoles());
             if (!stillBlocked) {
                 navigateTo(PageRoute.DASHBOARD.getFxmlPath());
                 return;

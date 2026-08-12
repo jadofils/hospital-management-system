@@ -45,8 +45,9 @@ public class DoctorServiceImpl implements DoctorService {
         if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
             ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "Phone");
         }
-        if (dto.getSpecialization() != null) {
-            ValidatorUtils.requireNonBlankMaxLength(dto.getSpecialization(), 200, "Specialization");
+        if (dto.getSpecialization() != null && !dto.getSpecialization().isBlank()) {
+            ValidatorUtils.requireMaxLength(dto.getSpecialization(), 200, "Specialization");
+            ValidatorUtils.requireNotPureNumeric(dto.getSpecialization(), "Specialization");
         }
         if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
             ValidatorUtils.requireValidEmail(dto.getEmail(), "email");
@@ -155,8 +156,9 @@ public class DoctorServiceImpl implements DoctorService {
         if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
             ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "Phone");
         }
-        if (dto.getSpecialization() != null) {
-            ValidatorUtils.requireNonBlankMaxLength(dto.getSpecialization(), 200, "Specialization");
+        if (dto.getSpecialization() != null && !dto.getSpecialization().isBlank()) {
+            ValidatorUtils.requireMaxLength(dto.getSpecialization(), 200, "Specialization");
+            ValidatorUtils.requireNotPureNumeric(dto.getSpecialization(), "Specialization");
         }
         if (dto.getEmail() != null && !dto.getEmail().isBlank() && !dto.getEmail().equals(doctor.getEmail())) {
             ValidatorUtils.requireValidEmail(dto.getEmail(), "email");

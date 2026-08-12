@@ -10,6 +10,7 @@ import hospital.management.backend.dao.patient.interfaces.PatientDAO;
 import hospital.management.backend.dto.finance.CreateInvoiceDTO;
 import hospital.management.backend.dto.finance.InvoiceDTO;
 import hospital.management.backend.dto.finance.InvoiceSummaryDTO;
+import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.exceptions.ValidationException;
 import hospital.management.backend.mapper.finance.InvoiceMapper;
@@ -69,11 +70,30 @@ public class InvoiceServiceImpl implements InvoiceService {
         CacheService.evict(CacheKey.invoicesByPatient(patientId));
         CacheService.evictByPattern(CacheKey.ALL_INVOICES);
 
-        Invoice saved = invoiceDAO.save(InvoiceMapper.toEntity(dto));
+        // The check above is a friendly pre-check, not the guarantee — two concurrent
+        // generate() calls for the same appointment can both pass it. The DB-level unique
+        // index (uq_invoices_appointment_active) is the authoritative guard; a race that
+        // slips past the pre-check surfaces here as a constraint violation instead of a
+        // silent duplicate invoice.
+        Invoice saved;
+        try {
+            saved = invoiceDAO.save(InvoiceMapper.toEntity(dto));
+        } catch (DatabaseException e) {
+            if (isUniqueViolation(e)) {
+                throw new ValidationException("appointmentId", "An invoice already exists for this appointment.");
+            }
+            throw e;
+        }
         InvoiceDTO result = InvoiceMapper.toDTO(saved);
         CacheService.set(CacheKey.invoice(saved.getInvoiceId()), result, CacheDomain.INVOICE);
         EventBus.publish(AppEventType.INVOICE_CREATED, saved.getInvoiceId());
         return result;
+    }
+
+    /** True if a DatabaseException was caused by a Postgres unique_violation (SQLSTATE 23505). */
+    private static boolean isUniqueViolation(DatabaseException e) {
+        Throwable cause = e.getCause();
+        return cause instanceof java.sql.SQLException sqlEx && "23505".equals(sqlEx.getSQLState());
     }
 
     @Override

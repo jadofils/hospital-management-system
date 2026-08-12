@@ -9,6 +9,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 
 public class PrescriptionTableController extends PaginatedTableController<PrescriptionDTO> {
@@ -36,7 +37,16 @@ public class PrescriptionTableController extends PaginatedTableController<Prescr
                 if (empty || status == null) { setGraphic(null); return; }
                 Label badge = new Label(status);
                 badge.getStyleClass().add("status-badge");
-                badge.getStyleClass().add("status-pending");
+                // Prescriptions have no real lifecycle in the DB today (no status column,
+                // always "PENDING" from PrescriptionMapper) — this switches on the actual
+                // value defensively rather than hardcoding one class, so it renders
+                // correctly if/when a real status is ever introduced.
+                badge.getStyleClass().add(switch (status) {
+                    case "CANCELLED" -> "status-cancelled";
+                    case "COMPLETED" -> "status-normal";
+                    default -> "status-pending";
+                });
+                Tooltip.install(badge, new Tooltip("Prescription status: " + status));
                 setGraphic(badge);
             }
         });

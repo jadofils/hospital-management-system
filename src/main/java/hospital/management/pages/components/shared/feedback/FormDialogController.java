@@ -1,9 +1,11 @@
 package hospital.management.pages.components.shared.feedback;
 
+import hospital.management.backend.utils.FxFormValidator;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.Control;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressIndicator;
 import javafx.scene.control.Tooltip;
@@ -12,6 +14,8 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -34,10 +38,15 @@ public class FormDialogController {
 
     private Consumer<Void> onSubmit;
     private boolean addMode = true;
+    private final List<Control> validatedControls = new ArrayList<>();
 
     public void initialize() {
         submitBtn.setOnAction(e -> {
             if (onSubmit == null) return;
+            if (FxFormValidator.hasErrors(validatedControls.toArray(new Control[0]))) {
+                setError("Please fix the highlighted fields before submitting.");
+                return;
+            }
             setLoading(true);
             onSubmit.accept(null);
         });
@@ -65,6 +74,7 @@ public class FormDialogController {
         }
         dialogError.setText("");
         fieldsBox.getChildren().clear();
+        validatedControls.clear();
         setLoading(false);
         dialogOverlay.setVisible(true);
         dialogOverlay.setManaged(true);
@@ -111,6 +121,12 @@ public class FormDialogController {
         VBox row = new VBox(4);
         row.getChildren().addAll(labelRow, control);
         fieldsBox.getChildren().add(row);
+
+        // Only plain Controls carry the input-error/input-valid CSS classes FxFormValidator
+        // toggles — a composite Node (e.g. a dropdown + its own spinner) isn't validated here.
+        if (control instanceof Control c) {
+            validatedControls.add(c);
+        }
     }
 
     /** Appends a fully custom row (e.g. two controls side by side). */
@@ -121,6 +137,7 @@ public class FormDialogController {
     /** Clears every field row previously added. */
     public void clearFields() {
         fieldsBox.getChildren().clear();
+        validatedControls.clear();
     }
 
     public void setError(String message) {

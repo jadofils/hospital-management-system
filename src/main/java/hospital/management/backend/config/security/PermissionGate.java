@@ -74,6 +74,15 @@ public final class PermissionGate {
         return role == null ? null : role.trim();
     }
 
+    /** Every role the current session's user holds — not just the "primary" one. */
+    public static List<String> currentRoles() {
+        try {
+            return SessionManager.getCurrentRoles();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
+
     public static boolean isAllowed(PageRoute route) {
         if (route == PageRoute.HOME || route == PageRoute.PROFILE) return true;
         if (isAdmin()) return true;
@@ -105,6 +114,14 @@ public final class PermissionGate {
 
     public static boolean canDelete(PageRoute route) {
         return hasPermission(route, "delete");
+    }
+
+    /** Whether the current session's user holds the admin role (checked across ALL of
+     *  their roles, not just the primary one) — exposed for record-level checks like
+     *  {@code OwnershipGuard} that need an admin-only gate independent of any specific
+     *  page route's generic CRUD permissions. */
+    public static boolean isCurrentUserAdmin() {
+        return isAdmin();
     }
 
     public static boolean hasPermission(PageRoute route, String action) {
@@ -186,23 +203,26 @@ public final class PermissionGate {
     }
 
     private static boolean isAdmin() {
-        String role = currentRole();
-        if (role == null) return false;
-        String normalized = role.trim().toLowerCase(Locale.ROOT)
-            .replace('-', ' ')
-            .replace('_', ' ');
-        return normalized.equals("admin")
-            || normalized.equals("administrator")
-            || normalized.contains("admin");
+        return currentRoles().stream().anyMatch(role -> {
+            String normalized = normalizeRoleName(role);
+            return normalized.equals("admin")
+                || normalized.equals("administrator")
+                || normalized.contains("admin");
+        });
     }
 
     private static boolean isDoctor() {
-        String role = currentRole();
-        if (role == null) return false;
-        String normalized = role.trim().toLowerCase(Locale.ROOT)
+        return currentRoles().stream().anyMatch(role -> {
+            String normalized = normalizeRoleName(role);
+            return normalized.equals("doctor")
+                || normalized.contains("doctor");
+        });
+    }
+
+    private static String normalizeRoleName(String role) {
+        if (role == null) return "";
+        return role.trim().toLowerCase(Locale.ROOT)
             .replace('-', ' ')
             .replace('_', ' ');
-        return normalized.equals("doctor")
-            || normalized.contains("doctor");
     }
 }

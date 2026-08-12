@@ -1,5 +1,7 @@
 package hospital.management.backend.dto.auth;
 
+import java.util.List;
+
 public class LoginResponseDTO {
 
     private String token;
@@ -7,15 +9,21 @@ public class LoginResponseDTO {
     private String userId;
     private String username;
     private String role;
+    private List<String> roles;
 
     public LoginResponseDTO() {}
 
     public LoginResponseDTO(String token, String sessionId, String userId, String username, String role) {
+        this(token, sessionId, userId, username, role, List.of(role));
+    }
+
+    public LoginResponseDTO(String token, String sessionId, String userId, String username, String role, List<String> roles) {
         this.token     = token;
         this.sessionId = sessionId;
         this.userId    = userId;
         this.username  = username;
         this.role      = role;
+        this.roles     = roles;
     }
 
     public String getToken() { return token; }
@@ -32,6 +40,9 @@ public class LoginResponseDTO {
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
+
+    public List<String> getRoles() { return roles; }
+    public void setRoles(List<String> roles) { this.roles = roles; }
 
     @Override
     public String toString() {

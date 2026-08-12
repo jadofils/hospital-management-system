@@ -20,7 +20,7 @@ import java.util.UUID;
 public class PatientDAOImpl implements PatientDAO {
 
     private static final String SELECT_COLUMNS =
-        "patient_id, first_name, last_name, dob, gender, phone, email, address, created_at, updated_at, deleted_at";
+        "patient_id, first_name, last_name, dob, gender, phone, email, address, status, created_at, updated_at, deleted_at";
 
     @Override
     public Patient save(Patient patient) throws Exception {
@@ -145,6 +145,22 @@ public class PatientDAOImpl implements PatientDAO {
     }
 
     @Override
+    public Patient updateStatus(String patientId, String status) throws Exception {
+        String sql = "UPDATE patients SET status = ? WHERE patient_id = ? AND deleted_at IS NULL RETURNING " + SELECT_COLUMNS;
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, status);
+            ps.setObject(2, UUID.fromString(patientId));
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) throw new ResourceNotFoundException("Patient", patientId);
+                return mapRow(rs);
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to update patient status: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void softDelete(String patientId) throws Exception {
         String sql = "UPDATE patients SET deleted_at = CURRENT_TIMESTAMP WHERE patient_id = ? AND deleted_at IS NULL";
         try (Connection conn = DBConnection.getConnection();
@@ -167,6 +183,7 @@ public class PatientDAOImpl implements PatientDAO {
         p.setPhone(rs.getString("phone"));
         p.setEmail(rs.getString("email"));
         p.setAddress(rs.getString("address"));
+        p.setStatus(rs.getString("status"));
         p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
         Timestamp updatedAt = rs.getTimestamp("updated_at");
         p.setUpdatedAt(updatedAt != null ? updatedAt.toLocalDateTime() : null);

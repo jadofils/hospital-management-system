@@ -11,6 +11,7 @@ import hospital.management.backend.dto.patient.UpdatePatientDTO;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.exceptions.ValidationException;
 import hospital.management.backend.mapper.patient.PatientMapper;
+import hospital.management.backend.model.enums.PatientStatus;
 import hospital.management.backend.model.patient.Patient;
 import hospital.management.backend.service.patient.interfaces.PatientService;
 import hospital.management.backend.utils.ValidatorUtils;
@@ -42,23 +43,15 @@ public class PatientServiceImpl implements PatientService {
         }
         ValidatorUtils.requireValidDateOfBirth(dto.getDob(), "Date of birth");
 
-        if (dto.getGender() != null && !dto.getGender().isBlank()) {
-            ValidatorUtils.requireValidGender(dto.getGender(), "Gender");
-        }
-
-        if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
-            ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "Phone");
-        }
+        ValidatorUtils.ifPresent(dto.getGender(), g -> ValidatorUtils.requireValidGender(g, "Gender"));
+        ValidatorUtils.ifPresent(dto.getPhone(), p -> ValidatorUtils.requireValidPhone(p, "Phone"));
+        ValidatorUtils.ifPresent(dto.getAddress(), a -> ValidatorUtils.requireMaxLength(a, 255, "Address"));
 
         if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
             ValidatorUtils.requireValidEmail(dto.getEmail(), "Email");
             if (patientDAO.findByEmail(dto.getEmail()).isPresent()) {
                 throw new ValidationException("email", "Email \"" + dto.getEmail() + "\" is already registered.");
             }
-        }
-
-        if (dto.getAddress() != null) {
-            ValidatorUtils.requireMaxLength(dto.getAddress(), 255, "Address");
         }
 
         Patient patient = PatientMapper.toEntity(dto);
@@ -126,14 +119,41 @@ public class PatientServiceImpl implements PatientService {
             }
             patient.setEmail(dto.getEmail());
         }
-        if (dto.getPhone() != null) patient.setPhone(dto.getPhone());
-        if (dto.getAddress() != null) patient.setAddress(dto.getAddress());
+        if (dto.getPhone() != null) {
+            ValidatorUtils.ifPresent(dto.getPhone(), p -> ValidatorUtils.requireValidPhone(p, "Phone"));
+            patient.setPhone(dto.getPhone());
+        }
+        if (dto.getAddress() != null) {
+            ValidatorUtils.ifPresent(dto.getAddress(), a -> ValidatorUtils.requireMaxLength(a, 255, "Address"));
+            patient.setAddress(dto.getAddress());
+        }
 
         // Delete-before-write: evict first so a concurrent reader never sees a stale hit.
         CacheService.evict(CacheKey.patient(patientId));
         CacheService.evictByPattern(CacheKey.ALL_PATIENTS);
         Patient saved = patientDAO.update(patient);
         ServiceAudit.record("patients", "update", patientId);
+        EventBus.publish(AppEventType.PATIENT_UPDATED, patientId);
+        return PatientMapper.toDTO(saved);
+    }
+
+    @Override
+    public PatientDTO updateStatus(String patientId, String status) throws Exception {
+        String rawStatus = ValidatorUtils.requireNonBlank(status, "status");
+        PatientStatus parsed;
+        try {
+            parsed = PatientStatus.fromDbValue(rawStatus);
+        } catch (IllegalArgumentException e) {
+            throw new ValidationException("status", "Invalid patient status: " + rawStatus);
+        }
+
+        patientDAO.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
+
+        CacheService.evict(CacheKey.patient(patientId));
+        CacheService.evictByPattern(CacheKey.ALL_PATIENTS);
+        Patient saved = patientDAO.updateStatus(patientId, parsed.getDbValue());
+        ServiceAudit.record("patients", "update-status", patientId);
         EventBus.publish(AppEventType.PATIENT_UPDATED, patientId);
         return PatientMapper.toDTO(saved);
     }

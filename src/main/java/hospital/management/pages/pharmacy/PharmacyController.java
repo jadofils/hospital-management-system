@@ -209,6 +209,7 @@ public class PharmacyController extends BasePageController {
                 .forEach(f -> f.getStyleClass().add("form-input"));
 
         FxFormValidator.attachRequired(nameField,    null, "Medication name");
+        FxFormValidator.attachNotPureNumeric(nameField, null, "Medication name");
         FxFormValidator.attachRequired(formField,    null, "Form");
         FxFormValidator.attachMaxLength(genericNameField, null, 200, "Generic name");
         unitPriceField.textProperty().addListener((obs, old, val) -> {
@@ -225,6 +226,12 @@ public class PharmacyController extends BasePageController {
 
             if (name.isBlank()) {
                 formDialogController.setError("Medication name is required.");
+                FxFormValidator.applyStyle(nameField, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (name.matches("\\d+")) {
+                formDialogController.setError("Medication name must be a name, not a number.");
                 FxFormValidator.applyStyle(nameField, false);
                 formDialogController.setLoading(false);
                 return;
@@ -303,8 +310,12 @@ public class PharmacyController extends BasePageController {
         expiryDate.getStyleClass().add("form-date-picker");
 
         FxFormValidator.attachRequired(batchNumber,     null, "Batch number");
-        FxFormValidator.attachNotPastDate(expiryDate,   null, "Expiry date");
-        FxFormValidator.disallowPastDates(expiryDate);
+        if (addMode) {
+            // A batch legitimately becomes past-expiry while it's still in inventory —
+            // this rule only makes sense when creating a brand-new batch.
+            FxFormValidator.attachNotPastDate(expiryDate, null, "Expiry date");
+            FxFormValidator.disallowPastDates(expiryDate);
+        }
         FxFormValidator.attachMaxLength(supplier,       null, 255, "Supplier");
         quantityInStock.textProperty().addListener((obs, old, val) -> {
             if (val == null || val.isBlank()) { FxFormValidator.clearStyle(quantityInStock); return; }
@@ -354,7 +365,7 @@ public class PharmacyController extends BasePageController {
                 formDialogController.setLoading(false);
                 return;
             }
-            if (expiryDate.getValue().isBefore(LocalDate.now())) {
+            if (addMode && expiryDate.getValue().isBefore(LocalDate.now())) {
                 formDialogController.setError("Expiry date cannot be in the past.");
                 FxFormValidator.applyStyle(expiryDate, false);
                 formDialogController.setLoading(false);

@@ -51,6 +51,14 @@ class ReferralDAOImplTest extends PostgresIntegrationTestBase {
     }
 
     private Appointment savedAppointment(String doctorId) throws Exception {
+        return savedAppointment(doctorId, LocalDateTime.now());
+    }
+
+    /** Use this overload whenever the same doctor gets a second appointment within a test —
+     *  uq_appointments_doctor_slot_active forbids two active rows for the same
+     *  (doctor_id, appointment_date), and two same-doctor calls to the no-arg overload in
+     *  quick succession aren't guaranteed to land on different timestamps. */
+    private Appointment savedAppointment(String doctorId, LocalDateTime date) throws Exception {
         Patient patient = new Patient();
         patient.setFirstName("Jane");
         patient.setLastName("Doe");
@@ -61,7 +69,7 @@ class ReferralDAOImplTest extends PostgresIntegrationTestBase {
         Appointment appointment = new Appointment();
         appointment.setPatientId(savedPatient.getPatientId());
         appointment.setDoctorId(doctorId);
-        appointment.setAppointmentDate(LocalDateTime.now());
+        appointment.setAppointmentDate(date);
         appointment.setReason("Checkup");
         return appointmentDao.save(appointment);
     }
@@ -166,8 +174,8 @@ class ReferralDAOImplTest extends PostgresIntegrationTestBase {
     void findByAppointmentId_returnsMatchingReferrals() throws Exception {
         Doctor referring = savedDoctor("referring@example.com");
         Doctor referredTo = savedDoctor("referred@example.com");
-        Appointment appointment = savedAppointment(referring.getDoctorId());
-        Appointment otherAppointment = savedAppointment(referring.getDoctorId());
+        Appointment appointment = savedAppointment(referring.getDoctorId(), LocalDateTime.now());
+        Appointment otherAppointment = savedAppointment(referring.getDoctorId(), LocalDateTime.now().plusHours(1));
         dao.save(sampleReferral(appointment.getAppointmentId(), referring.getDoctorId(), referredTo.getDoctorId()));
         dao.save(sampleReferral(otherAppointment.getAppointmentId(), referring.getDoctorId(), referredTo.getDoctorId()));
 
@@ -192,6 +200,23 @@ class ReferralDAOImplTest extends PostgresIntegrationTestBase {
 
         assertEquals(1, found.size());
         assertEquals(referring.getDoctorId(), found.get(0).getReferringDoctorId());
+    }
+
+    @Test
+    @DisplayName("findByReferredToDoctorId returns only referrals sent to that doctor")
+    void findByReferredToDoctorId_returnsMatchingReferrals() throws Exception {
+        Doctor referring = savedDoctor("referring2@example.com");
+        Doctor referredTo = savedDoctor("referred2@example.com");
+        Doctor unrelatedDoctor = savedDoctor("unrelated2@example.com");
+        Appointment appointment = savedAppointment(referring.getDoctorId());
+        Appointment otherAppointment = savedAppointment(unrelatedDoctor.getDoctorId());
+        dao.save(sampleReferral(appointment.getAppointmentId(), referring.getDoctorId(), referredTo.getDoctorId()));
+        dao.save(sampleReferral(otherAppointment.getAppointmentId(), unrelatedDoctor.getDoctorId(), referring.getDoctorId()));
+
+        List<Referral> found = dao.findByReferredToDoctorId(referredTo.getDoctorId());
+
+        assertEquals(1, found.size());
+        assertEquals(referredTo.getDoctorId(), found.get(0).getReferredToDoctorId());
     }
 
     @Test

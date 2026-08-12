@@ -45,7 +45,7 @@ public class UserTableController extends PaginatedTableController<UserDTO> {
         addSortOption("Email", emailColumn);
         addSortOption("Role", roleColumn);
         addSortOption("Status", statusColumn);
-        wireSingleActionColumn(changeStatusColumn, "fas-power-off",
+        wireSingleActionColumn(changeStatusColumn, "fas-power-off", "Activate or deactivate user",
                 item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         wireActionsColumn(actionsColumn);
     }

@@ -79,6 +79,7 @@ CREATE TABLE patients (
   phone        VARCHAR(20),
   email        VARCHAR(100),
   address      VARCHAR(255),
+  status       VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive')),
   created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   deleted_at   TIMESTAMP NULL
@@ -110,6 +111,11 @@ CREATE TABLE appointments (
 CREATE INDEX idx_appointments_date ON appointments(appointment_date);
 CREATE INDEX idx_appointments_doctor ON appointments(doctor_id);
 CREATE INDEX idx_appointments_patient ON appointments(patient_id);
+
+-- Prevents double-booking the same doctor at the exact same date/time — the
+-- authoritative guard behind AppointmentServiceImpl.book()'s race-safe insert.
+CREATE UNIQUE INDEX uq_appointments_doctor_slot_active
+  ON appointments(doctor_id, appointment_date) WHERE deleted_at IS NULL;
 
 CREATE TRIGGER trg_appointments_updated_at
   BEFORE UPDATE ON appointments
@@ -388,6 +394,11 @@ CREATE TABLE invoices (
 CREATE INDEX idx_invoices_patient ON invoices(patient_id);
 CREATE INDEX idx_invoices_status ON invoices(payment_status);
 
+-- Prevents two concurrent InvoiceServiceImpl.generate() calls for the same
+-- appointment from both inserting an invoice.
+CREATE UNIQUE INDEX uq_invoices_appointment_active
+  ON invoices(appointment_id) WHERE deleted_at IS NULL;
+
 CREATE TRIGGER trg_invoices_updated_at
   BEFORE UPDATE ON invoices
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -583,7 +594,7 @@ CREATE INDEX idx_system_logs_created ON system_logs(created_at);
 CREATE INDEX idx_system_logs_level ON system_logs(log_level);
 
 COMMIT;
-
+ 
 -- =====================================================================
 -- End of schema creation script.
 -- Next: hospital_rbac_seed_postgresql.sql → hospital_seed_data.sql

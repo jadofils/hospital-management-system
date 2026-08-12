@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -50,6 +51,7 @@ public class PermissionTableController extends PaginatedTableController<Permissi
             private final Button deleteBtn = new Button("", new FontIcon("fas-trash"));
             {
                 deleteBtn.getStyleClass().addAll("row-action-btn", "danger");
+                Tooltip.install(deleteBtn, new Tooltip("Delete permission"));
                 deleteBtn.setOnAction(e -> {
                     if (onDelete != null) onDelete.accept(getTableView().getItems().get(getIndex()));
                 });

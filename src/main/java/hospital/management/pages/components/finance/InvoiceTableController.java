@@ -47,8 +47,7 @@ public class InvoiceTableController extends PaginatedTableController<InvoiceDTO>
                 new SimpleStringProperty(appointmentDisplay(cell.getValue().getAppointmentId())));
         totalAmountColumn.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
         paymentStatusColumn.setCellValueFactory(new PropertyValueFactory<>("paymentStatus"));
-        changeStatusColumn.setText("Paid");
-        wireTextActionColumn(changeStatusColumn, "Mark Paid",
+        wireTextActionColumn(changeStatusColumn, "Mark Paid", "Mark invoice as paid",
                 invoice -> !STATUS_PAID.equalsIgnoreCase(invoice.getPaymentStatus()),
                 item -> { if (onChangeStatus != null) onChangeStatus.accept(item); });
         issuedAtColumn.setCellValueFactory(cell -> {

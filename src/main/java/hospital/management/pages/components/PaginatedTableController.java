@@ -10,6 +10,7 @@ import javafx.scene.control.Pagination;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -192,6 +193,9 @@ public abstract class PaginatedTableController<T> {
                 viewBtn.getStyleClass().add("row-action-btn");
                 editBtn.getStyleClass().add("row-action-btn");
                 deleteBtn.getStyleClass().addAll("row-action-btn", "danger");
+                Tooltip.install(viewBtn, new Tooltip("View"));
+                Tooltip.install(editBtn, new Tooltip("Edit"));
+                Tooltip.install(deleteBtn, new Tooltip("Delete"));
                 viewBtn.setOnAction(e -> {
                     if (onViewDetails != null) onViewDetails.accept(getTableView().getItems().get(getIndex()));
                 });
@@ -243,10 +247,21 @@ public abstract class PaginatedTableController<T> {
      * of tables whose entity has a lifecycle status.
      */
     protected void wireSingleActionColumn(TableColumn<T, Void> column, String iconLiteral, Consumer<T> onClick) {
+        wireSingleActionColumn(column, iconLiteral, "Change status", onClick);
+    }
+
+    /**
+     * Same as {@link #wireSingleActionColumn(TableColumn, String, Consumer)} but with an
+     * explicit tooltip, so the action's purpose is self-evident rather than relying on the
+     * icon alone (e.g. the "change status" flag icon is otherwise easy to mistake for a
+     * billing indicator).
+     */
+    protected void wireSingleActionColumn(TableColumn<T, Void> column, String iconLiteral, String tooltipText, Consumer<T> onClick) {
         column.setCellFactory(col -> new TableCell<>() {
             private final Button btn = new Button("", new FontIcon(iconLiteral));
             {
                 btn.getStyleClass().add("row-action-btn");
+                Tooltip.install(btn, new Tooltip(tooltipText));
                 btn.setOnAction(e -> {
                     if (onClick != null) onClick.accept(getTableView().getItems().get(getIndex()));
                 });
@@ -265,12 +280,13 @@ public abstract class PaginatedTableController<T> {
      * shown only on rows where {@code visible} evaluates to true. Used e.g. for the
      * billing "Paid" action, where a plain word reads better than an icon.
      */
-    protected void wireTextActionColumn(TableColumn<T, Void> column, String label,
+    protected void wireTextActionColumn(TableColumn<T, Void> column, String label, String tooltipText,
                                         Predicate<T> visible, Consumer<T> onClick) {
         column.setCellFactory(col -> new TableCell<>() {
             private final Button btn = new Button(label);
             {
                 btn.getStyleClass().add("row-action-btn");
+                Tooltip.install(btn, new Tooltip(tooltipText));
                 btn.setOnAction(e -> {
                     if (onClick != null) onClick.accept(getTableView().getItems().get(getIndex()));
                 });

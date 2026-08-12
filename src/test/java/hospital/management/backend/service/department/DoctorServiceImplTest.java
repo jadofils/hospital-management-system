@@ -142,6 +142,24 @@ class DoctorServiceImplTest {
         assertEquals(departmentId, result.getDepartmentId());
     }
 
+    @Test
+    @DisplayName("create allows a blank (empty-string) specialization since it's an optional field")
+    void create_allowsBlankSpecialization() throws Exception {
+        CreateDoctorDTO dto = new CreateDoctorDTO(null, "Sarah", "Chen", "", null, null);
+        when(doctorDAO.save(any(Doctor.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertDoesNotThrow(() -> service.create(dto));
+    }
+
+    @Test
+    @DisplayName("create throws IllegalArgumentException when specialization is entirely digits")
+    void create_throwsIllegalArgumentException_whenSpecializationPureNumeric() {
+        CreateDoctorDTO dto = new CreateDoctorDTO(null, "Sarah", "Chen", "12345", null, null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(dto));
+        verifyNoInteractions(doctorDAO);
+    }
+
     // ── update ────────────────────────────────────────────────────────────
 
     @Test

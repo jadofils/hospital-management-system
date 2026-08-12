@@ -39,6 +39,9 @@ public class FeedbackServiceImpl implements FeedbackService {
             throw new IllegalArgumentException("rating must not be null.");
         }
         ValidatorUtils.requireRange(dto.getRating(), 1, 5, "rating");
+        String comments = ValidatorUtils.requireNonBlank(dto.getComments(), "comments");
+        ValidatorUtils.requireMinLength(comments, 5, "comments");
+        ValidatorUtils.requireMaxLength(comments, 1000, "comments");
 
         // A single INSERT is already atomic — no TransactionManager needed here.
         CacheService.evict(CacheKey.feedback(patientId));

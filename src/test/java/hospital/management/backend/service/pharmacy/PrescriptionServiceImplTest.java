@@ -174,6 +174,16 @@ class PrescriptionServiceImplTest {
     }
 
     @Test
+    @DisplayName("issue throws ValidationException when dateIssued is in the future")
+    void issue_throwsValidationException_whenDateIssuedInFuture() {
+        CreatePrescriptionDTO dto = new CreatePrescriptionDTO(UUID.randomUUID().toString(),
+                LocalDate.now().plusDays(1), List.of(sampleItemDto(UUID.randomUUID().toString())));
+
+        assertThrows(ValidationException.class, () -> service.issue(dto));
+        verifyNoInteractions(prescriptionDAO, itemDAO);
+    }
+
+    @Test
     @DisplayName("issue defaults dateIssued to today when not supplied, then saves the header and every item "
             + "inside a single transaction")
     void issue_savesHeaderAndItems_whenValid() throws Exception {

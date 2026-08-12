@@ -62,6 +62,15 @@ class UserServiceImplTest {
     }
 
     @Test
+    @DisplayName("create throws IllegalArgumentException when username is shorter than the minimum length")
+    void create_throwsIllegalArgumentException_whenUsernameTooShort() {
+        CreateUserDTO dto = new CreateUserDTO(null, "jd", "password123", null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.create(dto));
+        verifyNoInteractions(userDAO);
+    }
+
+    @Test
     @DisplayName("create throws IllegalArgumentException when password is shorter than the minimum length")
     void create_throwsIllegalArgumentException_whenPasswordTooShort() {
         CreateUserDTO dto = new CreateUserDTO(null, "jane.doe", "short", null);

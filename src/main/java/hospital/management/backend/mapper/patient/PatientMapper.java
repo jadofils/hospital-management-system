@@ -26,6 +26,7 @@ public class PatientMapper {
             patient.getPhone(),
             patient.getEmail(),
             patient.getAddress(),
+            patient.getStatus(),
             patient.getCreatedAt(),
             patient.getUpdatedAt()
         );
@@ -44,7 +45,8 @@ public class PatientMapper {
             patient.getFullName(),
             label,
             patient.getPhone(),
-            patient.getEmail()
+            patient.getEmail(),
+            patient.getStatus()
         );
     }
 

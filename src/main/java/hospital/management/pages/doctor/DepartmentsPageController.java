@@ -105,6 +105,7 @@ public class DepartmentsPageController extends BasePageController {
         List.of(name, location, phone).forEach(f -> f.getStyleClass().add("form-input"));
 
         FxFormValidator.attachRequired(name,     null, "Department name");
+        FxFormValidator.attachNotPureNumeric(name, null, "Department name");
         FxFormValidator.attachMaxLength(location, null, 255, "Location");
         FxFormValidator.attachPhone(phone,        null);
 
@@ -120,6 +121,12 @@ public class DepartmentsPageController extends BasePageController {
             String loc = location.getText() == null ? "" : location.getText().trim();
             if (nm.isEmpty()) {
                 formDialogController.setError("Department name is required.");
+                FxFormValidator.applyStyle(name, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (nm.matches("\\d+")) {
+                formDialogController.setError("Department name must be a name, not a number.");
                 FxFormValidator.applyStyle(name, false);
                 formDialogController.setLoading(false);
                 return;

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,6 +19,23 @@ class JwtConfigTest {
         assertEquals("user-123", JwtConfig.getUserId(token));
         assertEquals("jane.doe", JwtConfig.getUsername(token));
         assertEquals("Doctor", JwtConfig.getRole(token));
+    }
+
+    @Test
+    @DisplayName("generateToken() with a 3-arg role also round-trips a single-element roles list")
+    void generateToken_threeArg_roundTripsSingleRoleList() {
+        String token = JwtConfig.generateToken("user-123", "jane.doe", "Doctor");
+
+        assertEquals(List.of("Doctor"), JwtConfig.getRoles(token));
+    }
+
+    @Test
+    @DisplayName("generateToken() with an explicit roles list round-trips every role, and primary role separately")
+    void generateToken_fourArg_roundTripsAllRoles() {
+        String token = JwtConfig.generateToken("user-123", "jane.doe", "Doctor", List.of("Doctor", "Admin"));
+
+        assertEquals("Doctor", JwtConfig.getRole(token));
+        assertEquals(List.of("Doctor", "Admin"), JwtConfig.getRoles(token));
     }
 
     @Test

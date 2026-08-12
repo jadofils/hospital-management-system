@@ -22,6 +22,7 @@ import hospital.management.backend.utils.listeners.AppEventType;
 import hospital.management.backend.utils.listeners.EventBus;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +43,7 @@ public class PharmacyServiceImpl implements PharmacyService {
     public MedicationDTO addMedication(CreateMedicationDTO dto) throws Exception {
         String name = ValidatorUtils.requireNonBlank(dto.getName(), "name");
         ValidatorUtils.requireMaxLength(name, 200, "name");
+        ValidatorUtils.requireNotPureNumeric(name, "name");
         if (dto.getForm() != null) {
             ValidatorUtils.requireNonBlank(dto.getForm(), "form");
         }
@@ -92,6 +94,12 @@ public class PharmacyServiceImpl implements PharmacyService {
         ValidatorUtils.requireNonBlank(dto.getBatchNumber(), "batchNumber");
         if (dto.getExpiryDate() == null) {
             throw new ValidationException("expiryDate", "Expiry date is required.");
+        }
+        // Mirrors PharmacyController's "not in the past" rule for a brand-new batch —
+        // updateStock() intentionally never re-checks this, since a batch legitimately
+        // becomes past-expiry while it still sits in inventory.
+        if (dto.getExpiryDate().isBefore(LocalDate.now())) {
+            throw new ValidationException("expiryDate", "Expiry date cannot be in the past.");
         }
         if (dto.getQuantityInStock() == null || dto.getQuantityInStock() < 0) {
             throw new ValidationException("quantityInStock", "Quantity in stock must be a non-negative number.");

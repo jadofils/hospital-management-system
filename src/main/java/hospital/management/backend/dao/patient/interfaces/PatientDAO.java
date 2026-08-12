@@ -13,5 +13,6 @@ public interface PatientDAO {
     PageResult<Patient> findAll(PageRequest request) throws Exception;
     PageResult<Patient> search(String query, PageRequest request) throws Exception;
     Patient update(Patient patient) throws Exception;
+    Patient updateStatus(String patientId, String status) throws Exception;
     void softDelete(String patientId) throws Exception;
 }

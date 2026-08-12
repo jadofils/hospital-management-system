@@ -48,10 +48,12 @@
     -fx-font-size: 0.857em;
     -fx-font-weight: bold;
 }
-.status-admitted   { -fx-background-color: #D6EAF8; -fx-text-fill: #1A5276; }
 .status-discharged { -fx-background-color: #D5F5E3; -fx-text-fill: #1E8449; }
 .status-pending    { -fx-background-color: #FDEBD0; -fx-text-fill: #784212; }
 .status-cancelled  { -fx-background-color: #FADBD8; -fx-text-fill: #922B21; }
+.status-paid           { -fx-background-color: #D5F5E3; -fx-text-fill: #1E8449; }
+.status-partially-paid { -fx-background-color: #FDEBD0; -fx-text-fill: #784212; }
+.status-normal          { -fx-background-color: #D5F5E3; -fx-text-fill: #1E8449; }
 
 /* Pagination */
 .pagination { -fx-padding: 0.571em 0 0 0; }

@@ -112,6 +112,26 @@ class FeedbackServiceImplTest {
     }
 
     @Test
+    @DisplayName("submit throws IllegalArgumentException when comments is blank")
+    void submit_throwsIllegalArgumentException_whenCommentsBlank() {
+        CreatePatientFeedbackDTO dto = new CreatePatientFeedbackDTO(
+                UUID.randomUUID().toString(), null, 5, "   ", null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.submit(dto));
+        verifyNoInteractions(feedbackDAO);
+    }
+
+    @Test
+    @DisplayName("submit throws IllegalArgumentException when comments is shorter than the minimum length")
+    void submit_throwsIllegalArgumentException_whenCommentsTooShort() {
+        CreatePatientFeedbackDTO dto = new CreatePatientFeedbackDTO(
+                UUID.randomUUID().toString(), null, 5, "Ok", null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.submit(dto));
+        verifyNoInteractions(feedbackDAO);
+    }
+
+    @Test
     @DisplayName("submit saves feedback with the validated fields when everything is valid")
     void submit_savesFeedback_whenValid() throws Exception {
         String patientId = UUID.randomUUID().toString();

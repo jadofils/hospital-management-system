@@ -82,6 +82,15 @@ class PharmacyServiceImplTest {
     }
 
     @Test
+    @DisplayName("addMedication throws IllegalArgumentException when name is entirely digits")
+    void addMedication_throwsIllegalArgumentException_whenNamePureNumeric() {
+        CreateMedicationDTO dto = new CreateMedicationDTO("12345", null, null, null);
+
+        assertThrows(IllegalArgumentException.class, () -> service.addMedication(dto));
+        verifyNoInteractions(medicationDAO);
+    }
+
+    @Test
     @DisplayName("addMedication throws ValidationException when unit price is negative")
     void addMedication_throwsValidationException_whenUnitPriceNegative() {
         CreateMedicationDTO dto = new CreateMedicationDTO("Paracetamol", null, null, new BigDecimal("-1.00"));
@@ -173,6 +182,17 @@ class PharmacyServiceImplTest {
     void addStock_throwsValidationException_whenExpiryDateMissing() {
         String medicationId = UUID.randomUUID().toString();
         CreateMedicalInventoryDTO dto = new CreateMedicalInventoryDTO(medicationId, "B1", null, 10, 5, "Acme");
+
+        assertThrows(ValidationException.class, () -> service.addStock(dto));
+        verifyNoInteractions(inventoryDAO);
+    }
+
+    @Test
+    @DisplayName("addStock throws ValidationException when expiryDate is in the past")
+    void addStock_throwsValidationException_whenExpiryDateInPast() {
+        String medicationId = UUID.randomUUID().toString();
+        CreateMedicalInventoryDTO dto = new CreateMedicalInventoryDTO(
+                medicationId, "B1", LocalDate.now().minusDays(1), 10, 5, "Acme");
 
         assertThrows(ValidationException.class, () -> service.addStock(dto));
         verifyNoInteractions(inventoryDAO);

@@ -3,11 +3,22 @@ package hospital.management.pages.patient;
 import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.pages.BasePageController;
 import hospital.management.pages.QuickAddCapable;
+import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
+import hospital.management.backend.dao.department.DepartmentDAOImpl;
+import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dao.patient.PatientDAOImpl;
+import hospital.management.backend.dto.clinical.AppointmentDTO;
+import hospital.management.backend.dto.doctor.DoctorSummaryDTO;
 import hospital.management.backend.dto.patient.CreatePatientDTO;
 import hospital.management.backend.dto.patient.PatientDTO;
 import hospital.management.backend.dto.patient.UpdatePatientDTO;
 import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.clinical.interfaces.AppointmentService;
+import hospital.management.backend.service.department.DepartmentServiceImpl;
+import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.service.department.interfaces.DepartmentService;
+import hospital.management.backend.service.department.interfaces.DoctorService;
 import hospital.management.backend.service.patient.interfaces.PatientService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
 import hospital.management.backend.utils.pagination.CursorPagination;
@@ -29,12 +40,18 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class PatientsPageController extends BasePageController implements QuickAddCapable {
 
     private final PatientService patientService = new PatientServiceImpl(new PatientDAOImpl());
+    private final DepartmentService departmentService = new DepartmentServiceImpl(new DepartmentDAOImpl());
+    private final DoctorService doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
+    private final AppointmentService appointmentService = new AppointmentServiceImpl(
+        new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
 
     @FXML private PatientTableController patientTableController;
     @FXML private AdvancedSearchController advancedSearchController;
@@ -42,13 +59,20 @@ public class PatientsPageController extends BasePageController implements QuickA
 
     @FXML private TextField searchField;
     @FXML private ComboBox<String> statusFilter;
+    @FXML private ComboBox<String> departmentFilter;
     @FXML private Button addPatientBtn;
     @FXML private Button importBtn;
     @FXML private Button exportBtn;
     @FXML private Button continueBtn;
     @FXML private Label totalLabel;
 
+    private static final String FILTER_ALL = "All";
+
     private List<PatientDTO> patients = new ArrayList<>();
+    private final Map<String, String> deptIdByName = new LinkedHashMap<>();
+    /** Non-null only while a specific department (not "All") is selected — distinguishes
+     *  "no department filter active" from "this department genuinely has zero patients". */
+    private Set<String> patientIdsInSelectedDepartment = null;
 
     public void initialize() {
         if (sidebarController != null) sidebarController.setActiveItem(PageRoute.PATIENTS);
@@ -58,6 +82,9 @@ public class PatientsPageController extends BasePageController implements QuickA
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         statusFilter.setOnAction(e -> applyFilter());
+        if (departmentFilter != null) {
+            departmentFilter.setOnAction(e -> onDepartmentFilterChanged());
+        }
 
         applyCreateVisibility(addPatientBtn, PageRoute.PATIENTS);
         applyCreateVisibility(importBtn, PageRoute.PATIENTS);
@@ -73,6 +100,7 @@ public class PatientsPageController extends BasePageController implements QuickA
             allowUpdate(PageRoute.PATIENTS, this::openPatientDialog),
             allowDelete(PageRoute.PATIENTS, this::confirmDeletePatient),
             allowRead(PageRoute.PATIENTS, this::viewPatientDetail));
+        patientTableController.setOnChangeStatus(canUpdate(PageRoute.PATIENTS) ? this::confirmToggleActive : null);
 
         if (advancedSearchController != null) {
             advancedSearchController.setOnSearch(this::applyAdvancedSearch);
@@ -88,7 +116,61 @@ public class PatientsPageController extends BasePageController implements QuickA
     }
 
     private void applyFilter() {
+        List<PatientDTO> visible = patients.stream()
+                .filter(p -> patientIdsInSelectedDepartment == null
+                        || patientIdsInSelectedDepartment.contains(p.getPatientId()))
+                .toList();
+        patientTableController.setItems(visible);
         patientTableController.filter(searchField.getText());
+    }
+
+    /** Populated from every non-deleted department, defaulting to "All" so nothing is
+     *  hidden until a specific department is picked — mirrors DoctorsPageController's
+     *  department filter and AppointmentsPageController's own copy of the same pattern. */
+    private void loadDepartmentFilter() {
+        try {
+            deptIdByName.clear();
+            String saved = departmentFilter.getValue();
+            departmentFilter.getItems().setAll(FILTER_ALL);
+            departmentService.findAll().stream()
+                .sorted(Comparator.comparing(d -> d.getName() == null ? "" : d.getName()))
+                .forEach(d -> {
+                    deptIdByName.put(d.getName(), d.getDepartmentId());
+                    departmentFilter.getItems().add(d.getName());
+                });
+            departmentFilter.setValue(saved != null && departmentFilter.getItems().contains(saved) ? saved : FILTER_ALL);
+            onDepartmentFilterChanged();
+        } catch (Exception e) {
+            // department filter is non-critical — silently skip on failure
+        }
+    }
+
+    /** Resolves the selected department to its patient ids (department -> doctors in it ->
+     *  those doctors' appointments -> distinct patients), then re-applies the filter. */
+    private void onDepartmentFilterChanged() {
+        try {
+            String selected = departmentFilter.getValue();
+            if (selected == null || FILTER_ALL.equals(selected)) {
+                patientIdsInSelectedDepartment = null;
+            } else {
+                String departmentId = deptIdByName.get(selected);
+                patientIdsInSelectedDepartment = departmentId == null ? Set.of() : patientIdsForDepartment(departmentId);
+            }
+        } catch (Exception e) {
+            toastError("Failed to load department patients: " + e.getMessage());
+            patientIdsInSelectedDepartment = null;
+        }
+        applyFilter();
+    }
+
+    private Set<String> patientIdsForDepartment(String departmentId) throws Exception {
+        Set<String> patientIds = new LinkedHashSet<>();
+        for (DoctorSummaryDTO doctor : doctorService.findByDepartment(departmentId)) {
+            for (AppointmentDTO appointment : appointmentService.findByDoctor(doctor.getDoctorId())) {
+                patientIds.add(appointment.getPatientId());
+            }
+        }
+        return patientIds;
     }
 
     /** Only patientId maps onto this page's data — doctor/date/status are Appointment-domain
@@ -102,7 +184,8 @@ public class PatientsPageController extends BasePageController implements QuickA
     private void refreshTable() {
         try {
             patients = patientService.findAll(CursorPagination.firstPage(500)).getItems();
-            patientTableController.setItems(patients);
+            if (departmentFilter != null) loadDepartmentFilter();
+            applyFilter();
             totalLabel.setText("Total: " + patients.size() + " patients");
         } catch (Exception e) {
             toastError("Failed to load patients: " + e.getMessage());
@@ -233,6 +316,22 @@ public class PatientsPageController extends BasePageController implements QuickA
         }
     }
 
+    private void confirmToggleActive(PatientDTO patient) {
+        boolean currentlyActive = !"inactive".equalsIgnoreCase(patient.getStatus());
+        String action = currentlyActive ? "Deactivate" : "Activate";
+        confirm(action + " Patient",
+                "Are you sure you want to " + action.toLowerCase() + " " + patient.getFullName() + "?",
+                () -> {
+                    try {
+                        patientService.updateStatus(patient.getPatientId(), currentlyActive ? "inactive" : "active");
+                        refreshTable();
+                        toastSuccess("Patient " + (currentlyActive ? "deactivated." : "activated.") );
+                    } catch (Exception e) {
+                        toastError("Failed to update patient status: " + e.getMessage());
+                    }
+                });
+    }
+
     private void confirmDeletePatient(PatientDTO patient) {
         confirm("Delete Patient",
                 "Are you sure you want to delete " + patient.getFullName() + "? This cannot be undone.",
@@ -279,7 +378,9 @@ public class PatientsPageController extends BasePageController implements QuickA
 
         // Real-time validation
         FxFormValidator.attachRequired(firstName, null, "First name");
+        FxFormValidator.attachName(firstName,     null, "First name");
         FxFormValidator.attachRequired(lastName,  null, "Last name");
+        FxFormValidator.attachName(lastName,      null, "Last name");
         FxFormValidator.attachDateRequired(dob,   null, "Date of birth");
         FxFormValidator.attachPastDate(dob,       null, "Date of birth");
         FxFormValidator.attachRequired(gender,    null, "Gender");

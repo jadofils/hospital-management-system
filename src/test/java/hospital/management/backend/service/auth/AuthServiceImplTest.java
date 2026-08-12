@@ -168,8 +168,27 @@ class AuthServiceImplTest {
         assertEquals(userId, response.getUserId());
         assertEquals("jane.doe", response.getUsername());
         assertEquals("Doctor", response.getRole());
+        assertEquals(List.of("Doctor"), response.getRoles());
         verify(userSessionDAO).save(any(), any(Connection.class));
         verify(auditLogDAO).save(any(), any(Connection.class));
+    }
+
+    @Test
+    @DisplayName("login embeds every assigned role for a multi-role user, with the first assignment as primary")
+    void login_succeeds_returnsAllRolesForMultiRoleUser() throws Exception {
+        String userId = UUID.randomUUID().toString();
+        User user = activeUser(userId, "correct-password");
+        when(userDAO.findByUsername("jane.doe")).thenReturn(Optional.of(user));
+        when(userRoleDAO.findByUserId(userId)).thenReturn(List.of(
+                new UserRole(userId, "role-1", null, null, null),
+                new UserRole(userId, "role-2", null, null, null)));
+        when(roleDAO.findById("role-1")).thenReturn(Optional.of(new Role("role-1", "Doctor", null, null, null)));
+        when(roleDAO.findById("role-2")).thenReturn(Optional.of(new Role("role-2", "Admin", null, null, null)));
+
+        LoginResponseDTO response = service.login(new LoginRequestDTO("jane.doe", "correct-password"));
+
+        assertEquals("Doctor", response.getRole());
+        assertEquals(List.of("Doctor", "Admin"), response.getRoles());
     }
 
     // ── changePassword ────────────────────────────────────────────────────

@@ -157,6 +157,23 @@ class ReferralServiceImplTest {
         assertEquals(2, result.size());
     }
 
+    // ── findByReferredToDoctor ────────────────────────────────────────────
+
+    @Test
+    @DisplayName("findByReferredToDoctor maps every DAO referral to a DTO")
+    void findByReferredToDoctor_mapsEveryReferral() throws Exception {
+        String doctorId = UUID.randomUUID().toString();
+        Referral r1 = sampleReferral(UUID.randomUUID().toString(), UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), doctorId);
+        Referral r2 = sampleReferral(UUID.randomUUID().toString(), UUID.randomUUID().toString(),
+                UUID.randomUUID().toString(), doctorId);
+        when(referralDAO.findByReferredToDoctorId(doctorId)).thenReturn(List.of(r1, r2));
+
+        List<ReferralDTO> result = service.findByReferredToDoctor(doctorId);
+
+        assertEquals(2, result.size());
+    }
+
     // ── updateStatus ──────────────────────────────────────────────────────
 
     @Test

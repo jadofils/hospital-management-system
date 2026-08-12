@@ -250,6 +250,7 @@ public class LabOrdersController extends BasePageController {
 
         FxFormValidator.attachRequired(testName, null, "Test name");
         FxFormValidator.attachMaxLength(testName, null, 200, "Test name");
+        FxFormValidator.attachNotPureNumeric(testName, null, "Test name");
 
         List<Control> otherFields = List.of(testName);
         otherFields.forEach(f -> f.setDisable(true));
@@ -276,6 +277,12 @@ public class LabOrdersController extends BasePageController {
             }
             if (test.length() > 200) {
                 formDialogController.setError("Test name must not exceed 200 characters.");
+                FxFormValidator.applyStyle(testName, false);
+                formDialogController.setLoading(false);
+                return;
+            }
+            if (test.matches("\\d+")) {
+                formDialogController.setError("Test name must be a name, not a number.");
                 FxFormValidator.applyStyle(testName, false);
                 formDialogController.setLoading(false);
                 return;

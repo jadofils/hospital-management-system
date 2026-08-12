@@ -3,6 +3,8 @@ package hospital.management.backend.config.security;
 import hospital.management.backend.exceptions.TokenExpiredException;
 import hospital.management.backend.exceptions.UnauthorizedException;
 
+import java.util.List;
+
 /**
  * In-memory session state for the currently logged-in user.
  *
@@ -22,6 +24,7 @@ public final class SessionManager {
     private static String currentUserId;
     private static String currentUsername;
     private static String currentRole;
+    private static List<String> currentRoles = List.of();
     private static String currentToken;
     private static String currentSessionId;
 
@@ -49,6 +52,7 @@ public final class SessionManager {
         currentUserId    = JwtConfig.getUserId(token);
         currentUsername  = JwtConfig.getUsername(token);
         currentRole      = JwtConfig.getRole(token);
+        currentRoles     = JwtConfig.getRoles(token);
         currentToken     = token;
         currentSessionId = sessionId;
         PermissionGate.invalidateCache();
@@ -59,6 +63,7 @@ public final class SessionManager {
         currentUserId    = null;
         currentUsername  = null;
         currentRole      = null;
+        currentRoles     = List.of();
         currentToken     = null;
         currentSessionId = null;
         PermissionGate.invalidateCache();
@@ -107,6 +112,15 @@ public final class SessionManager {
     public static String getCurrentRole() {
         requireLoggedIn();
         return currentRole;
+    }
+
+    /**
+     * Returns every role name the current user holds (not just the primary one).
+     * @throws UnauthorizedException if no session is active
+     */
+    public static List<String> getCurrentRoles() {
+        requireLoggedIn();
+        return currentRoles;
     }
 
     /**

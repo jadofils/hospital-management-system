@@ -122,17 +122,25 @@ class InvoiceDAOImplTest extends PostgresIntegrationTestBase {
     }
 
     /**
-     * invoices.appointment_id has NO UNIQUE constraint in hospital_schema.sql, even though
-     * InvoiceServiceImpl.generate() assumes at-most-one-invoice-per-appointment via a
-     * check-then-insert (findByAppointmentId then save) — the same class of gap already
-     * documented for patients.email in PatientDAOImplTest. This test documents the DAO's
-     * actual (permissive) behavior; a race between two concurrent generate() calls for the
-     * same appointment could both pass the check and both insert.
+     * uq_invoices_appointment_active enforces at-most-one-active-invoice-per-appointment at
+     * the DB level, backing up InvoiceServiceImpl.generate()'s check-then-insert so a race
+     * between two concurrent generate() calls for the same appointment can no longer both
+     * succeed — the second now fails with a constraint violation instead of silently
+     * inserting a duplicate invoice.
      */
     @Test
-    @DisplayName("save does not itself reject a second invoice for the same appointment — no UNIQUE(appointment_id) at the DB level")
-    void save_allowsDuplicateAppointmentId_atDaoLevel() throws Exception {
+    @DisplayName("save rejects a second active invoice for the same appointment (uq_invoices_appointment_active)")
+    void save_rejectsDuplicateAppointmentId_dueToUniqueConstraint() throws Exception {
         dao.save(sampleInvoice());
+
+        assertThrows(DatabaseException.class, () -> dao.save(sampleInvoice()));
+    }
+
+    @Test
+    @DisplayName("save allows a new invoice for the same appointment once the first is soft-deleted")
+    void save_allowsReissue_afterFirstInvoiceSoftDeleted() throws Exception {
+        Invoice first = dao.save(sampleInvoice());
+        dao.softDelete(first.getInvoiceId());
 
         assertDoesNotThrow(() -> dao.save(sampleInvoice()));
     }
@@ -214,12 +222,26 @@ class InvoiceDAOImplTest extends PostgresIntegrationTestBase {
     @DisplayName("findAll returns every non-deleted invoice")
     void findAll_returnsNonDeletedInvoices() throws Exception {
         dao.save(sampleInvoice());
-        Invoice toDelete = dao.save(sampleInvoice());
+        // A distinct appointment — uq_invoices_appointment_active forbids two active
+        // invoices sharing the same appointment_id.
+        Invoice secondInvoiceOtherAppointment = sampleInvoice();
+        secondInvoiceOtherAppointment.setAppointmentId(anotherAppointmentId());
+        Invoice toDelete = dao.save(secondInvoiceOtherAppointment);
         dao.softDelete(toDelete.getInvoiceId());
 
         PageResult<Invoice> page = dao.findAll(CursorPagination.firstPage());
 
         assertEquals(1, page.getCount());
+    }
+
+    /** A second appointment for the same patient/doctor pairing, at a different slot, so
+     *  tests needing >1 invoice don't collide with uq_invoices_appointment_active. */
+    private String anotherAppointmentId() throws Exception {
+        Appointment appointment = new Appointment();
+        appointment.setPatientId(patientId);
+        appointment.setDoctorId(appointmentDAO.findById(appointmentId).orElseThrow().getDoctorId());
+        appointment.setAppointmentDate(LocalDateTime.now().plusDays(2));
+        return appointmentDAO.save(appointment).getAppointmentId();
     }
 
     // ── updatePaymentStatus ───────────────────────────────────────────────

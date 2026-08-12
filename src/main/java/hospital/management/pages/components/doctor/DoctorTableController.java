@@ -8,6 +8,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import org.kordamp.ikonli.javafx.FontIcon;
@@ -81,6 +82,10 @@ public class DoctorTableController extends PaginatedTableController<DoctorDTO> {
                 assignBtn.getStyleClass().add("row-action-btn");
                 editBtn.getStyleClass().add("row-action-btn");
                 deleteBtn.getStyleClass().addAll("row-action-btn", "danger");
+                Tooltip.install(viewBtn, new Tooltip("View"));
+                Tooltip.install(assignBtn, new Tooltip("Assign role"));
+                Tooltip.install(editBtn, new Tooltip("Edit"));
+                Tooltip.install(deleteBtn, new Tooltip("Delete"));
                 viewBtn.setOnAction(e -> {
                     if (onViewDetails != null) onViewDetails.accept(getTableView().getItems().get(getIndex()));
                 });

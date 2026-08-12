@@ -10,17 +10,19 @@ public class Patient extends Person {
     private LocalDate dob;
     private String    gender;
     private String    address;
+    private String    status;
 
     public Patient() {}
 
     public Patient(String patientId, String firstName, String lastName,
                    LocalDate dob, String gender, String phone, String email,
-                   String address, LocalDateTime createdAt,
+                   String address, String status, LocalDateTime createdAt,
                    LocalDateTime updatedAt, LocalDateTime deletedAt) {
         super(patientId, firstName, lastName, phone, email);
         this.dob     = dob;
         this.gender  = gender;
         this.address = address;
+        this.status  = status;
         setCreatedAt(createdAt);
         setUpdatedAt(updatedAt);
         setDeletedAt(deletedAt);
@@ -50,4 +52,7 @@ public class Patient extends Person {
 
     public String getAddress() { return address; }
     public void setAddress(String address) { this.address = address; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
 }

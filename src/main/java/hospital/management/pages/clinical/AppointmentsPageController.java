@@ -17,12 +17,15 @@ import hospital.management.backend.service.finance.InvoiceServiceImpl;
 import hospital.management.backend.service.finance.interfaces.InvoiceService;
 import hospital.management.backend.dto.doctor.DoctorDTO;
 import hospital.management.backend.dto.doctor.DoctorScheduleDTO;
+import hospital.management.backend.dto.doctor.DoctorSummaryDTO;
 import hospital.management.backend.exceptions.AppException;
 import hospital.management.backend.model.enums.AppointmentStatus;
 import hospital.management.backend.service.clinical.AppointmentServiceImpl;
 import hospital.management.backend.service.clinical.interfaces.AppointmentService;
+import hospital.management.backend.service.department.DepartmentServiceImpl;
 import hospital.management.backend.service.department.DoctorScheduleServiceImpl;
 import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.service.department.interfaces.DepartmentService;
 import hospital.management.backend.service.department.interfaces.DoctorScheduleService;
 import hospital.management.backend.service.lookup.EntityLookupService;
 import hospital.management.backend.service.patient.PatientServiceImpl;
@@ -50,9 +53,11 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 public class AppointmentsPageController extends BasePageController implements QuickAddCapable {
 
@@ -64,6 +69,7 @@ public class AppointmentsPageController extends BasePageController implements Qu
         new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
     private final PatientServiceImpl patientService = new PatientServiceImpl(new PatientDAOImpl());
     private final DoctorServiceImpl doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
+    private final DepartmentService departmentService = new DepartmentServiceImpl(new DepartmentDAOImpl());
     private final DoctorScheduleService scheduleService = new DoctorScheduleServiceImpl(new DoctorScheduleDAOImpl());
     private final EntityLookupService entityLookupService = new EntityLookupService();
     private final InvoiceService invoiceService =
@@ -78,9 +84,14 @@ public class AppointmentsPageController extends BasePageController implements Qu
     @FXML private Button exportBtn;
     @FXML private Button continueBtn;
     @FXML private ComboBox<String> billingFilter;
+    @FXML private ComboBox<String> departmentFilter;
 
     private final List<AppointmentDTO> appointments = new ArrayList<>();
     private LocalDate selectedDate;
+    private final Map<String, String> deptIdByName = new LinkedHashMap<>();
+    /** Non-null only while a specific department (not "All") is selected — distinguishes
+     *  "no department filter active" from "this department genuinely has zero doctors". */
+    private Set<String> doctorIdsInSelectedDepartment = null;
 
     /** Populated when the Add/Edit Appointment dialog opens; used to re-filter the doctor
      *  dropdown whenever the appointment date changes. */
@@ -117,6 +128,10 @@ public class AppointmentsPageController extends BasePageController implements Qu
             billingFilter.setOnAction(e -> applyFilter());
         }
 
+        if (departmentFilter != null) {
+            departmentFilter.setOnAction(e -> onDepartmentFilterChanged());
+        }
+
         if (calendarController != null) {
             calendarController.setOnDateSelected(this::loadAppointmentsForDate);
         }
@@ -145,10 +160,50 @@ public class AppointmentsPageController extends BasePageController implements Qu
                 appointments.add(appointment);
             }
             selectedDate = null;
+            if (departmentFilter != null) loadDepartmentFilter();
             applyFilter();
         } catch (Exception e) {
             toastError("Failed to load appointments: " + e.getMessage());
         }
+    }
+
+    /** Mirrors DoctorsPageController's department filter — populated from every
+     *  non-deleted department, defaulting to "All" so nothing is hidden until picked. */
+    private void loadDepartmentFilter() {
+        try {
+            deptIdByName.clear();
+            String saved = departmentFilter.getValue();
+            departmentFilter.getItems().setAll(FILTER_ALL);
+            departmentService.findAll().stream()
+                .sorted(Comparator.comparing(d -> d.getName() == null ? "" : d.getName()))
+                .forEach(d -> {
+                    deptIdByName.put(d.getName(), d.getDepartmentId());
+                    departmentFilter.getItems().add(d.getName());
+                });
+            departmentFilter.setValue(saved != null && departmentFilter.getItems().contains(saved) ? saved : FILTER_ALL);
+            onDepartmentFilterChanged();
+        } catch (Exception e) {
+            // department filter is non-critical — silently skip on failure
+        }
+    }
+
+    /** Resolves the selected department to its doctor ids, then re-applies the filter. */
+    private void onDepartmentFilterChanged() {
+        try {
+            String selected = departmentFilter.getValue();
+            if (selected == null || FILTER_ALL.equals(selected)) {
+                doctorIdsInSelectedDepartment = null;
+            } else {
+                String departmentId = deptIdByName.get(selected);
+                doctorIdsInSelectedDepartment = departmentId == null ? Set.of() : doctorService.findByDepartment(departmentId)
+                        .stream().map(DoctorSummaryDTO::getDoctorId)
+                        .collect(Collectors.toSet());
+            }
+        } catch (Exception e) {
+            toastError("Failed to load department doctors: " + e.getMessage());
+            doctorIdsInSelectedDepartment = null;
+        }
+        applyFilter();
     }
 
     private void applyFilter() {
@@ -157,6 +212,7 @@ public class AppointmentsPageController extends BasePageController implements Qu
                         || (a.getAppointmentDate() != null
                             && a.getAppointmentDate().toLocalDate().equals(selectedDate)))
                 .filter(this::matchesBillingFilter)
+                .filter(a -> doctorIdsInSelectedDepartment == null || doctorIdsInSelectedDepartment.contains(a.getDoctorId()))
                 .toList();
         appointmentTableController.setItems(visible);
     }

@@ -8,6 +8,7 @@ import io.jsonwebtoken.Jwts;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.List;
 
 /**
  * JWE (encrypted JWT) generation and validation for user session tokens.
@@ -55,12 +56,25 @@ public final class JwtConfig {
      * @return compact JWE string safe to store in user_sessions or send to client
      */
     public static String generateToken(String userId, String username, String role) {
+        return generateToken(userId, username, role, List.of(role));
+    }
+
+    /**
+     * Same as {@link #generateToken(String, String, String)} but also embeds every
+     * role the user currently holds (not just the primary one), so a session can
+     * recognize ALL of a multi-role user's roles without a DB round-trip.
+     *
+     * @param roles every active role name the user holds; the primary role is kept
+     *              as its own claim for back-compat with code that only reads "role"
+     */
+    public static String generateToken(String userId, String username, String role, List<String> roles) {
         Date now    = new Date();
         Date expiry = new Date(now.getTime() + EXPIRY_MS);
         return Jwts.builder()
                    .subject(userId)
                    .claim("username", username)
                    .claim("role", role)
+                   .claim("roles", roles)
                    .issuedAt(now)
                    .expiration(expiry)
                    .encryptWith(KEY, Jwts.KEY.DIRECT, Jwts.ENC.A256GCM)
@@ -83,6 +97,21 @@ public final class JwtConfig {
     /** Extracts the RBAC role claim embedded at token generation time. */
     public static String getRole(String token) {
         return parseClaims(token).get("role", String.class);
+    }
+
+    /**
+     * Extracts every role name the user held at token generation time. Falls back
+     * to a single-element list of {@link #getRole} for tokens issued before the
+     * "roles" claim existed.
+     */
+    @SuppressWarnings("unchecked")
+    public static List<String> getRoles(String token) {
+        List<?> raw = parseClaims(token).get("roles", List.class);
+        if (raw == null) {
+            String role = getRole(token);
+            return role == null ? List.of() : List.of(role);
+        }
+        return (List<String>) raw;
     }
 
     /** Returns true if the token's expiry time is in the past. */

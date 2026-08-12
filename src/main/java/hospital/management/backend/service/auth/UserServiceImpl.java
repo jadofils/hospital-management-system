@@ -32,6 +32,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserDTO create(CreateUserDTO dto) throws Exception {
         String username = ValidatorUtils.requireNonBlank(dto.getUsername(), "username");
+        ValidatorUtils.requireMinLength(username, 3, "username");
+        ValidatorUtils.requireMaxLength(username, 50, "username");
         ValidatorUtils.requireNonBlank(dto.getPassword(), "password");
         ValidatorUtils.requireMinLength(dto.getPassword(), 8, "password");
 

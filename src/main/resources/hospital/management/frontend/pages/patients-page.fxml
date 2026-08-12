@@ -68,6 +68,8 @@
                     <Label text="Status:" styleClass="filter-label"/>
                 </HBox>
                 <ComboBox fx:id="statusFilter" prefWidth="140" styleClass="filter-combo"/>
+                <Label text="Department:" styleClass="filter-label"/>
+                <ComboBox fx:id="departmentFilter" prefWidth="150" styleClass="filter-combo"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <fx:include fx:id="sortBar" source="/hospital/management/frontend/components/sortbar/sort-bar.fxml"/>
             </HBox>

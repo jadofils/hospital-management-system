@@ -14,5 +14,6 @@ public interface PatientService {
     PageResult<PatientDTO> findAll(PageRequest request) throws Exception;
     PageResult<PatientSummaryDTO> search(String query, PageRequest request) throws Exception;
     PatientDTO update(UpdatePatientDTO dto) throws Exception;
+    PatientDTO updateStatus(String patientId, String status) throws Exception;
     void delete(String patientId) throws Exception;
 }

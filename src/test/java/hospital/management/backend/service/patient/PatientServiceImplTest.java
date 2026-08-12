@@ -182,6 +182,40 @@ class PatientServiceImplTest {
         verify(patientDAO, never()).findByEmail(anyString());
     }
 
+    // ── updateStatus ──────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("updateStatus throws ValidationException for an unrecognized status value")
+    void updateStatus_throwsValidationException_whenStatusInvalid() {
+        String id = UUID.randomUUID().toString();
+
+        assertThrows(ValidationException.class, () -> service.updateStatus(id, "archived"));
+    }
+
+    @Test
+    @DisplayName("updateStatus throws ResourceNotFoundException when the patient doesn't exist")
+    void updateStatus_throwsResourceNotFoundException_whenMissing() throws Exception {
+        String id = UUID.randomUUID().toString();
+        when(patientDAO.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> service.updateStatus(id, "inactive"));
+    }
+
+    @Test
+    @DisplayName("updateStatus normalizes the status and delegates to the DAO")
+    void updateStatus_delegatesToDao_whenValid() throws Exception {
+        String id = UUID.randomUUID().toString();
+        when(patientDAO.findById(id)).thenReturn(Optional.of(samplePatient(id)));
+        Patient updated = samplePatient(id);
+        updated.setStatus("inactive");
+        when(patientDAO.updateStatus(id, "inactive")).thenReturn(updated);
+
+        PatientDTO result = service.updateStatus(id, "INACTIVE");
+
+        assertEquals("inactive", result.getStatus());
+        verify(patientDAO).updateStatus(id, "inactive");
+    }
+
     // ── delete ────────────────────────────────────────────────────────────
 
     @Test

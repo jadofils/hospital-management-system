@@ -71,6 +71,11 @@ public class ReferralDAOImpl implements ReferralDAO {
         return findAllWhere("referring_doctor_id = ?", UUID.fromString(doctorId));
     }
 
+    @Override
+    public List<Referral> findByReferredToDoctorId(String doctorId) throws Exception {
+        return findAllWhere("referred_to_doctor_id = ?", UUID.fromString(doctorId));
+    }
+
     private List<Referral> findAllWhere(String predicate, Object param) throws Exception {
         String sql = QueryBuilder.select(SELECT_COLUMNS)
             .from("referrals")

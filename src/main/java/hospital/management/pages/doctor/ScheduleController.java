@@ -3,43 +3,72 @@ package hospital.management.pages.doctor;
 import hospital.management.pages.BasePageController;
 import hospital.management.backend.config.security.SessionManager;
 import hospital.management.backend.dao.auth.UserDAOImpl;
+import hospital.management.backend.dao.clinical.AppointmentDAOImpl;
 import hospital.management.backend.dao.department.DepartmentDAOImpl;
 import hospital.management.backend.dao.department.DoctorDAOImpl;
 import hospital.management.backend.dao.department.DoctorScheduleDAOImpl;
+import hospital.management.backend.dao.department.ReferralDAOImpl;
+import hospital.management.backend.dao.patient.PatientDAOImpl;
 import hospital.management.backend.dto.auth.UserDTO;
+import hospital.management.backend.dto.clinical.AppointmentDTO;
 import hospital.management.backend.dto.doctor.CreateDoctorScheduleDTO;
 import hospital.management.backend.dto.doctor.DoctorDTO;
 import hospital.management.backend.dto.doctor.DoctorScheduleDTO;
+import hospital.management.backend.dto.doctor.DoctorSummaryDTO;
+import hospital.management.backend.dto.doctor.ReferralDTO;
+import hospital.management.backend.dto.patient.PatientDTO;
 import hospital.management.backend.exceptions.AppException;
+import hospital.management.backend.model.enums.ReferralStatus;
 import hospital.management.backend.service.auth.UserServiceImpl;
 import hospital.management.backend.service.auth.interfaces.UserService;
+import hospital.management.backend.service.clinical.AppointmentServiceImpl;
+import hospital.management.backend.service.clinical.interfaces.AppointmentService;
 import hospital.management.backend.service.department.DoctorScheduleServiceImpl;
 import hospital.management.backend.service.department.DoctorServiceImpl;
+import hospital.management.backend.service.department.ReferralServiceImpl;
 import hospital.management.backend.service.department.interfaces.DoctorScheduleService;
 import hospital.management.backend.service.department.interfaces.DoctorService;
+import hospital.management.backend.service.department.interfaces.ReferralService;
+import hospital.management.backend.service.lookup.EntityLookupService;
+import hospital.management.backend.service.patient.PatientServiceImpl;
+import hospital.management.backend.service.patient.interfaces.PatientService;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.doctor.DoctorScheduleTableController;
+import hospital.management.pages.components.doctor.ReferralTableController;
+import hospital.management.pages.components.patient.PatientTableController;
 import hospital.management.pages.components.shared.sort.SortBarController;
 import hospital.management.pages.components.shared.widgets.TimeField;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class ScheduleController extends BasePageController {
 
     private final DoctorScheduleService scheduleService = new DoctorScheduleServiceImpl(new DoctorScheduleDAOImpl());
     private final DoctorService doctorService = new DoctorServiceImpl(new DoctorDAOImpl(), new DepartmentDAOImpl());
     private final UserService userService = new UserServiceImpl(new UserDAOImpl());
+    private final ReferralService referralService = new ReferralServiceImpl(new ReferralDAOImpl());
+    private final AppointmentService appointmentService = new AppointmentServiceImpl(
+            new AppointmentDAOImpl(), new PatientDAOImpl(), new DoctorDAOImpl());
+    private final PatientService patientService = new PatientServiceImpl(new PatientDAOImpl());
+    private final EntityLookupService entityLookupService = new EntityLookupService();
 
     private static final Map<String, String> DAY_ABBREVIATIONS = Map.of(
             "Monday", "Mon", "Tuesday", "Tue", "Wednesday", "Wed",
@@ -56,6 +85,21 @@ public class ScheduleController extends BasePageController {
     @FXML private ComboBox<String> doctorSelector;
     @FXML private Button addSlotBtn;
     @FXML private Button continueBtn;
+
+    // Doctor-only dashboard tabs — added to/removed from scheduleTabPane in code,
+    // since Tab has no visible/managed property to gate on FXML alone.
+    @FXML private TabPane scheduleTabPane;
+    @FXML private Tab incomingReferralsTab;
+    @FXML private Tab myPatientsTab;
+    @FXML private Tab myDepartmentTab;
+    @FXML private ReferralTableController incomingReferralsTableController;
+    @FXML private PatientTableController myPatientsTableController;
+    @FXML private Label departmentNameLabel;
+    @FXML private TableView<DoctorSummaryDTO> colleagueTable;
+    @FXML private TableColumn<DoctorSummaryDTO, String> colleagueNameColumn;
+    @FXML private TableColumn<DoctorSummaryDTO, String> colleagueSpecializationColumn;
+    @FXML private TableColumn<DoctorSummaryDTO, String> colleagueDepartmentColumn;
+    @FXML private PatientTableController departmentPatientsTableController;
 
     private static final String ALL_DOCTORS_LABEL = "All Doctors";
 
@@ -86,6 +130,10 @@ public class ScheduleController extends BasePageController {
             allowDelete(PageRoute.MY_SCHEDULE, this::confirmDeleteSchedule),
             allowRead(PageRoute.MY_SCHEDULE, this::viewScheduleDetail));
 
+        colleagueNameColumn.setCellValueFactory(new PropertyValueFactory<>("fullName"));
+        colleagueSpecializationColumn.setCellValueFactory(new PropertyValueFactory<>("specialization"));
+        colleagueDepartmentColumn.setCellValueFactory(new PropertyValueFactory<>("departmentName"));
+
         try {
             UserDTO user = userService.findById(SessionManager.getCurrentUserId());
             ownDoctorId = (user.getDoctorId() == null || user.getDoctorId().isBlank()) ? null : user.getDoctorId();
@@ -101,6 +149,16 @@ public class ScheduleController extends BasePageController {
         if (actingForOthers) {
             loadDoctorSelector();
             doctorSelector.setOnAction(e -> refreshTable());
+            // These tabs only make sense when the viewer IS the doctor — an admin/receptionist
+            // picking between doctors' schedules has no "mine" to show.
+            scheduleTabPane.getTabs().removeAll(incomingReferralsTab, myPatientsTab, myDepartmentTab);
+        } else {
+            // Quick-glance tabs: no view/edit/delete — the doctor can act on a referral's
+            // status here, but patient records/roster edits belong on their dedicated pages.
+            incomingReferralsTableController.setOnChangeStatus(this::openIncomingReferralStatusDialog);
+            myPatientsTableController.hideChangeStatusColumn();
+            departmentPatientsTableController.hideChangeStatusColumn();
+            loadDoctorDashboardTabs();
         }
 
         if (sortBarController != null) {
@@ -109,6 +167,95 @@ public class ScheduleController extends BasePageController {
         }
 
         refreshTable();
+    }
+
+    /** Populates the three doctor-only tabs: referrals sent to this doctor, patients this
+     *  doctor has appointments with, and this doctor's department colleagues/patients. */
+    private void loadDoctorDashboardTabs() {
+        try {
+            incomingReferralsTableController.setItems(referralService.findByReferredToDoctor(ownDoctorId));
+        } catch (Exception e) {
+            toastError("Failed to load incoming referrals: " + e.getMessage());
+        }
+
+        try {
+            myPatientsTableController.setItems(patientsForDoctors(List.of(ownDoctorId)));
+        } catch (Exception e) {
+            toastError("Failed to load your patients: " + e.getMessage());
+        }
+
+        try {
+            DoctorDTO ownDoctor = doctorService.findById(ownDoctorId);
+            String departmentId = ownDoctor.getDepartmentId();
+            if (departmentId == null || departmentId.isBlank()) {
+                departmentNameLabel.setText("Not assigned to a department.");
+                colleagueTable.setItems(javafx.collections.FXCollections.observableArrayList());
+                departmentPatientsTableController.setItems(List.of());
+                return;
+            }
+            departmentNameLabel.setText(entityLookupService.departmentLabel(departmentId));
+
+            List<DoctorSummaryDTO> departmentDoctors = doctorService.findByDepartment(departmentId);
+            List<DoctorSummaryDTO> colleagues = departmentDoctors.stream()
+                    .filter(d -> !ownDoctorId.equals(d.getDoctorId()))
+                    .toList();
+            colleagueTable.setItems(javafx.collections.FXCollections.observableArrayList(colleagues));
+
+            List<String> departmentDoctorIds = departmentDoctors.stream().map(DoctorSummaryDTO::getDoctorId).toList();
+            departmentPatientsTableController.setItems(patientsForDoctors(departmentDoctorIds));
+        } catch (Exception e) {
+            toastError("Failed to load department info: " + e.getMessage());
+        }
+    }
+
+    /** Every distinct patient with at least one appointment against any of the given doctors. */
+    private List<PatientDTO> patientsForDoctors(List<String> doctorIds) throws Exception {
+        Set<String> patientIds = new LinkedHashSet<>();
+        for (String doctorId : doctorIds) {
+            for (AppointmentDTO appointment : appointmentService.findByDoctor(doctorId)) {
+                patientIds.add(appointment.getPatientId());
+            }
+        }
+        List<PatientDTO> patients = new ArrayList<>();
+        for (String patientId : patientIds) {
+            try {
+                patients.add(patientService.findById(patientId));
+            } catch (Exception ignored) {
+                // A patient looked up via a stale appointment reference — skip rather than fail the whole tab.
+            }
+        }
+        return patients;
+    }
+
+    /** Minimal single-field dialog for changing an incoming referral's status, mirroring
+     *  ReferralsController's own status dialog for the full referrals page. */
+    private void openIncomingReferralStatusDialog(ReferralDTO referral) {
+        ComboBox<String> status = new ComboBox<>();
+        status.getStyleClass().add("form-combo");
+        status.getItems().addAll("Pending", "Scheduled", "Completed");
+        status.setValue(referral.getStatus() == null ? null : ReferralStatus.fromDbValue(referral.getStatus()).getLabel());
+
+        formDialogController.open("Change Referral Status", "fas-flag", false, v -> {
+            if (status.getValue() == null) {
+                formDialogController.setError("Status is required.");
+                formDialogController.setLoading(false);
+                return;
+            }
+            try {
+                referralService.updateStatus(referral.getReferralId(), status.getValue());
+                incomingReferralsTableController.setItems(referralService.findByReferredToDoctor(ownDoctorId));
+                formDialogController.close();
+                toastSuccess("Referral status updated.");
+            } catch (AppException ex) {
+                formDialogController.setError(ex.getMessage());
+                formDialogController.setLoading(false);
+            } catch (Exception ex) {
+                formDialogController.setError("Failed to update referral status: " + ex.getMessage());
+                formDialogController.setLoading(false);
+            }
+        });
+
+        formDialogController.addField("Status", "fas-flag", status);
     }
 
     /** Populates the doctor picker used by non-doctor accounts (e.g. admin) to manage any doctor's availability.

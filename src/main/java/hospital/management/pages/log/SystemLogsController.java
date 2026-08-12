@@ -5,6 +5,7 @@ import hospital.management.backend.dao.log.SystemLogDAOImpl;
 import hospital.management.backend.dto.log.SystemLogDTO;
 import hospital.management.backend.service.log.SystemLogServiceImpl;
 import hospital.management.backend.service.log.interfaces.SystemLogService;
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.log.SystemLogTableController;
@@ -44,6 +45,7 @@ public class SystemLogsController extends BasePageController {
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         levelFilter.setOnAction(e -> refreshTable());
+        FxFormValidator.attachDateRange(fromDatePicker, toDatePicker, null);
 
         purgeBtn.setOnAction(e -> confirmPurgeLogs());
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportCsv));

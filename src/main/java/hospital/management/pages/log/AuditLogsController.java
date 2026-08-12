@@ -5,6 +5,7 @@ import hospital.management.backend.dao.log.AuditLogDAOImpl;
 import hospital.management.backend.dto.log.AuditLogDTO;
 import hospital.management.backend.service.log.AuditServiceImpl;
 import hospital.management.backend.service.log.interfaces.AuditService;
+import hospital.management.backend.utils.FxFormValidator;
 import hospital.management.backend.utils.pagination.CursorPagination;
 import hospital.management.enums.PageRoute;
 import hospital.management.pages.components.log.AuditLogTableController;
@@ -48,6 +49,7 @@ public class AuditLogsController extends BasePageController {
 
         searchField.textProperty().addListener((obs, o, n) -> applyFilter());
         actionFilter.setOnAction(e -> applyFilter());
+        FxFormValidator.attachDateRange(fromDatePicker, toDatePicker, null);
         exportBtn.setOnAction(e -> withSpinner(exportBtn, this::exportCsv));
 
         if (sortBarController != null) {

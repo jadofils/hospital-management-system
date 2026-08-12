@@ -74,6 +74,15 @@ public class ReferralServiceImpl implements ReferralService {
     }
 
     @Override
+    public List<ReferralDTO> findByReferredToDoctor(String doctorId) throws Exception {
+        List<ReferralDTO> dtos = new ArrayList<>();
+        for (Referral referral : referralDAO.findByReferredToDoctorId(doctorId)) {
+            dtos.add(ReferralMapper.toDTO(referral));
+        }
+        return dtos;
+    }
+
+    @Override
     public ReferralDTO updateStatus(String referralId, String status) throws Exception {
         String rawStatus = ValidatorUtils.requireNonBlank(status, "status");
         ReferralStatus parsed;

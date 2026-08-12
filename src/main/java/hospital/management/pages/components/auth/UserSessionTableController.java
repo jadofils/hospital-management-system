@@ -7,6 +7,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import org.kordamp.ikonli.javafx.FontIcon;
 
@@ -63,6 +64,7 @@ public class UserSessionTableController extends PaginatedTableController<UserSes
             private final Button revokeBtn = new Button("", new FontIcon("fas-sign-out-alt"));
             {
                 revokeBtn.getStyleClass().addAll("row-action-btn", "danger");
+                Tooltip.install(revokeBtn, new Tooltip("Revoke session"));
                 revokeBtn.setOnAction(e -> {
                     if (onRevoke != null) onRevoke.accept(getTableView().getItems().get(getIndex()));
                 });

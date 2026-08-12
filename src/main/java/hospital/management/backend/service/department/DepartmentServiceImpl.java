@@ -31,6 +31,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     public DepartmentDTO create(CreateDepartmentDTO dto) throws Exception {
         String name = ValidatorUtils.requireNonBlank(dto.getName(), "name");
         ValidatorUtils.requireMaxLength(name, 200, "name");
+        ValidatorUtils.requireNotPureNumeric(name, "name");
         if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
             ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "phone");
         }
@@ -82,6 +83,7 @@ public class DepartmentServiceImpl implements DepartmentService {
 
         String name = ValidatorUtils.requireNonBlank(dto.getName(), "name");
         ValidatorUtils.requireMaxLength(name, 200, "name");
+        ValidatorUtils.requireNotPureNumeric(name, "name");
         if (dto.getPhone() != null && !dto.getPhone().isBlank()) {
             ValidatorUtils.requireValidPhone(dto.getPhone().trim(), "phone");
         }

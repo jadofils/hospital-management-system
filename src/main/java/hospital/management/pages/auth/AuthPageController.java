@@ -273,7 +273,7 @@ public class AuthPageController {
             } catch (Exception ignore) {}
 
             boolean blocked = MaintenanceGate.isBlocked(
-                SessionManager.getCurrentUserId(), SessionManager.getCurrentRole());
+                SessionManager.getCurrentUserId(), SessionManager.getCurrentRoles());
             if (blocked) {
                 navigateToStatusPage();
             } else {

@@ -8,6 +8,7 @@ import hospital.management.backend.dto.auth.CreatePermissionDTO;
 import hospital.management.backend.dto.auth.CreateRoleDTO;
 import hospital.management.backend.dto.auth.PermissionDTO;
 import hospital.management.backend.dto.auth.RoleDTO;
+import hospital.management.backend.config.security.OwnershipGuard;
 import hospital.management.backend.exceptions.AppException;
 import hospital.management.backend.service.auth.PermissionServiceImpl;
 import hospital.management.backend.service.auth.RoleServiceImpl;
@@ -18,6 +19,7 @@ import hospital.management.pages.BasePageController;
 import hospital.management.pages.components.auth.PermissionCardsController;
 import hospital.management.pages.components.auth.RoleTableController;
 import hospital.management.pages.components.shared.sort.SortBarController;
+import hospital.management.pages.utils.PermissionDisplayFormatter;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
@@ -113,11 +115,8 @@ public class RolesPageController extends BasePageController {
         fields.put("Role Name", role.getRoleName());
         fields.put("Permission Count", permissionCountByRoleId.getOrDefault(role.getRoleId(), "0"));
         try {
-            String assigned = roleService.findPermissionsForRole(role.getRoleId()).stream()
-                    .map(p -> p.getResource() + ":" + p.getAction())
-                    .reduce((a, b) -> a + ", " + b)
-                    .orElse("None");
-            fields.put("Permissions", assigned);
+            fields.put("Permissions", PermissionDisplayFormatter.groupedByResource(
+                    roleService.findPermissionsForRole(role.getRoleId())));
         } catch (Exception ex) {
             toastError("Failed to load permissions: " + ex.getMessage());
         }
@@ -131,6 +130,7 @@ public class RolesPageController extends BasePageController {
                         + "Any user currently assigned this role will lose it. This cannot be undone.",
                 () -> {
                     try {
+                        OwnershipGuard.requireNotOwnRole(roleService, role.getRoleId());
                         roleService.delete(role.getRoleId());
                         refreshRoles();
                         toastSuccess("Role deleted.");
@@ -239,6 +239,12 @@ public class RolesPageController extends BasePageController {
             }
             try {
                 RoleDTO saved = addMode ? roleService.create(new CreateRoleDTO(roleName)) : role;
+                boolean permissionsChanged = checkboxByPermissionId.entrySet().stream().anyMatch(entry ->
+                        entry.getValue().isSelected() != assignedIds.contains(entry.getKey()));
+                if (permissionsChanged) {
+                    OwnershipGuard.requireAdminForRoleAssignment();
+                    if (!addMode) OwnershipGuard.requireNotOwnRole(roleService, role.getRoleId());
+                }
                 for (Map.Entry<String, CheckBox> entry : checkboxByPermissionId.entrySet()) {
                     boolean checked = entry.getValue().isSelected();
                     boolean wasAssigned = assignedIds.contains(entry.getKey());

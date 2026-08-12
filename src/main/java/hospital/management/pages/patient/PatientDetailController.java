@@ -279,7 +279,9 @@ public class PatientDetailController extends BasePageController {
 
         // Real-time validators
         FxFormValidator.attachRequired(firstName, null, "First name");
+        FxFormValidator.attachName(firstName,     null, "First name");
         FxFormValidator.attachRequired(lastName,  null, "Last name");
+        FxFormValidator.attachName(lastName,      null, "Last name");
         FxFormValidator.attachDateRequired(dob,   null, "Date of birth");
         FxFormValidator.attachPastDate(dob,       null, "Date of birth");
         FxFormValidator.attachPhone(phone,        null);
@@ -655,8 +657,11 @@ public class PatientDetailController extends BasePageController {
             if (currentPatient == null || noteText == null || noteText.trim().isEmpty()) {
                 return;
             }
-            String role = SessionManager.getCurrentRole();
-            if (!("doctor".equalsIgnoreCase(role) || "admin".equalsIgnoreCase(role))) {
+            java.util.List<String> roles = SessionManager.getCurrentRoles();
+            String role = roles.stream().filter("doctor"::equalsIgnoreCase).findFirst()
+                    .or(() -> roles.stream().filter("admin"::equalsIgnoreCase).findFirst())
+                    .orElse(null);
+            if (role == null) {
                 return;
             }
             patientNotesNoSqlService.saveNote(

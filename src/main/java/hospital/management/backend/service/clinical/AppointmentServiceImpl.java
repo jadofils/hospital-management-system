@@ -11,6 +11,7 @@ import hospital.management.backend.dto.clinical.AppointmentDTO;
 import hospital.management.backend.dto.clinical.AppointmentSummaryDTO;
 import hospital.management.backend.dto.clinical.CreateAppointmentDTO;
 import hospital.management.backend.dto.clinical.UpdateAppointmentDTO;
+import hospital.management.backend.exceptions.DatabaseException;
 import hospital.management.backend.exceptions.ResourceNotFoundException;
 import hospital.management.backend.exceptions.ValidationException;
 import hospital.management.backend.mapper.clinical.AppointmentMapper;
@@ -49,10 +50,28 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (dto.getAppointmentDate() == null) {
             throw new ValidationException("appointmentDate", "appointmentDate must not be null.");
         }
+        // Mirrors AppointmentsPageController's "not in the past" rule for new bookings —
+        // update()/cancel() intentionally don't re-check this so a past appointment can
+        // still be marked completed/cancelled after the fact.
+        if (dto.getAppointmentDate().isBefore(java.time.LocalDateTime.now())) {
+            throw new ValidationException("appointmentDate", "Appointment date cannot be in the past.");
+        }
 
-        // Single INSERT is already atomic — no TransactionManager needed here.
+        // Single INSERT is already atomic — no TransactionManager needed here. Concurrent
+        // double-booking of the same doctor/slot is instead prevented by a DB-level unique
+        // index (uq_appointments_doctor_slot_active); a race that slips past this point
+        // still can't produce two rows, it just surfaces as the constraint violation below.
         CacheService.evictByPattern(CacheKey.ALL_APPOINTMENTS);
-        Appointment saved = appointmentDAO.save(AppointmentMapper.toEntity(dto));
+        Appointment saved;
+        try {
+            saved = appointmentDAO.save(AppointmentMapper.toEntity(dto));
+        } catch (DatabaseException e) {
+            if (isUniqueViolation(e)) {
+                throw new ValidationException("appointmentDate",
+                        "This doctor already has an appointment scheduled at this exact date and time.");
+            }
+            throw e;
+        }
         ServiceAudit.record("appointments", "create", saved.getAppointmentId());
         EventBus.publish(AppEventType.APPOINTMENT_BOOKED, saved.getAppointmentId());
         return AppointmentMapper.toDTO(saved);
@@ -144,6 +163,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointmentDAO.softDelete(appointmentId);
         ServiceAudit.record("appointments", "delete", appointmentId);
         EventBus.publish(AppEventType.APPOINTMENT_CANCELLED, appointmentId);
+    }
+
+    /** True if a DatabaseException was caused by a Postgres unique_violation (SQLSTATE 23505). */
+    private static boolean isUniqueViolation(DatabaseException e) {
+        Throwable cause = e.getCause();
+        return cause instanceof java.sql.SQLException sqlEx && "23505".equals(sqlEx.getSQLState());
     }
 
     // ── Name resolution for AppointmentSummaryDTO ─────────────────────────────

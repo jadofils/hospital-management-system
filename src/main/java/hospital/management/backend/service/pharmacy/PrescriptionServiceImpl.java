@@ -63,6 +63,13 @@ public class PrescriptionServiceImpl implements PrescriptionService {
             }
         }
 
+        // Mirrors PrescriptionsController's "date issued cannot be in the future" UI rule —
+        // the UI additionally requires it to equal today exactly, but callers outside the UI
+        // (e.g. CSV import) are only held to the same "not in the future" floor as the DB record.
+        if (dto.getDateIssued() != null && dto.getDateIssued().isAfter(LocalDate.now())) {
+            throw new ValidationException("dateIssued", "Date issued cannot be in the future.");
+        }
+
         Prescription prescription = PrescriptionMapper.toEntity(dto);
         if (prescription.getDateIssued() == null) {
             prescription.setDateIssued(LocalDate.now());
