@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DataSourcePerFileMappings">
+    <file url="file://$PROJECT_DIR$/src/main/java/hospital/management/backend/dao/patient/PatientDAOImpl.java" value="573b2c39-f209-4dd2-8057-6819a5b2e296" />
+    <file url="file://$PROJECT_DIR$/src/main/java/hospital/management/backend/service/analytics/DatabaseInspectionService.java" value="573b2c39-f209-4dd2-8057-6819a5b2e296" />
+  </component>
+</project>
